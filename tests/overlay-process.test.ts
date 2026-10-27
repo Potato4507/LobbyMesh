@@ -4,13 +4,13 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import type { RecordV1 } from "../packages/security/src/records.js";
 
-function child(argument: string) {
+function child(argument: string, fixture = "overlay-process.ts") {
   const processChild: ChildProcess = spawn(
     process.execPath,
     [
       "--import",
       "tsx",
-      fileURLToPath(new URL("./fixtures/overlay-process.ts", import.meta.url)),
+      fileURLToPath(new URL(`./fixtures/${fixture}`, import.meta.url)),
       argument,
     ],
     { stdio: ["ignore", "pipe", "pipe", "ipc"] },
@@ -142,6 +142,53 @@ test(
     assert.equal(lookup.routing.state, "exhausted");
     assert.equal(lookup.routing.failures, 0);
     for (const peer of [c, b, a])
+      assert.equal(await peer.command("stop"), "stopped");
+    await bootstrap.command("stop").catch(() => {});
+  },
+);
+
+test(
+  "runtime discovers and authenticates another process through local bootstrap without peer-key input",
+  { timeout: 45_000 },
+  async (t) => {
+    const children: ReturnType<typeof child>[] = [];
+    t.after(async () => {
+      await Promise.all(
+        children.map(async (entry) => {
+          if (entry.process.exitCode !== null || entry.process.signalCode)
+            return;
+          const exited = new Promise<void>((resolve) =>
+            entry.process.once("exit", () => resolve()),
+          );
+          entry.process.kill();
+          await exited;
+        }),
+      );
+    });
+    const bootstrap = child("bootstrap");
+    children.push(bootstrap);
+    const address = (await bootstrap.ready).address;
+    const a = child(address, "runtime-process.ts");
+    children.push(a);
+    const infoA = await a.ready;
+    const b = child(address, "runtime-process.ts");
+    children.push(b);
+    const infoB = await b.ready;
+    assert.ok(((await b.command("contacts")) as string[]).includes(infoA.id));
+    assert.ok(((await a.command("contacts")) as string[]).includes(infoB.id));
+    const key = "cd".repeat(32);
+    assert.deepEqual(await a.command("put", { key }), {
+      replicas: 1,
+      failures: 0,
+    });
+    const result = (await b.command("lookup", { key })) as {
+      records: RecordV1[];
+      routing: { state: string; failures: number };
+    };
+    assert.equal(result.records[0]?.content, "automatic bootstrap");
+    assert.equal(result.routing.state, "exhausted");
+    assert.equal(result.routing.failures, 0);
+    for (const peer of [b, a])
       assert.equal(await peer.command("stop"), "stopped");
     await bootstrap.command("stop").catch(() => {});
   },

@@ -47,6 +47,7 @@ export class NetworkOverlay {
       blocked?: (id: string) => boolean;
       timeoutMs?: number;
       lookupTimeoutMs?: number;
+      selfTransportKey?: string;
     } = {},
   ) {
     this.routing = new RoutingTable(identity.peerId);
@@ -58,13 +59,73 @@ export class NetworkOverlay {
     if (this.options.discovery) {
       await this.options.discovery.start();
       try {
+        if (this.controller.signal.aborted) throw new Error("OVERLAY_CLOSED");
         await this.options.discovery.announceAppEntrypoint();
+        if (this.controller.signal.aborted) throw new Error("OVERLAY_CLOSED");
       } catch (error) {
         await this.options.discovery.stop();
         throw error;
       }
     }
     this.running = true;
+  }
+  private syncCursor = 0;
+  async synchronize(signal: AbortSignal): Promise<{
+    records: number;
+    replicas: number;
+    failures: number;
+    state: "complete" | "budget" | "aborted";
+  }> {
+    this.assertRunning();
+    const controller = new AbortController();
+    const combined = AbortSignal.any([
+      signal,
+      this.controller.signal,
+      controller.signal,
+    ]);
+    const timer = setTimeout(() => controller.abort(), 2000);
+    const batch = this.store.scan(this.syncCursor, 16);
+    let records = 0,
+      replicas = 0,
+      failures = 0;
+    try {
+      for (const record of batch.records) {
+        if (combined.aborted) break;
+        records++;
+        if (this.options.blocked?.(record.author)) continue;
+        for (const contact of this.routing.nearest(record.key, 3)) {
+          if (combined.aborted) break;
+          try {
+            const response = (await this.call(
+              contact.publicKey,
+              { op: "put", key: record.key, record },
+              contact.id,
+              combined,
+            )) as { stored?: unknown } | null;
+            if (response?.stored !== true)
+              throw new Error("INVALID_PUT_RESPONSE");
+            replicas++;
+          } catch {
+            if (!combined.aborted) failures++;
+          }
+        }
+      }
+      if (!combined.aborted) this.syncCursor = batch.next ?? 0;
+      return {
+        records,
+        replicas,
+        failures,
+        state:
+          signal.aborted || this.controller.signal.aborted
+            ? "aborted"
+            : controller.signal.aborted || batch.next !== null
+              ? "budget"
+              : "complete",
+      };
+    } finally {
+      clearTimeout(timer);
+      controller.abort();
+    }
   }
   private assertRunning(): void {
     if (!this.running) throw new Error("NOT_STARTED");
@@ -186,7 +247,7 @@ export class NetworkOverlay {
           signal: signal
             ? AbortSignal.any([this.controller.signal, signal])
             : this.controller.signal,
-          timeoutMs: this.options.timeoutMs ?? 5000,
+          timeoutMs: this.options.timeoutMs ?? 1500,
           ...(expectedPeerId ? { expectedPeerId } : {}),
         },
       );
@@ -213,6 +274,8 @@ export class NetworkOverlay {
     if (key.byteLength !== 32)
       return Promise.reject(new Error("INVALID_TRANSPORT_KEY"));
     const address = Buffer.from(key).toString("hex");
+    if (address === this.options.selfTransportKey)
+      return Promise.reject(new Error("SELF_CONNECTION"));
     const pending = this.pendingJoins.get(address);
     if (pending) return pending;
     if (this.pendingJoins.size >= 32)
@@ -257,6 +320,7 @@ export class NetworkOverlay {
   async findNodes(
     target: string,
     seeds = this.contacts(target),
+    signal?: AbortSignal,
   ): Promise<LookupResult> {
     this.assertRunning();
     return iterativeLookup(
@@ -275,9 +339,36 @@ export class NetworkOverlay {
         );
       },
       {
-        signal: this.controller.signal,
+        signal: signal
+          ? AbortSignal.any([signal, this.controller.signal])
+          : this.controller.signal,
         timeoutMs: this.options.lookupTimeoutMs ?? 3000,
       },
+    );
+  }
+  async probe(
+    contact: PeerContact,
+    signal: AbortSignal,
+  ): Promise<{ version: number; authenticated: boolean }> {
+    if (
+      Buffer.from(contact.publicKey).toString("hex") ===
+      this.options.selfTransportKey
+    )
+      throw new Error("SELF_CONNECTION");
+    const result = (await this.call(
+      contact.publicKey,
+      { op: "find-node", target: this.identity.peerId },
+      undefined,
+      signal,
+    )) as { contacts?: unknown } | null;
+    parseReferrals(result?.contacts);
+    return { version: 1, authenticated: true };
+  }
+  refresh(signal: AbortSignal): Promise<LookupResult> {
+    return this.findNodes(
+      this.identity.peerId,
+      this.contacts(this.identity.peerId),
+      signal,
     );
   }
   async put(

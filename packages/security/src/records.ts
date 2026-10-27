@@ -122,4 +122,31 @@ export class RecordStore {
     this.records.clear();
     this.sequences.clear();
   }
+  scan(cursor = 0, limit = 16): { records: RecordV1[]; next: number | null } {
+    if (
+      !Number.isSafeInteger(cursor) ||
+      cursor < 0 ||
+      cursor > this.capacity ||
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > 64
+    )
+      throw new Error("INVALID_SCAN");
+    const records: RecordV1[] = [];
+    let index = 0,
+      more = false;
+    for (const [slot, record] of this.records) {
+      if (record.expiresAt <= this.now()) {
+        this.records.delete(slot);
+        continue;
+      }
+      if (index++ < cursor) continue;
+      if (records.length === limit) {
+        more = true;
+        break;
+      }
+      records.push({ ...record });
+    }
+    return { records, next: more ? cursor + records.length : null };
+  }
 }

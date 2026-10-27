@@ -17,7 +17,11 @@ export async function searchEntrypoints(
   contacts: AsyncIterable<PeerContact>,
   probe: (contact: PeerContact, signal: AbortSignal) => Promise<ProbeResult>,
   onState: (state: SearchState) => void,
-  options: { timeoutMs?: number; now?: () => number } = {},
+  options: {
+    timeoutMs?: number;
+    now?: () => number;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<Candidate[]> {
   const timeout = options.timeoutMs ?? 3000,
     now = options.now ?? Date.now;
@@ -25,18 +29,29 @@ export async function searchEntrypoints(
     throw new Error("INVALID_TIMEOUT");
   onState("discovering");
   const controller = new AbortController();
+  const iterator = contacts[Symbol.asyncIterator]();
+  let rejectDeadline: (error: Error) => void = () => {};
+  const cancel = () => {
+    controller.abort();
+    rejectDeadline(new Error("SEARCH_ABORTED"));
+  };
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<never>((_resolve, reject) => {
+    rejectDeadline = reject;
     timer = setTimeout(() => {
       controller.abort();
       reject(new Error("SEARCH_TIMEOUT"));
     }, timeout);
   });
+  options.signal?.addEventListener("abort", cancel, { once: true });
   const results: Candidate[] = [],
     seen = new Set<string>();
   const run = async () => {
     let batch: Promise<void>[] = [];
-    for await (const contact of contacts) {
+    while (!controller.signal.aborted) {
+      const next = await iterator.next();
+      if (next.done) break;
+      const contact = next.value;
       if (controller.signal.aborted || seen.size >= 64) break;
       if (
         !(contact.publicKey instanceof Uint8Array) ||
@@ -74,12 +89,15 @@ export async function searchEntrypoints(
     await Promise.all(batch);
   };
   try {
+    if (options.signal?.aborted) throw new Error("SEARCH_ABORTED");
     await Promise.race([run(), deadline]);
   } catch {
     onState("retrying");
   } finally {
     clearTimeout(timer);
     controller.abort();
+    options.signal?.removeEventListener("abort", cancel);
+    void iterator.return?.().catch(() => {});
   }
   results.sort((a, b) => a.latencyMs - b.latencyMs || b.seenAt - a.seenAt);
   onState(results.length ? "candidates-found" : "no-reachable-candidate");
