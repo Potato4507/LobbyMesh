@@ -7,7 +7,7 @@ import {
 import { PublicDiscovery } from "../../public-discovery/src/index.js";
 import { type MaintenanceReport, OverlayMaintenance } from "./maintenance.js";
 import { NetworkOverlay } from "./network.js";
-import { serveRpc } from "./rpc.js";
+import { type RpcHandler, serveRpc } from "./rpc.js";
 
 export async function createOverlayRuntime(
   directory: string,
@@ -16,6 +16,7 @@ export async function createOverlayRuntime(
     port?: number;
     blocked?: (id: string) => boolean;
     intervalMs?: number;
+    directHandler?: RpcHandler;
   } = {},
 ) {
   if (
@@ -31,7 +32,19 @@ export async function createOverlayRuntime(
   const backend = new HyperDHTBackend(keys, {
     ...(options.bootstrap ? { bootstrap: options.bootstrap } : {}),
     ...(options.port === undefined ? {} : { port: options.port }),
-    inbound: (stream) => serveRpc(stream, identity, overlay.handle),
+    inbound: (stream) =>
+      serveRpc(stream, identity, async (peer, request, signal) => {
+        if (
+          request &&
+          typeof request === "object" &&
+          "namespace" in request &&
+          request.namespace === "companion/direct/v1"
+        ) {
+          if (!options.directHandler) throw new Error("DIRECT_DISABLED");
+          return options.directHandler(peer, request, signal);
+        }
+        return overlay.handle(peer, request, signal);
+      }),
   });
   const discovery = new PublicDiscovery(backend);
   overlay = new NetworkOverlay(identity, backend, {

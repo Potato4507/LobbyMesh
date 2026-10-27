@@ -1,0 +1,13 @@
+# Direct control/text transactions - 2026-10-27
+
+Windows / Node v24.22.1 / pnpm 11.25.0. Prior checkpoint ebf9c93 preserved.
+
+`pnpm exec tsx --test tests/direct.test.ts`: 3/3 passed. Default-deny local authorization, identity/from/to validation, malformed/oversize/control-character rejection, duplicate ACK and conflicting-ID rejection, immutable history, local revocation, capability negotiation, heartbeat, deadlines/cancellation, invalid ACK, rate limit and explicit sender sequence under reordered arrival.
+
+Deterministic fault fixture: 10,000 sends, 10,000 receive notifications, 11,610 transport attempts, eight retained history entries. Drops before delivery every 13th message's first attempt; duplicate delivery every 7th; lost ACK every 11th first attempt. Fake clock advances 50ms/send. At most three attempts with the same random message ID. This is an in-process injected transport test, not 10,000 native Noise transactions, crash recovery or an exactly-once guarantee across restarts.
+
+`pnpm exec tsx --test tests/overlay-process.test.ts tests/direct.test.ts`: 5/5 passed. Runtime fixture automatically discovers peers using private local bootstrap, then explicitly authorizes synthetic peer keys on both sides, negotiates direct-text capability, checks heartbeat, sends acknowledged text over real Noise and verifies sender/content at receiver. Permission revocation rejects later transactions. No messages sent to real users, no third-party messaging account, no microphone capture. The fixture uses local IPC only for test authorization and synthetic data.
+
+Direct transport remains one bounded transaction per stream. Long-lived reuse, cross-network reachability and complete product safety not accepted. Contact authorization is a trusted local policy callback, default false; session claims never authorize communication. Per-peer 20 new messages/sec, at most 100 peer inboxes, 4096 seen IDs/peer and 100 history messages/peer by default (configurable history <=200), 4096-byte text, 32 pending sends. Seen IDs retained through the message's permitted freshness window; memory-only history expires after 15 minutes on access/traffic and clears on close. Forget/purge intentionally removes in-process history/deduplication. Sequence and sender epoch are exposed; history is arrival order, no global total-order or offline delivery claim.
+
+Milestone regression: `pnpm typecheck`, `pnpm lint` (57 files), `pnpm test` (45/45), `pnpm build` passed, exit 0. Native simultaneous join used bounded retry in this full run (~4.8s); no flaky success-rate claim or WAN timing inference.

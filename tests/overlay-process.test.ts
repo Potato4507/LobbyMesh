@@ -208,6 +208,29 @@ test(
     );
     await a.command("leave-session");
     assert.deepEqual(await a.command("matches"), []);
+    await assert.rejects(
+      a.command("direct-send", { peerId: infoB.id, key: infoB.key }),
+      /CONTACT_NOT_AUTHORIZED/,
+    );
+    await a.command("direct-allow", { peerId: infoB.id });
+    await b.command("direct-allow", { peerId: infoA.id });
+    const acknowledgement = (await a.command("direct-send", {
+      peerId: infoB.id,
+      key: infoB.key,
+      text: "synthetic encrypted text",
+    })) as { status: string };
+    assert.equal(acknowledgement.status, "acknowledged");
+    const history = (await b.command("direct-history", {
+      peerId: infoA.id,
+    })) as { envelope: { text: string; from: string } }[];
+    assert.equal(history.length, 1);
+    assert.equal(history[0]?.envelope.text, "synthetic encrypted text");
+    assert.equal(history[0]?.envelope.from, infoA.id);
+    await b.command("direct-deny", { peerId: infoA.id });
+    await assert.rejects(
+      a.command("direct-send", { peerId: infoB.id, key: infoB.key }),
+      /REMOTE_RPC_REJECTED/,
+    );
     for (const peer of [b, a])
       assert.equal(await peer.command("stop"), "stopped");
     await bootstrap.command("stop").catch(() => {});

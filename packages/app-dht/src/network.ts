@@ -371,6 +371,20 @@ export class NetworkOverlay {
       signal,
     );
   }
+  directRequest(
+    contact: { id: string; transportKey: string },
+    request: unknown,
+    signal: AbortSignal,
+  ): Promise<unknown> {
+    if (!hex(contact.id) || !hex(contact.transportKey))
+      return Promise.reject(new Error("INVALID_CONTACT"));
+    return this.call(
+      Buffer.from(contact.transportKey, "hex"),
+      request,
+      contact.id,
+      signal,
+    );
+  }
   async put(
     key: string,
     record: unknown,
