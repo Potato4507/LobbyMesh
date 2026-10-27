@@ -188,6 +188,26 @@ test(
     assert.equal(result.records[0]?.content, "automatic bootstrap");
     assert.equal(result.routing.state, "exhausted");
     assert.equal(result.routing.failures, 0);
+    await a.command("session", { room: "same-room" });
+    await b.command("session", { room: "same-room" });
+    const matched = (await b.command("matches")) as {
+      peerId: string;
+      verification: string;
+    }[];
+    assert.deepEqual(
+      matched.map((p) => p.peerId).sort(),
+      [infoA.id, infoB.id].sort(),
+    );
+    assert.ok(matched.every((p) => p.verification === "mock"));
+    await b.command("session", { room: "other-room" });
+    assert.deepEqual(
+      ((await a.command("matches")) as { peerId: string }[]).map(
+        (p) => p.peerId,
+      ),
+      [infoA.id],
+    );
+    await a.command("leave-session");
+    assert.deepEqual(await a.command("matches"), []);
     for (const peer of [b, a])
       assert.equal(await peer.command("stop"), "stopped");
     await bootstrap.command("stop").catch(() => {});

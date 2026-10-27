@@ -63,6 +63,7 @@ export async function createOverlayRuntime(
     overlay,
     identity,
     peerId: identity.peerId,
+    transportKey: keys.publicKey.toString("hex"),
     start(): Promise<MaintenanceReport> {
       if (closed) return Promise.reject(new Error("RUNTIME_CLOSED"));
       starting ??= overlay
