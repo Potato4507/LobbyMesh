@@ -1,3 +1,13 @@
+# LobbyMesh — preserved 19-module implementation backlog
+
+> **Important for current local handoff (2026-10-27):** This plan defines desired functionality and acceptance criteria, **not** what remains unimplemented. The live source of truth is the repository's `docs/STATUS.md`, `docs/TEST_MATRIX.md`, and code. Existing GitHub repository `Potato4507/Roblox-app` already contains partial M00–M06 implementation. **Do not rerun M00 as a fresh scaffold.** M07 authenticated overlay RPC is the recorded next step. Keep existing code and tests. If live repo state has advanced, follow its actual current state.
+
+> Branding is **LobbyMesh**; the GitHub repo can remain `Roblox-app` to avoid breaking remotes, branches, and existing Cloud Codex work. Package renames should be incremental and accompanied by passing tests.
+
+> Every module must have separate labels for **unit proof**, **integration proof**, and **real-world proof**, where applicable. Mocks do not establish live Roblox APIs, public DHT reachability, direct NAT traversal, or live microphone success.
+
+---
+
 # /plan — Modular Implementation and Proof Plan
 
 **Project:** Autonomous, infrastructure-independent, opt-in P2P Roblox companion with a public-bootstrap DHT and a separate self-starting application DHT.

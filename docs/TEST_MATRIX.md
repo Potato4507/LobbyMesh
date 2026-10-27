@@ -17,3 +17,11 @@
 | Multi-node overlay / text / voice | [ ] | [ ] | [ ] | [ ] NAT/audio | [ ] | [ ] | [ ] |
 
 Do not infer internet/NAT, audio, Roblox integration, Windows support or release readiness from these tests.
+
+2026-10-27 Windows local continuation: Node v24.22.1 / pnpm 11.25.0. Baseline typecheck passed, 20/20 tests passed; initial lint failed on CRLF checkout formatting, corrected through repository LF policy. See docs/evidence/local-m07.md.
+
+| New boundary | Observed proof | Still unverified |
+| --- | --- | --- |
+| App RPC | Mutual authentication, forged/replayed signatures, app-ID pinning, incompatible version, oversize/malformed/flood frames, fragmentation, deadlines, cancellation, private error redaction | Public internet, cross-NAT, full adversarial assessment |
+| Network overlay | Record validation, duplicate replication, paging, expiry, block enforcement, leave lifecycle | Routing/healing at scale, persistent safety settings |
+| Real processes | Local HyperDHT bootstrap + three independent Windows Node processes; third learns first via second; real encrypted streams; signed replication and cross-node read; graceful shutdown | Public-DHT bootstrap success, cross-machine, Windows Electron GUI, Roblox and audio |
