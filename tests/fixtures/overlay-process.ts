@@ -41,13 +41,16 @@ if (process.argv[2] === "bootstrap") {
   const backend = new HyperDHTBackend(keys, {
     bootstrap: [process.argv[2] ?? ""],
     port: 0,
-    inbound: (stream) =>
-      serveRpc(stream, identity, overlay.handle).catch((error: Error) => {
-        console.error(
-          `inbound: ${error.message}; hash length ${stream.handshakeHash?.length}`,
-        );
-        throw error;
-      }),
+    inbound: (stream) => {
+      return serveRpc(stream, identity, overlay.handle).catch(
+        (error: Error) => {
+          console.error(
+            `inbound: ${error.message}; hash length ${stream.handshakeHash?.length}`,
+          );
+          throw error;
+        },
+      );
+    },
   });
   overlay = new NetworkOverlay(identity, backend, {
     discovery: new PublicDiscovery(backend),
@@ -88,6 +91,8 @@ if (process.argv[2] === "bootstrap") {
             );
           case "get":
             return overlay.get(message.key ?? "");
+          case "lookup":
+            return overlay.lookup(message.key ?? "");
           case "contacts":
             return overlay.authenticatedContacts().map((c) => c.id);
           case "stop":

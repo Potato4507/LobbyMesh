@@ -60,6 +60,22 @@ export class RoutingTable {
   clear(): void {
     this.buckets.clear();
   }
+  has(id: string): boolean {
+    const distance = xorDistance(this.self, id);
+    return (
+      distance !== 0n &&
+      (this.buckets.get(distance.toString(2).length - 1)?.has(id) ?? false)
+    );
+  }
+  remove(id: string): boolean {
+    const distance = xorDistance(this.self, id);
+    if (distance === 0n) return false;
+    const index = distance.toString(2).length - 1,
+      bucket = this.buckets.get(index);
+    const removed = bucket?.delete(id) ?? false;
+    if (bucket?.size === 0) this.buckets.delete(index);
+    return removed;
+  }
 }
 // Single-node stage only: no network RPC, join, replication or partition-healing claims.
 export class LocalOverlay {

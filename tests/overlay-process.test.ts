@@ -112,7 +112,10 @@ test(
     const b = child(address);
     children.push(b);
     const infoB = await b.ready;
-    const contactsB = await b.command("join", { key: infoA.key });
+    const [, contactsB] = await Promise.all([
+      a.command("join", { key: infoB.key }),
+      b.command("join", { key: infoA.key }),
+    ]);
     assert.ok((contactsB as string[]).includes(infoA.id));
     const c = child(address);
     children.push(c);
@@ -133,6 +136,11 @@ test(
     assert.equal(records.length, 1);
     assert.equal(records[0]?.author, infoA.id);
     assert.equal(records[0]?.content, "real Noise / synthetic session");
+    const lookup = (await c.command("lookup", { key })) as {
+      routing: { state: string; failures: number };
+    };
+    assert.equal(lookup.routing.state, "exhausted");
+    assert.equal(lookup.routing.failures, 0);
     for (const peer of [c, b, a])
       assert.equal(await peer.command("stop"), "stopped");
     await bootstrap.command("stop").catch(() => {});

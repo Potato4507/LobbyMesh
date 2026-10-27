@@ -67,7 +67,9 @@ test("network overlay validates dispatch, records and pagination; replicated exa
   assert.equal(rest.next, null);
   assert.equal((await overlay.get(key)).length, 3);
   now += 60_001;
-  assert.deepEqual(await overlay.get(key), []);
+  await assert.rejects(overlay.get(key), /LOOKUP_INCOMPLETE/);
+  assert.deepEqual((await overlay.lookup(key)).records, []);
+  assert.deepEqual(overlay.authenticatedContacts(), []);
   await overlay.leave();
   assert.deepEqual(overlay.authenticatedContacts(), []);
   await assert.rejects(overlay.start(), /OVERLAY_CLOSED/);
