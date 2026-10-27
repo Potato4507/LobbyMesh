@@ -1,0 +1,28 @@
+Scope: all 6 workspace projects
+Already up to date
+Done in 394ms using pnpm v11.25.0
+$ tsc --noEmit
+$ biome check .
+Checked 25 files in 17ms. No fixes applied.
+$ tsx --test tests/*.test.ts tests/simulation/*.test.ts
+✔ Ed25519 rejects tampering and wrong key; no private key enumerable (4.220306ms)
+✔ identity persists, resets, rejects corrupt and insecure storage (9.754974ms)
+✔ protocol rejects incompatible versions and IPC arguments (0.721495ms)
+✔ signed record domain/key binding, replay, expiry, quotas and mutation isolation (6.600275ms)
+✔ consenting roster 0 participants, duplicate names and departures (1.427669ms)
+✔ consenting roster 2 participants, duplicate names and departures (0.252163ms)
+✔ consenting roster 30 participants, duplicate names and departures (0.203272ms)
+✔ consenting roster 100 participants, duplicate names and departures (0.300521ms)
+✔ roster blocks non-consent, excess participants, bystander fields and rejoin (0.469355ms)
+✔ mock session changes, unsubscribe, isolation and production evidence rejection (1.502489ms)
+✔ deterministic simulator clock rejects backwards time (0.783814ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 968.666428
+$ node scripts/build.mjs
+No known vulnerabilities found

@@ -1,0 +1,17 @@
+body {
+  background: #111827;
+  color: #e5e7eb;
+  font: 18px system-ui;
+  margin: 0;
+}
+main {
+  max-width: 720px;
+  margin: 60px auto;
+  padding: 32px;
+}
+h1 {
+  color: #67e8f9;
+}
+p {
+  line-height: 1.6;
+}

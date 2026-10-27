@@ -1,0 +1,15 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.4/schema.json",
+  "files": {
+    "includes": ["**", "!docs/*-source.html", "!dist", "!pnpm-lock.yaml"]
+  },
+  "formatter": {
+    "indentStyle": "space"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  }
+}

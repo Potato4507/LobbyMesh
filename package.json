@@ -1,0 +1,33 @@
+{
+  "name": "companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "tsx --test tests/*.test.ts tests/simulation/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "start": "electron dist/main.cjs"
+  },
+  "dependencies": {
+    "hyperdht": "6.35.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.4",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "electron": "45.1.0",
+    "esbuild": "0.28.2",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

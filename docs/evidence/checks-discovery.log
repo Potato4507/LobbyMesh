@@ -1,0 +1,37 @@
+Scope: all 9 workspace projects
+Already up to date
+Done in 388ms using pnpm v11.25.0
+$ tsc --noEmit
+$ biome check .
+Checked 37 files in 30ms. No fixes applied.
+$ tsx --test tests/*.test.ts tests/simulation/*.test.ts
+✔ two discovery adapters announce, discover, rate limit, unannounce and restart (1.931725ms)
+✔ untrusted lookup results deduplicate and validate keys; query cleanup (0.539722ms)
+✔ stalled query timeout closes backend iterator and surfaces failure (5.035532ms)
+✔ entrypoint search rejects hostile/incompatible/stale peers; bounded parallelism (1.876757ms)
+✔ stalled discovery and probes time out without claiming empty network (10.563779ms)
+✔ intermittent discovery errors and empty network are distinct (0.680072ms)
+✔ Ed25519 rejects tampering and wrong key; no private key enumerable (4.193723ms)
+✔ identity persists, resets, rejects corrupt and insecure storage (13.328127ms)
+✔ routing XOR order, bucket cap, self rejection and copy isolation (1.545452ms)
+✔ local overlay publishes entrypoint and enforces signatures/expiry; zero-node restart loses records (4.208287ms)
+✔ protocol rejects incompatible versions and IPC arguments (1.000497ms)
+✔ signed record domain/key binding, replay, expiry, quotas and mutation isolation (6.366787ms)
+✔ consenting roster 0 participants, duplicate names and departures (0.715605ms)
+✔ consenting roster 2 participants, duplicate names and departures (0.358996ms)
+✔ consenting roster 30 participants, duplicate names and departures (0.24299ms)
+✔ consenting roster 100 participants, duplicate names and departures (0.261968ms)
+✔ roster blocks non-consent, excess participants, bystander fields and rejoin (0.550762ms)
+✔ mock session changes, unsubscribe, isolation and production evidence rejection (0.786077ms)
+✔ deterministic simulator clock rejects backwards time (0.779024ms)
+✔ installed HyperDHT derives stable keys from restricted persisted seed; corrupt seed fails closed (13.344103ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1781.160375
+$ node scripts/build.mjs
+No known vulnerabilities found
