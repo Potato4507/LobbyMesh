@@ -1,7 +1,11 @@
 import path from "node:path";
-import { loadOrCreateIdentity } from "../../identity/src/index.js";
+import {
+  type Identity,
+  loadOrCreateIdentity,
+} from "../../identity/src/index.js";
 import {
   HyperDHTBackend,
+  type KeyPair,
   loadTransportKeys,
 } from "../../public-discovery/src/hyperdht.js";
 import { PublicDiscovery } from "../../public-discovery/src/index.js";
@@ -18,6 +22,7 @@ export async function createOverlayRuntime(
     intervalMs?: number;
     directHandler?: RpcHandler;
     signal?: AbortSignal;
+    credentials?: { identity: Identity; transportKeys: KeyPair };
   } = {},
 ) {
   options.signal?.throwIfAborted();
@@ -28,9 +33,13 @@ export async function createOverlayRuntime(
       options.intervalMs > 600_000)
   )
     throw new Error("INVALID_MAINTENANCE_LIMITS");
-  const identity = await loadOrCreateIdentity(path.join(directory, "identity"));
+  const identity =
+    options.credentials?.identity ??
+    (await loadOrCreateIdentity(path.join(directory, "identity")));
   options.signal?.throwIfAborted();
-  const keys = await loadTransportKeys(path.join(directory, "transport"));
+  const keys =
+    options.credentials?.transportKeys ??
+    (await loadTransportKeys(path.join(directory, "transport")));
   options.signal?.throwIfAborted();
   let overlay: NetworkOverlay;
   const backend = new HyperDHTBackend(keys, {

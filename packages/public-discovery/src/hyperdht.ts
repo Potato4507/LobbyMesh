@@ -3,6 +3,11 @@ import { lstat, mkdir, open, readFile } from "node:fs/promises";
 import path from "node:path";
 import HyperDHT from "hyperdht";
 import type { NoiseStream } from "../../app-dht/src/rpc.js";
+import {
+  loadProtectedFile,
+  requirePlaintextMode,
+  type SecretProtection,
+} from "../../security/src/protected-file.js";
 import type { DiscoveryBackend, DiscoveryQuery } from "./index.js";
 
 export interface KeyPair {
@@ -26,7 +31,68 @@ const DHT = HyperDHT as {
   new (options?: { bootstrap?: string[]; port?: number }): Node;
   keyPair(seed: Buffer): KeyPair;
 };
-export async function loadTransportKeys(directory: string): Promise<KeyPair> {
+export async function loadTransportKeys(
+  directory: string,
+  protection?: SecretProtection,
+): Promise<KeyPair> {
+  const sealed = "transport-os-v1.bin";
+  if (protection) {
+    const normalize = (value: string) => {
+      const stored = JSON.parse(value) as {
+        version?: unknown;
+        seed?: unknown;
+      } | null;
+      if (
+        !stored ||
+        stored.version !== 1 ||
+        typeof stored.seed !== "string" ||
+        !/^[A-Za-z0-9+/]{43}=$/.test(stored.seed)
+      )
+        throw new Error("INVALID_SEED");
+      const seed = Buffer.from(stored.seed, "base64");
+      try {
+        if (seed.length !== 32 || seed.toString("base64") !== stored.seed)
+          throw new Error("INVALID_SEED");
+      } finally {
+        seed.fill(0);
+      }
+      return JSON.stringify({ version: 1, seed: stored.seed });
+    };
+    const payload = await loadProtectedFile(
+      directory,
+      {
+        legacy: "transport-seed-v1",
+        sealed,
+        normalize,
+        decodeLegacy: (seed) => {
+          if (seed.length !== 32) throw new Error("UNSAFE_SEED");
+          return JSON.stringify({ version: 1, seed: seed.toString("base64") });
+        },
+        create: () => {
+          const seed = randomBytes(32);
+          try {
+            return JSON.stringify({
+              version: 1,
+              seed: seed.toString("base64"),
+            });
+          } finally {
+            seed.fill(0);
+          }
+        },
+      },
+      protection,
+    );
+    const seed = Buffer.from(
+      (JSON.parse(payload) as { seed: string }).seed,
+      "base64",
+    );
+    try {
+      return DHT.keyPair(seed);
+    } finally {
+      seed.fill(0);
+    }
+  }
+  await requirePlaintextMode(directory, sealed);
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const dir = await lstat(directory);
   if (!dir.isDirectory() || (process.platform !== "win32" && dir.mode & 0o077))

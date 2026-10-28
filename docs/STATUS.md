@@ -1,13 +1,13 @@
 # STATUS
 Goal: Build a serverless-by-ownership two-DHT P2P companion.
-Current module: M12/M14 authorized messaging UI and M15 lifecycle integration; earlier acceptance gaps remain.
+Current module: M01 Windows protected credentials integrated with desktop network lifecycle; earlier acceptance gaps remain.
 Completed modules: none fully accepted; see partial evidence below.
 Proof: latest continuation on 2026-10-27 Windows, Node v24.22.1 / pnpm 11.25.0; docs/evidence/local-*.md. Historical Linux proof (Node 24.19.0) retained in docs/evidence/checks*.log.
 
 | Module | State | Implemented / remaining |
 | --- | --- | --- |
 | M00 | VERIFIED_UNIT / VERIFIED_INTEGRATION / PARTIAL | Existing workspace/CI preserved; fresh Windows clone installed pinned dependencies and passed checks/build. Electron 45.1.0 downloaded through inspected pinned installer; actual hidden Windows renderer/IPC/security smoke passed with screenshot. Full packaging/installer and cross-platform GUI remain unverified. |
-| M01 | PARTIALLY_VERIFIED | Node Ed25519, persistence, fingerprint, reset and negative tests. OS credential store, migration, remote revocation and concurrent startup recovery unfinished. Windows file ACL unverified. |
+| M01 | VERIFIED_UNIT / VERIFIED_INTEGRATION / PARTIAL | Node Ed25519, fingerprint and protected Windows desktop persistence. Native Electron OS encryption, legacy migration preserving both app/transport identities and independent-process reopen verified. Corruption/conflict/rotation/concurrent creation fail closed. Development loaders remain plaintext; protected reset, remote revocation, Windows ACL and power-loss recovery remain unfinished. |
 | M02 | BLOCKED_EXTERNAL / PARTIAL | Mock provider tested; preliminary source retrieval saved. Official engine pages returned HTTP 502. No approved self-session OAuth capability or authorized experience test validated. |
 | M03 | PARTIALLY_VERIFIED | Companion-only opt-in roster tested at 0/2/30/100, duplicate names, leave, block, quota, field whitelist. Real Roblox source and consent authentication not verified. |
 | M04 | VERIFIED_UNIT / VERIFIED_INTEGRATION / PARTIAL | Pinned HyperDHT, persistent seed, bounded query/cleanup. Windows single public query completed (1 candidate, unauthenticated); two independent app processes then discovered each other via public bootstrap and authenticated/exchanged a signed record. Historical Linux 15s timeout retained. Separate-host/NAT reliability and OS key protection remain unverified. |
@@ -24,8 +24,8 @@ Proof: latest continuation on 2026-10-27 Windows, Node v24.22.1 / pnpm 11.25.0; 
 | M13/M16–M18 | NOT_STARTED / BLOCKED_EXTERNAL | No audio implementation, creator-authorized SDK or release packaging/installer acceptance. |
 
 Blocked modules: M02/M03/M16 require verified official API capability, creator authorization and Roblox Studio/experience tests; M10/M13/M17 require real NAT networks/audio devices; M18 requires installer/package acceptance. Earlier Electron download/launch blocker was resolved on Windows; Linux graphical acceptance remains unverified.
-Risks: high—development-only; public-bootstrap discovery and same-host authenticated P2P observed, no production session source or cross-NAT/audio proof; key fallback is unencrypted at rest and Windows ACL unverified; record replay state is process-local; persistent policy exists but runtime/product integration and safety acceptance remain incomplete. Do not release.
-Next immediate action: Implement Windows OS-protected credentials for the desktop (inspect Electron safeStorage declarations and identity/transport persistence first). Use a fail-closed adapter when OS protection is unavailable; preserve existing keys and explicit migration provenance rather than regenerating identity. Then continue supported session/provider and safe contact onboarding work; no manual server-ID fallback.
+Risks: high—development-only; public-bootstrap discovery and same-host authenticated P2P observed, no production session source or cross-NAT/audio proof; desktop protection is Windows-only and does not isolate secrets from other apps running as the same OS user. Explicit Node development loaders remain plaintext and Windows ACL unverified; record replay state is process-local; safety acceptance remains incomplete. Do not release.
+Next immediate action: Implement the next unblocked M08 routing/healing acceptance gap, inspecting replacement/liveness handling and partition tests first. Protected reset and supported session/provider/contact onboarding remain outstanding; no manual server-ID fallback.
 
 Resume: read MASTER_PROMPT.md, IMPLEMENTATION_PLAN.md, this file and TEST_MATRIX.md. Current checkout D:\LobbyMesh, branch codex/lobbymesh-authenticated-overlay, preserving imported Cloud commits through 4fb38a1. Run pnpm typecheck, pnpm lint, pnpm test, pnpm build. No release or deployment. No paid services.
 

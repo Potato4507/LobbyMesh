@@ -1,5 +1,6 @@
 import type { ManagedNetwork } from "../../../packages/app-dht/src/lifecycle.js";
 import { createOverlayRuntime } from "../../../packages/app-dht/src/runtime.js";
+import { loadDesktopCredentials } from "./credentials.js";
 import { DesktopMessaging, type MessagingPolicy } from "./messaging.js";
 
 export type ContactPolicy = MessagingPolicy;
@@ -16,7 +17,9 @@ export async function createDesktopNetwork(
   policy: ContactPolicy,
 ): Promise<DesktopManagedNetwork> {
   let messaging: DesktopMessaging;
+  const credentials = await loadDesktopCredentials(directory, signal);
   const runtime = await createOverlayRuntime(directory, {
+    credentials,
     signal,
     blocked: policy.blocked,
     directHandler: (peer, request, requestSignal) =>

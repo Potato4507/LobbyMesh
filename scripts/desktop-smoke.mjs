@@ -22,35 +22,48 @@ try {
   const executable = createRequire(import.meta.url)("electron"),
     environment = { ...process.env };
   delete environment.ELECTRON_RUN_AS_NODE;
-  await new Promise((resolve, reject) => {
-    const child = spawn(executable, [entry, directory], {
-      windowsHide: true,
-      env: environment,
-      stdio: ["ignore", "pipe", "pipe"],
+  for (const mode of process.platform === "win32"
+    ? ["", "credentials-only"]
+    : [""])
+    await new Promise((resolve, reject) => {
+      const child = spawn(
+        executable,
+        [entry, directory, ...(mode ? [mode] : [])],
+        {
+          windowsHide: true,
+          env: environment,
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
+      let diagnostic = "",
+        output = "";
+      child.stdout.on("data", (chunk) => {
+        output += String(chunk);
+        process.stdout.write(chunk);
+      });
+      child.stderr.on("data", (chunk) => {
+        diagnostic = (diagnostic + String(chunk)).slice(-16_384);
+      });
+      const timer = setTimeout(() => {
+        child.kill();
+        reject(new Error(`DESKTOP_SMOKE_TIMEOUT ${diagnostic}`));
+      }, 30_000);
+      child.on("error", (error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+      child.on("exit", (code) => {
+        clearTimeout(timer);
+        if (
+          code === 0 &&
+          output.includes(
+            mode ? '"result":"credential-reload-passed"' : '"result":"passed"',
+          )
+        )
+          resolve();
+        else reject(new Error(`DESKTOP_SMOKE_EXIT ${code}: ${diagnostic}`));
+      });
     });
-    let diagnostic = "",
-      output = "";
-    child.stdout.on("data", (chunk) => {
-      output += String(chunk);
-      process.stdout.write(chunk);
-    });
-    child.stderr.on("data", (chunk) => {
-      diagnostic = (diagnostic + String(chunk)).slice(-16_384);
-    });
-    const timer = setTimeout(() => {
-      child.kill();
-      reject(new Error(`DESKTOP_SMOKE_TIMEOUT ${diagnostic}`));
-    }, 30_000);
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-    child.on("exit", (code) => {
-      clearTimeout(timer);
-      if (code === 0 && output.includes('"result":"passed"')) resolve();
-      else reject(new Error(`DESKTOP_SMOKE_EXIT ${code}: ${diagnostic}`));
-    });
-  });
 } finally {
   await unlink(entry).catch(() => {});
   await rm(directory, {

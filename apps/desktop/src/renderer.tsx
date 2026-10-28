@@ -240,9 +240,11 @@ function App() {
                 ? state === "retrying"
                   ? "Discovery is temporarily unavailable. Retrying automatically."
                   : "Could not connect. You can retry or stay offline."
-                : connection?.error === "STOP_FAILED"
-                  ? "Connection cleanup could not be confirmed. Try disconnecting again."
-                  : "")}
+                : connection?.error === "CREDENTIALS_UNAVAILABLE"
+                  ? "Protected credentials could not be opened on this device. Existing keys are preserved; no plaintext fallback is used."
+                  : connection?.error === "STOP_FAILED"
+                    ? "Connection cleanup could not be confirmed. Try disconnecting again."
+                    : "")}
         </output>
       </section>
       <section className="panel">

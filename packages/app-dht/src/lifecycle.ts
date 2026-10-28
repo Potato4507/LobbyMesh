@@ -21,7 +21,12 @@ export interface NetworkStatus {
   discovery: MaintenanceReport["discovery"] | null;
   attempt: number;
   retryAt: number | null;
-  error: "START_FAILED" | "START_TIMEOUT" | "STOP_FAILED" | null;
+  error:
+    | "START_FAILED"
+    | "START_TIMEOUT"
+    | "STOP_FAILED"
+    | "CREDENTIALS_UNAVAILABLE"
+    | null;
 }
 type Schedule = (run: () => void, ms: number) => () => void;
 const schedule: Schedule = (run, ms) => {
@@ -226,6 +231,13 @@ export class NetworkLifecycle {
         this.closed
       )
         return;
+      if (
+        error instanceof Error &&
+        error.message === "CREDENTIALS_UNAVAILABLE"
+      ) {
+        this.publish("error", "CREDENTIALS_UNAVAILABLE");
+        return;
+      }
       const code =
         error instanceof Error && error.message === "START_TIMEOUT"
           ? "START_TIMEOUT"

@@ -9,6 +9,11 @@ import {
 } from "node:crypto";
 import { lstat, mkdir, open, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
+import {
+  loadProtectedFile,
+  requirePlaintextMode,
+  type SecretProtection,
+} from "../../security/src/protected-file.js";
 export interface Identity {
   readonly publicKey: string;
   readonly peerId: string;
@@ -56,7 +61,54 @@ export function verify(
 }
 export async function loadOrCreateIdentity(
   directory: string,
+  protection?: SecretProtection,
 ): Promise<Identity> {
+  const sealed = "identity-os-v1.bin";
+  if (protection) {
+    const normalize = (value: string) => {
+      const stored = JSON.parse(value) as {
+        version?: unknown;
+        privateKey?: unknown;
+      } | null;
+      if (
+        !stored ||
+        stored.version !== 1 ||
+        typeof stored.privateKey !== "string"
+      )
+        throw new Error("CORRUPT_IDENTITY");
+      const key = createPrivateKey(stored.privateKey);
+      if (key.asymmetricKeyType !== "ed25519")
+        throw new Error("WRONG_KEY_TYPE");
+      return JSON.stringify({
+        version: 1,
+        privateKey: key.export({ type: "pkcs8", format: "pem" }),
+      });
+    };
+    const payload = await loadProtectedFile(
+      directory,
+      {
+        legacy: "identity-v1.json",
+        sealed,
+        normalize,
+        decodeLegacy: (value) => value.toString("utf8"),
+        create: () =>
+          JSON.stringify({
+            version: 1,
+            privateKey: generateKeyPairSync("ed25519").privateKey.export({
+              type: "pkcs8",
+              format: "pem",
+            }),
+          }),
+      },
+      protection,
+    );
+    return identity(
+      createPrivateKey(
+        (JSON.parse(payload) as { privateKey: string }).privateKey,
+      ),
+    );
+  }
+  await requirePlaintextMode(directory, sealed);
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const dir = await lstat(directory);
   if (
@@ -105,6 +157,7 @@ export async function loadOrCreateIdentity(
 }
 // Local reset does not erase records already retained by remote participants.
 export async function resetIdentity(directory: string): Promise<Identity> {
+  await requirePlaintextMode(directory, "identity-os-v1.bin");
   await unlink(path.join(directory, "identity-v1.json"));
   return loadOrCreateIdentity(directory);
 }

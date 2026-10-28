@@ -256,3 +256,36 @@ test(
     }
   },
 );
+test("credential failures stay explicit without retries; manual retry recovers", async () => {
+  let attempts = 0,
+    scheduled = 0;
+  const lifecycle = new NetworkLifecycle(
+    async () => {
+      if (++attempts === 1) throw new Error("CREDENTIALS_UNAVAILABLE");
+      return instance();
+    },
+    {
+      schedule: () => {
+        scheduled++;
+        return () => {};
+      },
+    },
+  );
+  try {
+    lifecycle.setEnabled(true);
+    await lifecycle.settled();
+    assert.equal(lifecycle.status().state, "error");
+    assert.equal(lifecycle.status().error, "CREDENTIALS_UNAVAILABLE");
+    assert.equal(lifecycle.status().enabled, true);
+    assert.equal(lifecycle.status().retryAt, null);
+    assert.equal(scheduled, 0);
+    assert.equal(attempts, 1);
+    lifecycle.setEnabled(true);
+    await lifecycle.settled();
+    assert.equal(lifecycle.status().state, "online");
+    assert.equal(lifecycle.status().error, null);
+    assert.equal(attempts, 2);
+  } finally {
+    await lifecycle.close();
+  }
+});

@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { app, BrowserWindow, powerMonitor } from "electron";
+import { loadDesktopCredentials } from "../../apps/desktop/src/credentials.js";
 import { createDesktop } from "../../apps/desktop/src/desktop.js";
 import { DesktopMessaging } from "../../apps/desktop/src/messaging.js";
 import type {
@@ -10,11 +11,13 @@ import type {
   DesktopNetworkFactory,
 } from "../../apps/desktop/src/network.js";
 import { createOverlayRuntime } from "../../packages/app-dht/src/runtime.js";
+import { loadOrCreateIdentity } from "../../packages/identity/src/index.js";
 import {
   DIRECT_NAMESPACE,
   DirectMessenger,
   type TextEnvelope,
 } from "../../packages/protocol/src/direct.js";
+import { loadTransportKeys } from "../../packages/public-discovery/src/hyperdht.js";
 import { PreferenceStore } from "../../packages/security/src/preferences.js";
 
 async function run() {
@@ -31,6 +34,27 @@ async function run() {
   await seed.allow(allowed);
   await seed.close();
   await app.whenReady();
+  if (process.argv[3] === "credentials-only") {
+    const credentials = await loadDesktopCredentials(
+      path.join(directory, "native-runtime"),
+    );
+    const expected = JSON.parse(
+      await readFile(path.join(directory, "credentials-proof.json"), "utf8"),
+    ) as { peerId: string; transportKey: string };
+    assert.equal(credentials.identity.peerId, expected.peerId);
+    assert.equal(
+      credentials.transportKeys.publicKey.toString("hex"),
+      expected.transportKey,
+    );
+    console.log(
+      JSON.stringify({
+        result: "credential-reload-passed",
+        independentProcess: true,
+      }),
+    );
+    app.quit();
+    return;
+  }
   console.log("desktop stage: ready");
   let desktop: Awaited<ReturnType<typeof createDesktop>> | undefined,
     foreign: BrowserWindow | undefined;
@@ -334,10 +358,50 @@ async function run() {
     await until("window.companion.status().then(s => s.network === 'offline')");
     assert.equal(stops, 5);
     const canceled = new AbortController();
-    const native = await createOverlayRuntime(
-      path.join(directory, "native-runtime"),
-      { signal: canceled.signal, bootstrap: ["127.0.0.1:9"] },
+    const nativeDirectory = path.join(directory, "native-runtime");
+    const oldIdentity = await loadOrCreateIdentity(
+      path.join(nativeDirectory, "identity"),
     );
+    const oldKeys = await loadTransportKeys(
+      path.join(nativeDirectory, "transport"),
+    );
+    const credentials =
+      process.platform === "win32"
+        ? await loadDesktopCredentials(nativeDirectory, canceled.signal)
+        : undefined;
+    if (credentials) {
+      assert.equal(credentials.identity.peerId, oldIdentity.peerId);
+      assert.deepEqual(credentials.transportKeys.publicKey, oldKeys.publicKey);
+      const identityMarker = JSON.parse(
+        await readFile(
+          path.join(nativeDirectory, "identity/identity-v1.json"),
+          "utf8",
+        ),
+      );
+      assert.equal(identityMarker.storage, "os-protected");
+      assert.equal(
+        JSON.parse(
+          await readFile(
+            path.join(nativeDirectory, "transport/transport-seed-v1"),
+            "utf8",
+          ),
+        ).storage,
+        "os-protected",
+      );
+      await writeFile(
+        path.join(directory, "credentials-proof.json"),
+        JSON.stringify({
+          peerId: credentials.identity.peerId,
+          transportKey: credentials.transportKeys.publicKey.toString("hex"),
+        }),
+        { mode: 0o600 },
+      );
+    }
+    const native = await createOverlayRuntime(nativeDirectory, {
+      signal: canceled.signal,
+      bootstrap: ["127.0.0.1:9"],
+      ...(credentials ? { credentials } : {}),
+    });
     let rejected = false;
     const starting = native.start().catch(() => {
       rejected = true;
@@ -381,6 +445,7 @@ async function run() {
           "incoming-text-escaped",
           "message-byte-limit-and-clear",
           "disconnect-under-ipc-load",
+          ...(credentials ? ["windows-os-credential-migration"] : []),
         ],
         screenshot,
       }),
@@ -392,7 +457,8 @@ async function run() {
     foreign?.destroy();
     desktop?.window.destroy();
     await desktop?.close();
-    app.exit(Number(process.exitCode ?? 0));
+    if (process.exitCode) app.exit(Number(process.exitCode));
+    else app.quit();
   }
 }
 void run().catch((error: unknown) => {
