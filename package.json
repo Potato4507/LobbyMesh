@@ -17,6 +17,7 @@
     "format": "biome check --write .",
     "start": "electron dist/main.cjs",
     "test:desktop": "node scripts/desktop-smoke.mjs",
+    "test:audio": "node scripts/audio-smoke.mjs",
     "diagnose:session": "tsx scripts/session-status.ts",
     "smoke:public-pair": "node scripts/public-pair-smoke.mjs",
     "simulate:overlay": "tsx scripts/simulate-overlay.ts"
