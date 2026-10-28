@@ -9,7 +9,7 @@ for (const name of ["main", "preload"])
     bundle: true,
     platform: "node",
     format: "cjs",
-    external: ["electron"],
+    external: ["electron", "hyperdht"],
   });
 await build({
   entryPoints: ["apps/desktop/src/renderer.tsx"],

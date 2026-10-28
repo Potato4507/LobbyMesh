@@ -4,9 +4,11 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { app, BrowserWindow } from "electron";
 import { createDesktop } from "../../apps/desktop/src/desktop.js";
+import { createOverlayRuntime } from "../../packages/app-dht/src/runtime.js";
 import { PreferenceStore } from "../../packages/security/src/preferences.js";
 
 async function run() {
+  assert.equal(typeof createOverlayRuntime, "function");
   console.log("desktop stage: starting");
   const directory = process.argv[2];
   if (!directory) throw new Error("ISOLATED_DIRECTORY_REQUIRED");

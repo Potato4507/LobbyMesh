@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, unlink } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -8,15 +8,16 @@ import { build } from "esbuild";
 const directory = await mkdtemp(
   path.join(tmpdir(), "lobbymesh-desktop-smoke-"),
 );
+const entry = path.resolve(`dist/desktop-smoke-${process.pid}.cjs`);
 try {
-  const entry = path.join(directory, "smoke.cjs");
+  await mkdir("dist", { recursive: true });
   await build({
     entryPoints: ["tests/fixtures/desktop-smoke.ts"],
     outfile: entry,
     bundle: true,
     platform: "node",
     format: "cjs",
-    external: ["electron"],
+    external: ["electron", "hyperdht"],
   });
   const executable = createRequire(import.meta.url)("electron"),
     environment = { ...process.env };
@@ -51,6 +52,7 @@ try {
     });
   });
 } finally {
+  await unlink(entry).catch(() => {});
   await rm(directory, {
     recursive: true,
     force: true,

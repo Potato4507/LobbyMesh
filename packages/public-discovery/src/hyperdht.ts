@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { lstat, mkdir, open, readFile } from "node:fs/promises";
-import { createRequire } from "node:module";
 import path from "node:path";
+import HyperDHT from "hyperdht";
 import type { NoiseStream } from "../../app-dht/src/rpc.js";
 import type { DiscoveryBackend, DiscoveryQuery } from "./index.js";
 
@@ -22,7 +22,7 @@ interface Node {
   destroy(options: { force: boolean }): Promise<void>;
 }
 // Narrow declarations checked against installed 6.35.0 source; upstream ships no TS declarations.
-const DHT = createRequire(import.meta.url)("hyperdht") as {
+const DHT = HyperDHT as {
   new (options?: { bootstrap?: string[]; port?: number }): Node;
   keyPair(seed: Buffer): KeyPair;
 };
