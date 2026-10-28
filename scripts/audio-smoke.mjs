@@ -1,15 +1,27 @@
 import { spawn } from "node:child_process";
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  rm,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { build } from "esbuild";
 
 const directory = await mkdtemp(path.join(tmpdir(), "lobbymesh-audio-smoke-"));
-const hostMode = process.argv[2] === "host";
+const callsMode = process.argv[2] === "calls";
+const hostMode = process.argv[2] === "host" || callsMode;
+const mainFile = callsMode
+  ? path.resolve("dist", `voice-call-smoke-${process.pid}-${Date.now()}.cjs`)
+  : path.join(directory, "main.cjs");
 let child;
 try {
   await mkdir(path.join(directory, "profile"));
+  if (callsMode) await mkdir(path.dirname(mainFile), { recursive: true });
   if (hostMode) {
     for (const folder of ["host-assets", "production-assets"]) {
       const assets = path.join(directory, folder);
@@ -48,15 +60,17 @@ try {
   });
   await build({
     entryPoints: [
-      hostMode
-        ? "tests/fixtures/media-host-smoke.ts"
-        : "tests/fixtures/audio-smoke.ts",
+      callsMode
+        ? "tests/fixtures/voice-call-smoke.ts"
+        : hostMode
+          ? "tests/fixtures/media-host-smoke.ts"
+          : "tests/fixtures/audio-smoke.ts",
     ],
-    outfile: path.join(directory, "main.cjs"),
+    outfile: mainFile,
     bundle: true,
     platform: "node",
     format: "cjs",
-    external: ["electron"],
+    external: ["electron", "hyperdht"],
   });
   await writeFile(
     path.join(directory, "audio.html"),
@@ -69,7 +83,7 @@ try {
   await new Promise((resolve, reject) => {
     child = spawn(
       createRequire(import.meta.url)("electron"),
-      [path.join(directory, "main.cjs"), directory],
+      [mainFile, directory],
       {
         windowsHide: true,
         env: environment,
@@ -98,9 +112,11 @@ try {
       if (
         code === 0 &&
         output.includes(
-          hostMode
-            ? '"result":"media-host-passed"'
-            : '"result":"synthetic-audio-passed"',
+          callsMode
+            ? '"result":"authenticated-media-passed"'
+            : hostMode
+              ? '"result":"media-host-passed"'
+              : '"result":"synthetic-audio-passed"',
         )
       )
         resolve();
@@ -113,6 +129,7 @@ try {
       child.once("exit", resolve);
       child.kill();
     });
+  if (callsMode) await unlink(mainFile).catch(() => {});
   if (
     path.dirname(path.resolve(directory)) === path.resolve(tmpdir()) &&
     path.basename(directory).startsWith("lobbymesh-audio-smoke-")

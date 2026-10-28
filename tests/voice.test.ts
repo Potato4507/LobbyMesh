@@ -135,6 +135,7 @@ test("voice validates envelope identity, freshness, fields and byte bounds befor
     envelope("offer", "x", { callId: "bad" }),
     envelope("offer", "é".repeat(6145)),
     envelope("offer", ""),
+    envelope("connected", null),
     envelope("ice", { ...candidate, candidate: "x".repeat(2049) }),
     envelope("ice", { ...candidate, sdpMLineIndex: -1 }),
     envelope("ice", { ...candidate, sdpMid: 0 }),

@@ -36,7 +36,7 @@ export interface VoiceEvent {
 interface Call {
   id: string;
   contact: DirectContact;
-  phase: "offering" | "ringing" | "negotiating";
+  phase: "offering" | "ringing" | "negotiating" | "connected";
   sentIce: number;
   receivedIce: number;
   expiresAt: number;
@@ -76,7 +76,7 @@ function validData(op: Operation, data: unknown): boolean {
 }
 
 // Control only: no microphone, WebRTC connection, audio state, persistence or UI IPC.
-// The future trusted media owner consumes SDP/ICE events locally, never via the DHT.
+// The trusted media owner consumes SDP/ICE events locally, never via the DHT.
 export class VoiceSignaling {
   private consent = false;
   private closed = false;
@@ -103,12 +103,16 @@ export class VoiceSignaling {
       now?: () => number;
       requestTimeoutMs?: number;
       negotiationTimeoutMs?: number;
+      activeTimeoutMs?: number;
+      onEvents?: () => void;
+      onCallEnded?: (callId: string) => void;
     },
   ) {
     if (!hex(self)) throw new Error("INVALID_PEER_ID");
     for (const [value, max] of [
       [options.requestTimeoutMs ?? 2000, 5000],
       [options.negotiationTimeoutMs ?? 30_000, 30_000],
+      [options.activeTimeoutMs ?? 3_600_000, 3_600_000],
     ])
       if (
         !Number.isSafeInteger(value) ||
@@ -147,6 +151,11 @@ export class VoiceSignaling {
     if (call) {
       clearTimeout(call.timer);
       call.controller.abort();
+      try {
+        this.options.onCallEnded?.(call.id);
+      } catch {
+        /* Owner must fail closed on its own teardown errors. */
+      }
     }
   }
   policyChanged(): void {
@@ -231,6 +240,12 @@ export class VoiceSignaling {
       op,
       data: data && typeof data === "object" ? { ...data } : data,
     });
+    try {
+      this.options.onEvents?.();
+    } catch {
+      this.clear();
+      throw new Error("VOICE_MEDIA_OWNER_FAILED");
+    }
   }
   readonly handle: RpcHandler = async (peer, request, signal) => {
     this.requirePeer({ id: peer.id, transportKey: peer.transportKey });
@@ -317,7 +332,7 @@ export class VoiceSignaling {
         call.phase = "negotiating";
         this.enqueue(call, value.op, value.data);
       } else {
-        if (call.phase !== "negotiating")
+        if (call.phase !== "negotiating" && call.phase !== "connected")
           throw new Error("VOICE_STATE_MISMATCH");
         if (++call.receivedIce > 48) {
           this.clear();
@@ -430,7 +445,11 @@ export class VoiceSignaling {
   ): Promise<void> {
     this.reconcile();
     const call = this.call;
-    if (!call || call.id !== callId || call.phase !== "negotiating")
+    if (
+      !call ||
+      call.id !== callId ||
+      !["negotiating", "connected"].includes(call.phase)
+    )
       throw new Error("VOICE_STATE_MISMATCH");
     if (!validData("ice", candidate)) throw new Error("INVALID_VOICE_DATA");
     if (++call.sentIce > 48) {
@@ -450,6 +469,25 @@ export class VoiceSignaling {
       "hangup",
       null,
     );
+  }
+  // Trusted local media owner only. No RPC operation can assert this transition.
+  mediaConnected(callId: string): void {
+    this.reconcile();
+    const call = this.call;
+    if (
+      !call ||
+      call.id !== callId ||
+      !["negotiating", "connected"].includes(call.phase)
+    )
+      throw new Error("VOICE_STATE_MISMATCH");
+    if (call.phase === "connected") return;
+    call.phase = "connected";
+    clearTimeout(call.timer);
+    call.expiresAt = this.now() + (this.options.activeTimeoutMs ?? 3_600_000);
+    call.timer = setTimeout(() => {
+      if (this.call === call) this.clear();
+    }, this.options.activeTimeoutMs ?? 3_600_000);
+    call.timer.unref();
   }
   close(): void {
     this.closed = true;

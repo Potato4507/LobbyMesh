@@ -5,6 +5,7 @@ import {
   ipcMain,
   powerMonitor,
   session,
+  systemPreferences,
 } from "electron";
 import { NetworkLifecycle } from "../../../packages/app-dht/src/lifecycle.js";
 import { parseStatusRequest } from "../../../packages/protocol/src/index.js";
@@ -18,7 +19,8 @@ import {
   WindowsLogSessionProvider,
   windowsLogDirectories,
 } from "../../../packages/session/src/windows-logs.js";
-import { VoiceSignaling } from "../../../packages/voice/src/signaling.js";
+import { VoiceCalls } from "../../../packages/voice/src/calls.js";
+import { DesktopMediaHost } from "./media-host.js";
 import { DesktopMessaging } from "./messaging.js";
 import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
 import { DesktopOverlay } from "./overlay-window.js";
@@ -69,6 +71,15 @@ export async function createDesktop(
           signal,
           policy,
           sessions,
+          (context) =>
+            new DesktopMediaHost(assets, {
+              permitted: context.permitted,
+              microphoneAllowed: () =>
+                context.permitted() &&
+                ["granted", "not-determined"].includes(
+                  systemPreferences.getMediaAccessStatus("microphone"),
+                ),
+            }),
         );
   });
   let tearingDown = false,
@@ -298,7 +309,7 @@ export async function createDesktop(
       if (action !== "unblock") {
         try {
           network.using((runtime) => {
-            if ("voice" in runtime && runtime.voice instanceof VoiceSignaling)
+            if ("voice" in runtime && runtime.voice instanceof VoiceCalls)
               runtime.voice.policyChanged();
           });
         } catch {

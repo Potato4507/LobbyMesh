@@ -1,0 +1,21 @@
+# Authenticated call/media lifecycle — 2026-10-28
+
+VERIFIED_UNIT / VERIFIED_INTEGRATION / PARTIAL. `VoiceCalls` now connects the existing authenticated `VoiceSignaling` controller to `DesktopMediaHost`/`AudioPeer`. Production network construction and contact revoke/block/disconnect own the same service, but voice consent remains false on startup and there is no renderer action/voice UI activation yet. No microphone was granted or captured during development checks.
+
+Outgoing calls require enabled local voice, an approved contact, explicit call consent and a pinned endpoint. Incoming authenticated offers retain bounded ephemeral SDP and ring without creating a media host. Explicit local answer then creates the dedicated host and passes only the SDP received through authenticated control. Replies return over the same pinned control transport; WebRTC validates the exchanged DTLS fingerprints. The ordinary desktop/overlay renderer never receives SDP, transport addresses or a generic media API.
+
+All call endings synchronously notify the media owner: hangup, revoke/block, consent withdrawal, negotiation expiry and shutdown close the owned host and abort awaited work. Late capture/description completion cannot send an offer or mutate another call. Failed teardown retains ownership, disables new calls and reports capture as unknown instead of claiming microphone-off. One media-status poll is in flight at a time; stale completions cannot cancel a new owner's poll.
+
+Only a trusted local connected-media observation can promote negotiating to connected. No network operation can claim this transition. Promotion replaces the default30-second negotiation timer with a one-hour bounded call lifetime; repeated observations do not extend it. Test-specific short limits prove both surviving negotiation timeout and eventual active expiry. This limit is a current implementation constraint, not a long-call acceptance claim.
+
+The adapter uses complete ICE inside authenticated SDP and has no public STUN/TURN configuration. Receiving separate trickle ICE while this adapter owns a call fails explicitly; it does not silently ignore candidates or substitute a relay. Group calls, ICE restart/glare handling and independent-client/cross-NAT acceptance remain unfinished.
+
+Observed commands on Windows Electron45.1.0:
+
+- Four `tests/voice-calls.test.ts` cases verify no incoming media before answer, mutual consent, connected/PTT/hangup lifecycle, immediate policy teardown, active lifetime without extension, canceled/timeout capture with a new call racing an old result, and teardown-failure ownership/unknown capture.
+- `pnpm test:voice-calls` passes with two actual app runtimes/identities and native HyperDHT Noise RPC over a local-only bootstrap, protected temporary Windows credentials, two dedicated media renderers and production call controller/host/engine. All descriptions pass through authenticated pinned direct RPC. Both decoded synthetic audio directions, PTT release to silence, connected lifetime beyond a shortened negotiation budget, explicit answer, disabled recipient rejection, hangup and contact revocation are asserted.
+- Recorded native result: forward RMS approximately0.7042 at one receiver, reverse0.7100 at the other, silence0/0.0000023; runtimes2, Electron main processes1, microphone=false, audibleOutput=false, crossNat=false. Scheduling and codec comfort noise vary.
+
+This integration uses one Electron main process with two app runtimes, not independent full desktop clients. Capture is a synthetic oscillator injected only by the native fixture and output volume is zero; physical microphone/OS grant, audible voice quality, game integration, group load, hostile full-client runtime, real Roblox and cross-NAT remain unverified. Next add narrowly authorized user call/answer/PTT controls and lifecycle/device feedback, and extend native proof to independent app processes before physical audio acceptance.
+
+Checkpoint regression: `pnpm test`116/116, `pnpm typecheck`, `pnpm lint`126 files, `pnpm build` and `pnpm test:desktop` (including independent Windows credential reopen) pass. No actual package was rebuilt for this increment; latest verified artifact remains clean e17692d.
