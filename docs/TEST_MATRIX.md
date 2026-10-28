@@ -1,5 +1,7 @@
 # Test matrix
 
+2026-10-28 call-output artifact: clean22ed719,656 files/415575582 bytes/56 external copies. Actual executable smoke and independent integrity verifier pass, NotSigned, default network/mic off/sandbox/context isolation/protected reopen. Source-built independent media proof remains distinct from packaged-pair/hardware/cross-NAT acceptance. See evidence/windows-output-package-summary.json.
+
 2026-10-28 call output: Node119/119/typecheck/lint133/build/native desktop/media-host/independent-voice checks pass. Real decoded post-gain RMS scales to~0.25 at quarter setting, mutes while upstream transport/capture/PTT remain active, then restores. Independent desktop main IPC path verified. Native UI rapid slider coalescing, mute/unmute, unknown-level fallback and active720x600 layout checked. Scalar levels are not VAD/OS-volume/latency or physical-audio acceptance. See evidence/call-output-controls.md.
 
 2026-10-28 independent source-built desktop media: Node118/118/typecheck/lint132 and test:independent-voice pass. Two actual Electron main processes, distinct profiles/OS-protected identities, real production desktop/network factory, signed mutual pairing, Noise SDP, decoded synthetic audio/PTT silence, explicit answer/no early host, hangup/revoke. Third client launch reopens same protected identity, retains revoked policy, resets voice permission and explicitly reconnects. Final clients exit0 with no windows. Same host/no physical microphone/audible output/packaged-pair/cross-NAT proof. See evidence/independent-voice-clients.md.

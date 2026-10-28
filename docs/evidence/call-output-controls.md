@@ -14,3 +14,5 @@ Observed Windows native proof:
 - Native desktop UI passes rapid slider changes to final25%, incoming mute/unmute with capture unchanged, existing PTT/call/decline/focus/teardown suite and unknown-level display for its synthetic adapter. Active controls have no horizontal overflow at720x600. Reviewed updated labeled voice screenshot; default viewport restored after the layout check.
 
 The level meter intentionally says unavailable in the synthetic UI-adapter screenshot; native media tests separately exercise actual measured levels. All media sources are synthetic and all fixture hardware outputs are zero. No physical microphone grant/capture, audible output, packaged-client pair, remote NAT, group, VAD/device/latency or release acceptance. The previously verified clean executable still corresponds to2ea4154 until the next artifact refresh.
+
+Artifact refresh: clean source22ed719 -> dist/LobbyMesh-win32-x64-1793219995659/LobbyMesh.exe,656 hashed files/415575582 bytes, actual executable smoke and independent integrity pass. See windows-output-package-summary.json. This smoke stays default network/mic off; it does not establish a packaged voice call.

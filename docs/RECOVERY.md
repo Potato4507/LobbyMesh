@@ -1,6 +1,6 @@
 # Active checkpoint — 2026-10-28
 
-Goal active. D:\LobbyMesh, branch codex/lobbymesh-authenticated-overlay, remote Potato4507/Roblox-app. Prior clean source7e96f7b preserved. Explicit desktop voice controls pushed as2ea4154; clean artifact checkpoint5f989bf preserved. Independent desktop proof pushed as02922cd. Current milestone adds call output gain/mute/level; use git log -1 for its checkpoint hash. Use git log -1 for checkpoint hash. No main push/PR/release/merge/deployment. No preexisting dirty work. No intentional test process remains running.
+Goal active. D:\LobbyMesh, branch codex/lobbymesh-authenticated-overlay, remote Potato4507/Roblox-app. Prior clean source7e96f7b preserved. Explicit desktop voice controls pushed as2ea4154; clean artifact checkpoint5f989bf preserved. Independent desktop proof pushed as02922cd. Call output gain/mute/level pushed as22ed719. This docs checkpoint records the clean artifact; use git log -1 for checkpoint hash. Use git log -1 for checkpoint hash. No main push/PR/release/merge/deployment. No preexisting dirty work. No intentional test process remains running.
 
 Production UI: Conversations now has connection-local voice consent (off by default/reset on reconnect), approved-contact call, explicit answer/decline/end and focused pointer/Space/Enter hold-to-talk. Targets resolved inside main through DesktopMessaging.resolveContact; strict main-window-only action parser never accepts SDP/endpoints. Ordinary overlay/foreign actions reject. Main/side/panel capture status shows on/off/unknown; microphone stays captured while in call even when PTT transmission is muted. No global/game/overlay PTT yet. VoiceMode preference remains off and does not restore capture permissions.
 
@@ -18,10 +18,12 @@ Next3 shell actions:
 
 ```powershell
 git status --short; git log -4 --oneline
-pnpm package:win
-Get-Content dist/windows-development-latest.json
+Get-Content scripts/independent-voice-smoke.mjs, tests/fixtures/independent-voice-client.ts
+Get-Content packages/voice/src/audio-peer.ts, packages/voice/src/calls.ts
 ```
 
-Clean artifact below remains2ea4154; latest source proof now includes independent processes. Next refresh clean artifact, then measure abrupt peer loss and improve bounded recovery/liveness, preserving capture teardown. No physical mic capture. Keep balanced backlog: device/PTT/volume/metrics, positive real Roblox lifecycle, native setup root cause/reuse, multiple-seed resilience, contact eligibility/safety and release gates. No module fully product-accepted; do not complete goal.
+Clean artifact below remains2ea4154; latest source proof now includes independent processes. Clean output artifact verified below. Next measure abrupt peer loss and improve bounded recovery/liveness, preserving capture teardown. No physical mic capture. Keep balanced backlog: device/PTT/volume/metrics, positive real Roblox lifecycle, native setup root cause/reuse, multiple-seed resilience, contact eligibility/safety and release gates. No module fully product-accepted; do not complete goal.
 
 Latest actual package: dist/LobbyMesh-win32-x64-1793218076533/LobbyMesh.exe from clean2ea415462bd8135cc2b41621e89d9fa42cf22bdc,656 files/415559717 bytes,56 external copies; includes media.html/media-preload.cjs/media-renderer.js. Actual executable/independent verifier passed; manifestSHA256=7137c85147853c6be50b3cec344af6e785bab7cf1ae3f06bcb41cbddd99c7458. Evidence windows-voice-package-summary.json. No new mic/audio claim from package smoke. Unsigned/no installer/fresh-machine/public release; LICENSE unresolved. Prior prototype folders retained because optional cleanup was rejected by automatic approval review (blocked by policy); do not retry deletion via workaround. Preserve external private seed and history. Unified requirements already persisted in IMPLEMENTATION_PLAN.md.
+
+Newest artifact supersedes the earlier package above: dist/LobbyMesh-win32-x64-1793219995659/LobbyMesh.exe, clean22ed7191f25315851f68eddc71495bef71c8b7a3,656 files/415575582 bytes/56 external copies. ManifestSHA256=e50e3953231816c05bd87f4c65ca9976f9796bfab9f0dff1936c8bb1678b1c78. Actual executable smoke and independent verifier pass; Authenticode NotSigned. Evidence windows-output-package-summary.json. No packaged-pair/physical-audio acceptance. Final docs-only lint134 files passes; no source changes after verified119-test milestone.
