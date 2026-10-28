@@ -1,15 +1,15 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { DesktopMessaging } from "../../apps/desktop/src/messaging.js";
 import { createOverlayRuntime } from "../../packages/app-dht/src/runtime.js";
-import { DirectMessenger } from "../../packages/protocol/src/direct.js";
 import { signRecord } from "../../packages/security/src/records.js";
 import { SessionCoordinator } from "../../packages/session/src/coordinator.js";
 import { MockSessionProvider } from "../../packages/session/src/index.js";
 import { SessionMembership } from "../../packages/session/src/matching.js";
 
 const directory = await mkdtemp(path.join(tmpdir(), "lobbymesh-runtime-"));
-let messenger: DirectMessenger;
+let messenger: DesktopMessaging;
 const authorized = new Set<string>();
 const runtime = await createOverlayRuntime(directory, {
   ...(process.argv[2] === "public"
@@ -18,11 +18,20 @@ const runtime = await createOverlayRuntime(directory, {
   directHandler: (peer, request, signal) =>
     messenger.handle(peer, request, signal),
 });
-messenger = new DirectMessenger(
+messenger = new DesktopMessaging(
   runtime.peerId,
   (contact, request, signal) =>
     runtime.overlay.directRequest(contact, request, signal),
-  { authorized: (id) => authorized.has(id) },
+  {
+    authorized: (id) => authorized.has(id),
+    blocked: () => false,
+    allowed: () => [...authorized],
+  },
+  () =>
+    runtime.overlay.authenticatedContacts().map((peer) => ({
+      id: peer.id,
+      transportKey: Buffer.from(peer.publicKey).toString("hex"),
+    })),
 );
 await runtime.start();
 const provider = new MockSessionProvider();
@@ -50,19 +59,13 @@ process.on(
           return true;
         case "direct-deny":
           authorized.delete(message.peerId ?? "");
-          messenger.forget(message.peerId ?? "");
+          messenger.policyChanged(message.peerId ?? "");
           return true;
         case "direct-history":
           return messenger.history(message.peerId ?? "");
         case "direct-send": {
-          const contact = {
-            id: message.peerId ?? "",
-            transportKey: message.key,
-          };
-          await messenger.negotiate(contact);
-          await messenger.heartbeat(contact);
-          return messenger.sendText(
-            contact,
+          return messenger.send(
+            message.peerId ?? "",
             message.text ?? "synthetic direct message",
           );
         }

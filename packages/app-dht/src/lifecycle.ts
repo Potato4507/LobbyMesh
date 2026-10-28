@@ -299,6 +299,17 @@ export class NetworkLifecycle {
   async settled(): Promise<void> {
     while (this.jobs.size) await Promise.allSettled([...this.jobs]);
   }
+  using<T>(action: (runtime: ManagedNetwork) => T): T {
+    if (
+      this.closed ||
+      !this.desired ||
+      this.sleeping ||
+      this.view.state !== "online" ||
+      !this.runtime
+    )
+      throw new Error("NETWORK_NOT_READY");
+    return action(this.runtime);
+  }
   async close(): Promise<void> {
     if (!this.closed) {
       this.closed = true;

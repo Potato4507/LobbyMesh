@@ -1,10 +1,10 @@
 import type { ManagedNetwork } from "../../../packages/app-dht/src/lifecycle.js";
 import { createOverlayRuntime } from "../../../packages/app-dht/src/runtime.js";
-import { DirectMessenger } from "../../../packages/protocol/src/direct.js";
+import { DesktopMessaging, type MessagingPolicy } from "./messaging.js";
 
-export interface ContactPolicy {
-  blocked(id: string): boolean;
-  authorized(id: string): boolean;
+export type ContactPolicy = MessagingPolicy;
+export interface DesktopManagedNetwork extends ManagedNetwork {
+  messaging: DesktopMessaging;
 }
 export type DesktopNetworkFactory = (
   signal: AbortSignal,
@@ -14,21 +14,27 @@ export async function createDesktopNetwork(
   directory: string,
   signal: AbortSignal,
   policy: ContactPolicy,
-): Promise<ManagedNetwork> {
-  let messenger: DirectMessenger;
+): Promise<DesktopManagedNetwork> {
+  let messaging: DesktopMessaging;
   const runtime = await createOverlayRuntime(directory, {
     signal,
     blocked: policy.blocked,
     directHandler: (peer, request, requestSignal) =>
-      messenger.handle(peer, request, requestSignal),
+      messaging.handle(peer, request, requestSignal),
   });
-  messenger = new DirectMessenger(
+  messaging = new DesktopMessaging(
     runtime.peerId,
     (contact, request, requestSignal) =>
       runtime.overlay.directRequest(contact, request, requestSignal),
-    { authorized: policy.authorized },
+    policy,
+    () =>
+      runtime.overlay.authenticatedContacts().map((peer) => ({
+        id: peer.id,
+        transportKey: Buffer.from(peer.publicKey).toString("hex"),
+      })),
   );
   return {
+    messaging,
     start: runtime.start,
     status: runtime.status,
     peerCount: () =>
@@ -36,7 +42,7 @@ export async function createDesktopNetwork(
         .authenticatedContacts()
         .filter((peer) => !policy.blocked(peer.id)).length,
     async stop() {
-      messenger.close();
+      messaging.close();
       await runtime.stop();
     },
   };

@@ -8,6 +8,13 @@ contextBridge.exposeInMainWorld(
       contextIsolated: process.contextIsolated === true,
     }),
     status: () => ipcRenderer.invoke("companion:status"),
+    messaging: () => ipcRenderer.invoke("companion:messaging"),
+    messages: (peerId: unknown) =>
+      ipcRenderer.invoke("companion:messages", peerId),
+    sendText: (peerId: unknown, text: unknown) =>
+      ipcRenderer.invoke("companion:messages:send", { peerId, text }),
+    clearMessages: (peerId: unknown) =>
+      ipcRenderer.invoke("companion:messages:clear", peerId),
     network: (enabled: unknown) =>
       ipcRenderer.invoke("companion:network", enabled),
     preferences: () => ipcRenderer.invoke("companion:preferences"),

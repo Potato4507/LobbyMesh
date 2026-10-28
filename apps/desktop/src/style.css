@@ -187,6 +187,79 @@ code {
   color: #c2d3eb;
   font-size: 12px;
 }
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #40506a;
+  border-radius: 7px;
+  background: #0b1423;
+  color: #eff6ff;
+  font: inherit;
+}
+textarea {
+  resize: vertical;
+  min-height: 85px;
+}
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #89ddd4;
+  outline-offset: 3px;
+}
+.message-history {
+  max-height: 300px;
+  min-height: 90px;
+  overflow-y: auto;
+  margin-top: 16px;
+  padding: 12px;
+  background: #0b1423;
+  border-radius: 8px;
+}
+.message {
+  max-width: 85%;
+  padding: 12px;
+  margin: 0 auto 10px 0;
+  border: 1px solid #2a374c;
+  border-radius: 10px;
+  background: #17243a;
+}
+.message.outgoing {
+  margin-left: auto;
+  margin-right: 0;
+  background: #153335;
+  border-color: #285352;
+}
+.message p {
+  color: #e4edf8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 6px 0;
+}
+.message-meta,
+.message-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.message-meta {
+  justify-content: space-between;
+  font-size: 11px;
+  color: #afbdd1;
+}
+.message-meta strong {
+  font-size: 12px;
+}
+.message-status {
+  color: #a2b4ca;
+  font-size: 11px;
+}
+.message[data-status="unconfirmed"] .message-status {
+  color: #ffc58d;
+}
+.message-actions {
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
 footer {
   color: #8394ad;
   font-size: 11px;

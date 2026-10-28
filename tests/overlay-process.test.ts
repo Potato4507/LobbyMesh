@@ -222,14 +222,21 @@ test(
     assert.equal(acknowledgement.status, "acknowledged");
     const history = (await b.command("direct-history", {
       peerId: infoA.id,
-    })) as { envelope: { text: string; from: string } }[];
+    })) as { text: string; peerId: string; direction: string }[];
     assert.equal(history.length, 1);
-    assert.equal(history[0]?.envelope.text, "synthetic encrypted text");
-    assert.equal(history[0]?.envelope.from, infoA.id);
+    assert.equal(history[0]?.text, "synthetic encrypted text");
+    assert.equal(history[0]?.peerId, infoA.id);
+    assert.equal(history[0]?.direction, "incoming");
     await b.command("direct-deny", { peerId: infoA.id });
     await assert.rejects(
       a.command("direct-send", { peerId: infoB.id, key: infoB.key }),
-      /REMOTE_RPC_REJECTED/,
+      /DELIVERY_UNCONFIRMED/,
+    );
+    await b.command("direct-allow", { peerId: infoA.id });
+    assert.equal(
+      ((await b.command("direct-history", { peerId: infoA.id })) as unknown[])
+        .length,
+      1,
     );
     for (const peer of [b, a])
       assert.equal(await peer.command("stop"), "stopped");

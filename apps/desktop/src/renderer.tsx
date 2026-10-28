@@ -2,6 +2,8 @@ import { type FormEvent, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
 import type { Preferences } from "../../../packages/protocol/src/preferences.js";
+import { Messages } from "./messages.js";
+import type { ContactView, MessageView } from "./messaging.js";
 
 declare global {
   interface Window {
@@ -14,6 +16,13 @@ declare global {
         connection: NetworkStatus;
       }>;
       network(enabled: boolean): Promise<NetworkStatus>;
+      messaging(): Promise<{ available: boolean; contacts: ContactView[] }>;
+      messages(peerId: string): Promise<MessageView[]>;
+      sendText(
+        peerId: string,
+        text: string,
+      ): Promise<{ id: string; attempts: number; status: "acknowledged" }>;
+      clearMessages(peerId: string): Promise<{ cleared: true }>;
       preferences(): Promise<Preferences>;
       updatePreferences(request: unknown): Promise<Preferences>;
       contact(action: string, peerId: string): Promise<Preferences>;
@@ -368,6 +377,7 @@ function App() {
           reveal network addresses to connected peers.
         </p>
       </section>
+      <Messages connection={connection} />
       <footer>
         Independent companion · No paid owner-operated backend · No Roblox
         process modification

@@ -25,7 +25,7 @@ export interface ReceivedText {
 }
 const hex = (value: unknown, size = 64): value is string =>
   typeof value === "string" && new RegExp(`^[a-f0-9]{${size}}$`).test(value);
-function validText(value: unknown): value is string {
+export function validText(value: unknown): value is string {
   return (
     typeof value === "string" &&
     value.trim().length > 0 &&

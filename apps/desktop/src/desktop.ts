@@ -8,8 +8,12 @@ import {
 } from "electron";
 import { NetworkLifecycle } from "../../../packages/app-dht/src/lifecycle.js";
 import { parseStatusRequest } from "../../../packages/protocol/src/index.js";
-import { parsePreferencePatch } from "../../../packages/protocol/src/preferences.js";
+import {
+  parsePeerId,
+  parsePreferencePatch,
+} from "../../../packages/protocol/src/preferences.js";
 import { PreferenceStore } from "../../../packages/security/src/preferences.js";
+import { DesktopMessaging } from "./messaging.js";
 import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
 
 export async function createDesktop(
@@ -26,9 +30,11 @@ export async function createDesktop(
   }
   const network = new NetworkLifecycle(async (signal) => {
     if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");
+    const store = preferences;
     const policy = {
-      blocked: preferences.isBlocked,
-      authorized: preferences.isAuthorized,
+      blocked: store.isBlocked,
+      authorized: store.isAuthorized,
+      allowed: () => store.snapshot().allowedPeers,
     };
     return options.networkFactory
       ? options.networkFactory(signal, policy)
@@ -73,6 +79,15 @@ export async function createDesktop(
       throw new Error("UNTRUSTED_SENDER");
   };
   const channels: string[] = [];
+  const messaging = <T>(action: (service: DesktopMessaging) => T): T =>
+    network.using((runtime) => {
+      if (
+        !("messaging" in runtime) ||
+        !(runtime.messaging instanceof DesktopMessaging)
+      )
+        throw new Error("MESSAGING_UNAVAILABLE");
+      return action(runtime.messaging);
+    });
   const handle = (
     name: string,
     action: (request: unknown) => unknown | Promise<unknown>,
@@ -81,12 +96,15 @@ export async function createDesktop(
     ipcMain.handle(name, async (event, request: unknown) => {
       trusted(event);
       if (tearingDown) throw new Error("DESKTOP_CLOSING");
-      if (activeRequests >= 16) throw new Error("REQUEST_QUOTA");
-      activeRequests++;
+      const priority =
+        name === "companion:status" ||
+        (name === "companion:network" && request === false);
+      if (!priority && activeRequests >= 16) throw new Error("REQUEST_QUOTA");
+      if (!priority) activeRequests++;
       try {
         return await action(request);
       } finally {
-        activeRequests--;
+        if (!priority) activeRequests--;
       }
     });
   };
@@ -135,6 +153,38 @@ export async function createDesktop(
       network.setEnabled(true);
     return network.status();
   });
+  handle("companion:messaging", (request) => {
+    parseStatusRequest(request);
+    try {
+      return {
+        available: true,
+        contacts: messaging((service) => service.contacts()),
+      };
+    } catch {
+      return { available: false, contacts: [] };
+    }
+  });
+  handle("companion:messages", (request) => {
+    const peerId = parsePeerId(request);
+    return messaging((service) => service.history(peerId));
+  });
+  handle("companion:messages:send", async (request) => {
+    if (
+      !request ||
+      typeof request !== "object" ||
+      Object.keys(request).sort().join(",") !== "peerId,text" ||
+      !("peerId" in request) ||
+      !("text" in request)
+    )
+      throw new Error("INVALID_MESSAGE_REQUEST");
+    const peerId = parsePeerId(request.peerId);
+    return messaging((service) => service.send(peerId, request.text));
+  });
+  handle("companion:messages:clear", (request) => {
+    const peerId = parsePeerId(request);
+    messaging((service) => service.clear(peerId));
+    return { cleared: true };
+  });
   handle("companion:contact", async (request) => {
     if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");
     if (
@@ -149,7 +199,15 @@ export async function createDesktop(
     if (action !== "revoke" && action !== "block" && action !== "unblock")
       throw new Error("INVALID_CONTACT_ACTION");
     try {
-      return await preferences[action](peerId);
+      const saving = preferences[action](peerId);
+      if (action !== "unblock") {
+        try {
+          messaging((service) => service.policyChanged(parsePeerId(peerId)));
+        } catch {
+          /* Offline messaging holds no active sends. */
+        }
+      }
+      return await saving;
     } catch {
       throw new Error("CONTACT_UPDATE_FAILED");
     }
