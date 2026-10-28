@@ -1,6 +1,6 @@
 # Active checkpoint — 2026-10-28
 
-Goal active. D:\LobbyMesh, branch codex/lobbymesh-authenticated-overlay, remote Potato4507/Roblox-app. Prior clean source7e96f7b preserved. Current milestone adds explicit desktop voice controls; use git log -1 after commit. No main push/PR/release/merge/deployment. No preexisting dirty work. No intentional test process remains running.
+Goal active. D:\LobbyMesh, branch codex/lobbymesh-authenticated-overlay, remote Potato4507/Roblox-app. Prior clean source7e96f7b preserved. Explicit desktop voice controls pushed as2ea4154; this docs checkpoint records its clean artifact. Use git log -1 for checkpoint hash. No main push/PR/release/merge/deployment. No preexisting dirty work. No intentional test process remains running.
 
 Production UI: Conversations now has connection-local voice consent (off by default/reset on reconnect), approved-contact call, explicit answer/decline/end and focused pointer/Space/Enter hold-to-talk. Targets resolved inside main through DesktopMessaging.resolveContact; strict main-window-only action parser never accepts SDP/endpoints. Ordinary overlay/foreign actions reject. Main/side/panel capture status shows on/off/unknown; microphone stays captured while in call even when PTT transmission is muted. No global/game/overlay PTT yet. VoiceMode preference remains off and does not restore capture permissions.
 
@@ -14,10 +14,10 @@ Next3 shell actions:
 
 ```powershell
 git status --short; git log -4 --oneline
-pnpm package:win
-Get-Content dist/windows-development-latest.json
+Get-Content scripts/audio-smoke.mjs, tests/fixtures/voice-call-smoke.ts
+Get-Content tests/fixtures/media-host-renderer.ts; rg -n 'runtime-process|spawn|ipc' tests/overlay-process.test.ts
 ```
 
-Next refresh/verify clean Windows artifact and record exact source/hash/count/smoke evidence. Then extend native media proof to independent full app processes with isolated profiles, actual protected credentials/Noise and synthetic audio, retaining explicit consent and no physical mic capture. Keep balanced backlog: device/PTT/volume/metrics, positive real Roblox lifecycle, native setup root cause/reuse, multiple-seed resilience, contact eligibility/safety and release gates. No module fully product-accepted; do not complete goal.
+Clean artifact refreshed and verified below. Next extend native media proof to independent full app processes with isolated profiles, actual protected credentials/Noise and synthetic audio, retaining explicit consent and no physical mic capture. Keep balanced backlog: device/PTT/volume/metrics, positive real Roblox lifecycle, native setup root cause/reuse, multiple-seed resilience, contact eligibility/safety and release gates. No module fully product-accepted; do not complete goal.
 
-Latest actual package before refresh remains dist/LobbyMesh-win32-x64-1793213204638/LobbyMesh.exe from clean e17692d,653 files/415476184 bytes,56 external copies; actual executable/independent verifier passed. Unsigned/no installer/fresh-machine/public release; LICENSE unresolved. Prior prototype folders retained because optional cleanup was rejected by automatic approval review (blocked by policy); do not retry deletion via workaround. Preserve external private seed and history. Unified requirements already persisted in IMPLEMENTATION_PLAN.md.
+Latest actual package: dist/LobbyMesh-win32-x64-1793218076533/LobbyMesh.exe from clean2ea415462bd8135cc2b41621e89d9fa42cf22bdc,656 files/415559717 bytes,56 external copies; includes media.html/media-preload.cjs/media-renderer.js. Actual executable/independent verifier passed; manifestSHA256=7137c85147853c6be50b3cec344af6e785bab7cf1ae3f06bcb41cbddd99c7458. Evidence windows-voice-package-summary.json. No new mic/audio claim from package smoke. Unsigned/no installer/fresh-machine/public release; LICENSE unresolved. Prior prototype folders retained because optional cleanup was rejected by automatic approval review (blocked by policy); do not retry deletion via workaround. Preserve external private seed and history. Unified requirements already persisted in IMPLEMENTATION_PLAN.md.

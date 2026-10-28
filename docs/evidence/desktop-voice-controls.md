@@ -17,3 +17,5 @@ Observed Windows Electron45.1.0:
 - Reviewed lobbymesh-voice-test.png, messaging and settings screenshots. Voice screenshot explicitly labels synthetic/no mic/network; viewport720x600 has no horizontal overflow in all views. Long conversations remain vertically scrollable. No native test window remains after exit.
 
 Limitations: no independent full-client media run, physical microphone/OS permission grant, audible quality, device switching, user volume/mute/VAD/latency work, group load, global game PTT/fullscreen, real Roblox or cross-NAT acceptance. ICE still has no configured public STUN/TURN. The current development package is not release-ready. Next prove independent app-process media, refresh the clean development artifact, then continue remaining media/network/safety acceptance.
+
+Artifact refresh after clean source commit2ea4154: dist/LobbyMesh-win32-x64-1793218076533/LobbyMesh.exe,656 hashed files/415559717 bytes, actual-executable smoke and independent integrity pass. All three media assets present. Default network/mic off and protected credential reopen verified; package smoke does not place a voice call. See windows-voice-package-summary.json.
