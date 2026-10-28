@@ -1,0 +1,16 @@
+# Call output controls and measured level — 2026-10-28
+
+VERIFIED_UNIT / VERIFIED_INTEGRATION / PARTIAL. Connected calls now have a0–100% incoming volume slider, incoming-audio mute and a decoded post-gain level indicator. Settings apply only to this call/current peer and reset when the call ends. They are not persistent per-contact preferences or group controls. They do not change microphone capture, outgoing PTT or incoming transport.
+
+The dedicated media owner keeps the decoder-driving audio element at volume0, then routes the remote stream through a WebAudio gain node, post-gain analyser and final hardware gain. Production hardware gain is1; native fixtures use0 for silence. User gain is finite0–1 with no amplification option; mute sets gain0. Only a bounded scalar RMS crosses media-status IPC, not samples, SDP or addresses. Missing level is null, never silently zero. This meter measures decoded graph output before OS volume; it is not speech VAD, perceived loudness, device calibration or latency.
+
+Strict output action/command schemas bind current call ID and validate volume/mute types/bounds/exact fields. The main-window-only boundary is unchanged. Output writes serialize per owner; late old-call completions cannot change a new call. Slider changes coalesce through one owned120ms timer and one request in flight, preserving the latest intent without flooding media IPC. Mute bypasses normal main IPC saturation, and a configured200ms unconfirmed-mute watchdog closes the call. No network protocol, discovery, contact permission or microphone grant change.
+
+Observed Windows native proof:
+
+- `pnpm test:media-host` passes full post-gain RMS~0.7088 and quarter-gain~0.1767 (ratio~0.25), muted output below0.00001, restored output after unmute, raw incoming tone still present while muted, and outgoing PTT still active. These are actual browser-decoded Opus/WebAudio samples with fixture hardware output0, not an audible-device claim.
+- `pnpm test:independent-voice` passes two separate desktop processes, real protected identities/mutual signed approval/Noise SDP and output controls through genuine app IPC. Receiver post-gain quarter level~0.17695, mute0 while upstream tone/capture/PTT continue. Release silence and restart/identity/revocation/voice-reset assertions still pass.
+- Node119/119, typecheck, lint133 files and build pass. Bounds/unknown fields/nonfinite level tests plus coordinator serialization/PTT independence/reset are covered.
+- Native desktop UI passes rapid slider changes to final25%, incoming mute/unmute with capture unchanged, existing PTT/call/decline/focus/teardown suite and unknown-level display for its synthetic adapter. Active controls have no horizontal overflow at720x600. Reviewed updated labeled voice screenshot; default viewport restored after the layout check.
+
+The level meter intentionally says unavailable in the synthetic UI-adapter screenshot; native media tests separately exercise actual measured levels. All media sources are synthetic and all fixture hardware outputs are zero. No physical microphone grant/capture, audible output, packaged-client pair, remote NAT, group, VAD/device/latency or release acceptance. The previously verified clean executable still corresponds to2ea4154 until the next artifact refresh.

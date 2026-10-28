@@ -5,6 +5,16 @@ import { parseVoiceAction } from "../packages/protocol/src/voice.js";
 test("voice UI actions require exact local consent, bounded IDs and no endpoint or SDP fields", () => {
   const peerId = "a".repeat(64),
     callId = "b".repeat(32);
+  assert.deepEqual(
+    parseVoiceAction({ action: "output", callId, volume: 0.5, muted: true }),
+    { action: "output", callId, volume: 0.5, muted: true },
+  );
+  for (const volume of [NaN, Infinity, -1, 1.1, "0.5"])
+    assert.throws(
+      () =>
+        parseVoiceAction({ action: "output", callId, volume, muted: false }),
+      /INVALID_VOICE_ACTION/,
+    );
   for (const action of [
     { action: "consent", enabled: false },
     { action: "consent", enabled: true },

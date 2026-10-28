@@ -28,6 +28,7 @@ async function run() {
       phase: "idle",
       capturing: false,
       transmitting: false,
+      outputLevel: null,
     });
     await assert.rejects(left.offer(false), /MEDIA_HOST_DENIED/);
     const offer = await left.offer(true);
@@ -84,6 +85,54 @@ async function run() {
       `HOST_TALKING_RMS ${JSON.stringify(talking)}`,
     );
     const metrics = await right.metrics();
+    await left.setTalking(true);
+    const renewOutputTest = setInterval(() => {
+      void left.setTalking(true).catch(() => {});
+    }, 200);
+    let fullOutput = 0,
+      quarterOutput = 0,
+      mutedOutput = 0;
+    try {
+      const outputRms = async () =>
+        Math.max(
+          ...(await Promise.all(
+            windows.map((window) =>
+              window.webContents.executeJavaScript(
+                "window.syntheticOutputRms()",
+              ),
+            ),
+          )),
+        );
+      await delay(100);
+      fullOutput = await outputRms();
+      assert.ok(fullOutput > 0.1);
+      await right.setOutput(0.25, false);
+      await delay(180);
+      quarterOutput = await outputRms();
+      assert.ok(
+        quarterOutput / fullOutput > 0.18 && quarterOutput / fullOutput < 0.32,
+        "post-gain quarter volume",
+      );
+      await right.setOutput(0.25, true);
+      await delay(180);
+      mutedOutput = await outputRms();
+      assert.ok(mutedOutput < 0.00001, "deafen must silence output");
+      const upstream = await Promise.all(
+        windows.map((window) =>
+          window.webContents.executeJavaScript("window.syntheticRms()"),
+        ),
+      );
+      assert.ok(
+        upstream.some((value) => value > 0.01),
+        "deafen must not stop incoming transport",
+      );
+      assert.equal((await left.status()).transmitting, true);
+      await right.setOutput(1, false);
+      await delay(180);
+      assert.ok((await outputRms()) > 0.1, "unmute restores output");
+    } finally {
+      clearInterval(renewOutputTest);
+    }
     assert.ok(
       metrics.receivedPackets > 0 && metrics.receivedBytes > 0,
       `HOST_RTP_METRICS ${JSON.stringify(metrics)}`,
@@ -206,6 +255,9 @@ async function run() {
         talking,
         released,
         reverseTalking,
+        fullOutput,
+        quarterOutput,
+        mutedOutput,
         receivedPackets: metrics.receivedPackets,
         foreignReadyRejected: true,
         microphone: false,

@@ -39,6 +39,7 @@ function fixture(
       async setTalking(talk: boolean) {
         value.talking = talk;
       },
+      async setOutput(_volume: number, _muted: boolean) {},
       async status() {
         return {
           phase: value.phase,
@@ -176,6 +177,7 @@ test("canceled or timed out capture cannot transmit a late offer or overwrite a 
         answer: async () => "",
         acceptAnswer: async () => {},
         setTalking: async () => {},
+        setOutput: async () => {},
         status: async () => ({
           phase: "negotiating",
           capturing: true,
@@ -260,4 +262,35 @@ test("late talk activation cannot overwrite a newer release", async (t) => {
   await press;
   assert.equal(local.talking, false);
   assert.equal(left.status().transmitting, false);
+});
+test("call output is bounded, serialized and independent of microphone/PTT", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  await delay(10);
+  await left.setTalking(true);
+  const local = media[0];
+  assert.ok(local);
+  let finish: () => void = () => {};
+  local.setOutput = () =>
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+  const output = left.setOutput(0.25, true);
+  await assert.rejects(left.setOutput(0.5, false), /OUTPUT_UPDATE_PENDING/);
+  assert.equal(local.closed, false);
+  finish();
+  await output;
+  assert.equal(left.status().outputVolume, 0.25);
+  assert.equal(left.status().outputMuted, true);
+  assert.equal(left.status().transmitting, true);
+  assert.equal(left.status().capturing, true);
+  assert.equal(left.status().outputLevel, null);
+  for (const volume of [NaN, Infinity, -1, 1.01])
+    await assert.rejects(left.setOutput(volume, false), /INVALID_CALL_OUTPUT/);
+  await left.hangup();
+  assert.equal(left.status().outputVolume, 1);
+  assert.equal(left.status().outputMuted, false);
 });

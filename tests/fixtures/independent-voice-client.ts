@@ -87,6 +87,8 @@ async function run() {
       code?: string;
       peerId?: string;
       callId?: string;
+      volume?: number;
+      muted?: boolean;
     }) => {
       void (async () => {
         switch (message.op) {
@@ -166,8 +168,19 @@ async function run() {
                 window.webContents.executeJavaScript("window.syntheticRms()"),
               ),
             );
-            return { hosts: windows.length, rms };
+            const outputRms = await Promise.all(
+              windows.map((window) =>
+                window.webContents.executeJavaScript(
+                  "window.syntheticOutputRms()",
+                ),
+              ),
+            );
+            return { hosts: windows.length, rms, outputRms };
           }
+          case "output":
+            return execute(
+              `window.companion.voice().then(s=>window.companion.voiceAction({action:'output',callId:s.callId,volume:${JSON.stringify(message.volume)},muted:${JSON.stringify(message.muted)}}))`,
+            );
           case "hangup":
             await release();
             return execute(

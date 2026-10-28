@@ -215,6 +215,9 @@ export async function createDesktop(
         capturing,
         transmitting,
         error,
+        outputVolume: 1,
+        outputMuted: false,
+        outputLevel: null,
         microphonePermission,
       };
     }
@@ -265,7 +268,10 @@ export async function createDesktop(
               request.enabled === false) ||
             (request.action === "talk" &&
               "pressed" in request &&
-              request.pressed === false)));
+              request.pressed === false) ||
+            (request.action === "output" &&
+              "muted" in request &&
+              request.muted === true)));
       if (!priority && activeRequests >= 16) throw new Error("REQUEST_QUOTA");
       if (!priority) activeRequests++;
       try {
@@ -324,6 +330,20 @@ export async function createDesktop(
           throw new Error("VOICE_STATE_MISMATCH");
         stopTalking();
         await service.hangup();
+      } else if (action.action === "output") {
+        if (service.status().callId !== action.callId)
+          throw new Error("VOICE_STATE_MISMATCH");
+        const watchdog = action.muted
+          ? setTimeout(() => {
+              if (service.status().callId === action.callId)
+                void service.hangup().catch(() => {});
+            }, 200)
+          : undefined;
+        try {
+          await service.setOutput(action.volume, action.muted);
+        } finally {
+          clearTimeout(watchdog);
+        }
       } else {
         if (service.status().callId !== action.callId)
           throw new Error("VOICE_STATE_MISMATCH");

@@ -7,10 +7,12 @@ export interface CallMedia {
   answer(sdp: string, consent: boolean): Promise<string>;
   acceptAnswer(sdp: string): Promise<void>;
   setTalking(value: boolean): Promise<void>;
+  setOutput(volume: number, muted: boolean): Promise<void>;
   status(): Promise<{
     phase: string;
     capturing: boolean;
     transmitting: boolean;
+    outputLevel?: number | null;
   }>;
   close(): void;
 }
@@ -28,6 +30,10 @@ interface OwnedMedia {
   polling: boolean;
   talkRevision: number;
   talkDesired: boolean;
+  outputVolume: number;
+  outputMuted: boolean;
+  outputPending: boolean;
+  outputLevel: number | null;
 }
 
 // Main-process call lifecycle. Remote SDP can only enter through authenticated
@@ -140,6 +146,9 @@ export class VoiceCalls {
     capturing: boolean | null;
     transmitting: boolean | null;
     error: string | null;
+    outputVolume: number;
+    outputMuted: boolean;
+    outputLevel: number | null;
   } {
     this.policyChanged();
     const control = this.signaling.status();
@@ -162,6 +171,9 @@ export class VoiceCalls {
           ? null
           : (this.owner?.transmitting ?? false),
       error: this.failure,
+      outputVolume: this.owner?.outputVolume ?? 1,
+      outputMuted: this.owner?.outputMuted ?? false,
+      outputLevel: this.owner?.outputLevel ?? null,
     };
   }
   private create(peerId: string): OwnedMedia {
@@ -187,6 +199,10 @@ export class VoiceCalls {
       polling: false,
       talkRevision: 0,
       talkDesired: false,
+      outputVolume: 1,
+      outputMuted: false,
+      outputPending: false,
+      outputLevel: null,
     };
     this.owner = owner;
     this.failure = null;
@@ -286,6 +302,13 @@ export class VoiceCalls {
           if (this.owner !== owner) return;
           owner.capturing = status.capturing;
           owner.transmitting = status.transmitting;
+          owner.outputLevel =
+            typeof status.outputLevel === "number" &&
+            Number.isFinite(status.outputLevel) &&
+            status.outputLevel >= 0 &&
+            status.outputLevel <= 1
+              ? status.outputLevel
+              : null;
           if (["failed", "closed"].includes(status.phase)) {
             this.stopWithError(owner, "MEDIA_CONNECTION_ENDED");
             return;
@@ -383,6 +406,30 @@ export class VoiceCalls {
     if (this.owner) this.release(this.owner);
     this.incoming = undefined;
     if (id) await this.signaling.hangup(id);
+  }
+  async setOutput(volume: number, muted: boolean): Promise<void> {
+    if (
+      !Number.isFinite(volume) ||
+      volume < 0 ||
+      volume > 1 ||
+      typeof muted !== "boolean"
+    )
+      throw new Error("INVALID_CALL_OUTPUT");
+    const owner = this.owner;
+    if (!owner || this.signaling.status().phase !== "connected")
+      throw new Error("VOICE_NOT_CONNECTED");
+    if (owner.outputPending) throw new Error("OUTPUT_UPDATE_PENDING");
+    owner.outputPending = true;
+    try {
+      await this.media(owner, () => owner.media.setOutput(volume, muted));
+      owner.outputVolume = volume;
+      owner.outputMuted = muted;
+    } catch (error) {
+      this.stopWithError(owner, "MEDIA_OUTPUT_FAILED");
+      throw error;
+    } finally {
+      owner.outputPending = false;
+    }
   }
   close(): void {
     this.closed = true;

@@ -3,6 +3,7 @@ import {
   type AudioPeerOptions,
 } from "../../../packages/voice/src/audio-peer.js";
 import {
+  type MediaOutput,
   type MediaReply,
   mediaError,
   parseMediaCommand,
@@ -18,7 +19,7 @@ export function installMediaOwner(
     outputVolume?: number;
     onRemoteStream?: (stream: MediaStream) => void;
   } = {},
-): void {
+): { outputLevel(): number | null } {
   const bridge = (globalThis as unknown as { companionMedia: MediaBridge })
     .companionMedia;
   let peer: AudioPeer | undefined,
@@ -26,9 +27,15 @@ export function installMediaOwner(
     active = 0;
   const sinks: HTMLAudioElement[] = [];
   let talkLease: ReturnType<typeof setTimeout> | undefined;
+  let outputContext: AudioContext | undefined,
+    outputGain: GainNode | undefined,
+    outputAnalyser: AnalyserNode | undefined;
+  let output: MediaOutput = { volume: 1, muted: false };
   const close = () => {
     clearTimeout(talkLease);
     closed = true;
+    if (outputGain) outputGain.gain.value = 0;
+    if (outputContext) void outputContext.close().catch(() => {});
     peer?.close();
     for (const sink of sinks) {
       sink.pause();
@@ -46,9 +53,22 @@ export function installMediaOwner(
         options.onRemoteStream?.(stream);
         const sink = new Audio();
         sink.srcObject = stream;
-        sink.volume = options.outputVolume ?? 1;
+        // The element drives Chromium's remote decoder. Audio is played only
+        // through the controlled WebAudio gain graph below.
+        sink.volume = 0;
         sinks.push(sink);
         void sink.play().catch(close);
+        outputContext = new AudioContext();
+        outputGain = outputContext.createGain();
+        outputGain.gain.value = output.muted ? 0 : output.volume;
+        outputAnalyser = outputContext.createAnalyser();
+        const hardwareGain = outputContext.createGain();
+        hardwareGain.gain.value = options.outputVolume ?? 1;
+        outputContext.createMediaStreamSource(stream).connect(outputGain);
+        outputGain.connect(outputAnalyser);
+        outputAnalyser.connect(hardwareGain);
+        hardwareGain.connect(outputContext.destination);
+        void outputContext.resume().catch(close);
       },
     });
     return peer;
@@ -90,11 +110,20 @@ export function installMediaOwner(
               }, 750);
             break;
           case "status":
-            data = peer?.status() ?? {
-              phase: "idle",
-              capturing: false,
-              transmitting: false,
+            data = {
+              ...(peer?.status() ?? {
+                phase: "idle",
+                capturing: false,
+                transmitting: false,
+              }),
+              outputLevel: outputLevel(),
             };
+            break;
+          case "output":
+            if (!peer) throw new Error("MEDIA_NOT_READY");
+            output = { ...(command.data as MediaOutput) };
+            if (outputGain)
+              outputGain.gain.value = output.muted ? 0 : output.volume;
             break;
           case "metrics":
             if (!peer) throw new Error("MEDIA_NOT_READY");
@@ -114,4 +143,14 @@ export function installMediaOwner(
       }
     })().catch(close);
   });
+  function outputLevel(): number | null {
+    if (!outputAnalyser || closed) return null;
+    const values = new Float32Array(outputAnalyser.fftSize);
+    outputAnalyser.getFloatTimeDomainData(values);
+    const rms = Math.sqrt(
+      values.reduce((sum, value) => sum + value * value, 0) / values.length,
+    );
+    return Number.isFinite(rms) ? Math.min(1, rms) : null;
+  }
+  return { outputLevel };
 }

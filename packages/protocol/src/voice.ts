@@ -7,6 +7,9 @@ export interface VoiceView {
   capturing: boolean | null;
   transmitting: boolean | null;
   error: string | null;
+  outputVolume: number;
+  outputMuted: boolean;
+  outputLevel: number | null;
   microphonePermission:
     | "not-determined"
     | "granted"
@@ -19,7 +22,8 @@ export type VoiceAction =
   | { action: "call"; peerId: string; consent: true }
   | { action: "answer"; callId: string; consent: true }
   | { action: "hangup"; callId: string | null }
-  | { action: "talk"; callId: string; pressed: boolean; start: boolean };
+  | { action: "talk"; callId: string; pressed: boolean; start: boolean }
+  | { action: "output"; callId: string; volume: number; muted: boolean };
 export function parseVoiceAction(value: unknown): VoiceAction {
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new Error("INVALID_VOICE_ACTION");
@@ -43,6 +47,14 @@ export function parseVoiceAction(value: unknown): VoiceAction {
     (action.action === "hangup" &&
       keys === "action,callId" &&
       (action.callId === null || callId(action.callId))) ||
+    (action.action === "output" &&
+      keys === "action,callId,muted,volume" &&
+      callId(action.callId) &&
+      typeof action.volume === "number" &&
+      Number.isFinite(action.volume) &&
+      action.volume >= 0 &&
+      action.volume <= 1 &&
+      typeof action.muted === "boolean") ||
     (action.action === "talk" &&
       keys === "action,callId,pressed,start" &&
       callId(action.callId) &&

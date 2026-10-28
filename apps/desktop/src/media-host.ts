@@ -12,6 +12,7 @@ import {
   MEDIA_COMMAND,
   MEDIA_REPLY,
   type MediaOperation,
+  type MediaOutput,
   mediaError,
   parseMediaCommand,
   parseMediaReply,
@@ -216,7 +217,7 @@ export class DesktopMediaHost {
   }
   private async command(
     op: MediaOperation,
-    data: string | boolean | null,
+    data: string | boolean | null | MediaOutput,
   ): Promise<unknown> {
     this.check();
     const command = parseMediaCommand({
@@ -264,15 +265,20 @@ export class DesktopMediaHost {
   async setTalking(value: boolean): Promise<void> {
     await this.command("talk", value);
   }
+  async setOutput(volume: number, muted: boolean): Promise<void> {
+    await this.command("output", { volume, muted });
+  }
   async status(): Promise<{
     phase: string;
     capturing: boolean;
     transmitting: boolean;
+    outputLevel: number | null;
   }> {
     return (await this.command("status", null)) as {
       phase: string;
       capturing: boolean;
       transmitting: boolean;
+      outputLevel: number | null;
     };
   }
   async metrics(): Promise<{

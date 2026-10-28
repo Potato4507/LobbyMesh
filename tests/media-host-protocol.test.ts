@@ -11,6 +11,24 @@ const id = "a".repeat(32);
 test("media commands and replies reject coercion, unknown fields, oversize and invalid consent", () => {
   const command = { id, op: "offer", data: true };
   assert.deepEqual(parseMediaCommand(command), command);
+  assert.deepEqual(
+    parseMediaCommand({ id, op: "output", data: { volume: 0.25, muted: true } })
+      .data,
+    { volume: 0.25, muted: true },
+  );
+  for (const data of [
+    { volume: NaN, muted: false },
+    { volume: Infinity, muted: false },
+    { volume: 1.01, muted: false },
+    { volume: -1, muted: false },
+    { volume: "1", muted: false },
+    { volume: 0.5, muted: 1 },
+    { volume: 0.5, muted: true, extra: true },
+  ])
+    assert.throws(
+      () => parseMediaCommand({ id, op: "output", data }),
+      /INVALID_MEDIA_COMMAND/,
+    );
   for (const value of [
     null,
     [],
@@ -43,9 +61,20 @@ test("media commands and replies reject coercion, unknown fields, oversize and i
       phase: "connected",
       capturing: true,
       transmitting: false,
+      outputLevel: null,
     }),
     true,
   );
+  for (const outputLevel of [NaN, Infinity, -1, 1.01, "0"])
+    assert.equal(
+      validMediaResult("status", {
+        phase: "connected",
+        capturing: true,
+        transmitting: false,
+        outputLevel,
+      }),
+      false,
+    );
   assert.equal(
     validMediaResult("status", {
       phase: "connected",

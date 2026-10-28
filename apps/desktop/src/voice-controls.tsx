@@ -3,6 +3,7 @@ import type {
   VoiceAction,
   VoiceView,
 } from "../../../packages/protocol/src/voice.js";
+import { CallOutput } from "./call-output.js";
 
 export function VoiceControls({
   peerId,
@@ -318,6 +319,7 @@ export function VoiceControls({
               : "Microphone on · transmission muted"
             : "Microphone off"}
       </p>
+      {connected && voice && <CallOutput key={voice.callId} voice={voice} />}
       {permissionDenied && (
         <p className="notice">
           Windows microphone access is blocked. Enable access in Windows privacy

@@ -2,7 +2,7 @@ import { installMediaOwner } from "../../apps/desktop/src/media-owner.js";
 
 const context = new AudioContext();
 let analyser: AnalyserNode | undefined;
-installMediaOwner({
+const owner = installMediaOwner({
   outputVolume: 0,
   capture: async () => {
     await context.resume();
@@ -22,6 +22,9 @@ installMediaOwner({
     silence.connect(context.destination);
   },
 });
+(
+  globalThis as unknown as { syntheticOutputRms: () => number | null }
+).syntheticOutputRms = () => owner.outputLevel();
 (globalThis as unknown as { syntheticRms: () => number | null }).syntheticRms =
   () => {
     if (!analyser) return null;

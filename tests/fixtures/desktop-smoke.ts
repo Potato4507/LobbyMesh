@@ -161,6 +161,7 @@ async function run() {
             await new Promise<void>(() => {});
           talking = value;
         },
+        async setOutput(_volume: number, _muted: boolean) {},
         async status() {
           return { phase, capturing: !closed, transmitting: talking };
         },
@@ -458,6 +459,19 @@ async function run() {
     assert.ok(outbound);
     await remoteVoice.answer(outbound, true);
     await until("document.querySelector('#pushToTalk') !== null");
+    await execute(
+      "(() => { const input=document.querySelector('#callVolume'); for(const value of [...Array.from({length:40},(_,i)=>String(i+30)),'25']) { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true})); } })()",
+    );
+    await until("window.companion.voice().then(s=>s.outputVolume === 0.25)");
+    await execute("document.querySelector('#muteIncoming').click()");
+    await until("window.companion.voice().then(s=>s.outputMuted)");
+    assert.equal(
+      (await execute<{ capturing: boolean }>("window.companion.voice()"))
+        .capturing,
+      true,
+    );
+    await execute("document.querySelector('#muteIncoming').click()");
+    await until("window.companion.voice().then(s=>!s.outputMuted)");
     await execute("document.querySelector('#pushToTalk').focus()");
     contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
     await until("window.companion.voice().then(s=>s.transmitting)");
@@ -544,6 +558,17 @@ async function run() {
     await execute("document.querySelector('#answerCall').click()");
     await until("document.querySelector('#pushToTalk') !== null");
     assert.equal(localMediaStarts, beforeIncoming + 1);
+    const originalVoiceBounds = desktop.window.getBounds();
+    desktop.window.setContentSize(720, 600);
+    await delay(60);
+    assert.ok(
+      await execute(
+        "document.documentElement.scrollWidth <= document.documentElement.clientWidth",
+      ),
+      "active call output overflow",
+    );
+    desktop.window.setBounds(originalVoiceBounds);
+    await delay(60);
     await execute(
       "(() => { const label=document.createElement('p'); label.className='eyebrow'; label.textContent='SYNTHETIC VOICE · NO MICROPHONE OR NETWORK'; document.querySelector('#voicePanel').prepend(label); document.querySelector('#voicePanel').scrollIntoView(); })()",
     );
@@ -1005,6 +1030,7 @@ async function run() {
           "electron-native-runtime-cancellation",
           "authorized-messaging-ui",
           "explicit-voice-consent-call-answer-decline-and-ptt",
+          "call-output-volume-mute-and-unknown-level",
           "voice-focus-loss-page-change-and-stalled-mute-teardown",
           "voice-overlay-ipc-denied",
           "explicit-contact-preview-approval-and-revocation",

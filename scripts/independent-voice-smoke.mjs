@@ -181,6 +181,20 @@ try {
   const forward = await b.command("samples");
   assert.equal(forward.hosts, 1);
   assert.ok(forward.rms[0] > 0.01);
+  await b.command("output", { volume: 0.25, muted: false });
+  await delay(200);
+  const quiet = await b.command("samples");
+  assert.ok(
+    quiet.outputRms[0] / forward.outputRms[0] > 0.18 &&
+      quiet.outputRms[0] / forward.outputRms[0] < 0.32,
+  );
+  await b.command("output", { volume: 0.25, muted: true });
+  await delay(200);
+  const deafened = await b.command("samples");
+  assert.ok(deafened.outputRms[0] < 0.00001 && deafened.rms[0] > 0.01);
+  assert.equal((await a.command("snapshot")).voice.transmitting, true);
+  assert.equal((await b.command("snapshot")).voice.capturing, true);
+  await b.command("output", { volume: 1, muted: false });
   await a.command("release");
   await delay(400);
   const silence = await b.command("samples");
@@ -252,6 +266,8 @@ try {
       forward: forward.rms[0],
       silence: silence.rms[0],
       reverse: reverse.rms[0],
+      quarterOutput: quiet.outputRms[0],
+      mutedOutput: deafened.outputRms[0],
       recipientNoCaptureBeforeAnswer: true,
       microphone: false,
       audibleOutput: false,

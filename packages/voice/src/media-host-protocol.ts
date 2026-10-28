@@ -21,12 +21,29 @@ export type MediaOperation =
   | "answer"
   | "accept-answer"
   | "talk"
+  | "output"
   | "status"
   | "metrics";
 export interface MediaCommand {
   id: string;
   op: MediaOperation;
-  data: string | boolean | null;
+  data: string | boolean | null | MediaOutput;
+}
+export interface MediaOutput {
+  volume: number;
+  muted: boolean;
+}
+export function validMediaOutput(value: unknown): value is MediaOutput {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const output = value as MediaOutput;
+  return (
+    Object.keys(value).sort().join(",") === "muted,volume" &&
+    typeof output.volume === "number" &&
+    Number.isFinite(output.volume) &&
+    output.volume >= 0 &&
+    output.volume <= 1 &&
+    typeof output.muted === "boolean"
+  );
 }
 export interface MediaReply {
   id: string;
@@ -47,9 +64,15 @@ export function parseMediaCommand(value: unknown): MediaCommand {
   if (
     typeof command.id !== "string" ||
     !/^[a-f0-9]{32}$/.test(command.id) ||
-    !["offer", "answer", "accept-answer", "talk", "status", "metrics"].includes(
-      command.op,
-    )
+    ![
+      "offer",
+      "answer",
+      "accept-answer",
+      "talk",
+      "output",
+      "status",
+      "metrics",
+    ].includes(command.op)
   )
     throw new Error("INVALID_MEDIA_COMMAND");
   if (
@@ -57,11 +80,13 @@ export function parseMediaCommand(value: unknown): MediaCommand {
       ? command.data !== true
       : command.op === "talk"
         ? typeof command.data !== "boolean"
-        : ["status", "metrics"].includes(command.op)
-          ? command.data !== null
-          : typeof command.data !== "string" ||
-            !command.data.length ||
-            new TextEncoder().encode(command.data).length > 12_288
+        : command.op === "output"
+          ? !validMediaOutput(command.data)
+          : ["status", "metrics"].includes(command.op)
+            ? command.data !== null
+            : typeof command.data !== "string" ||
+              !command.data.length ||
+              new TextEncoder().encode(command.data).length > 12_288
   )
     throw new Error("INVALID_MEDIA_COMMAND");
   return { ...command };
@@ -90,16 +115,18 @@ export function validMediaResult(op: MediaOperation, data: unknown): boolean {
       data.length > 0 &&
       new TextEncoder().encode(data).length <= 12_288
     );
-  if (op === "talk" || op === "accept-answer") return data === null;
+  if (op === "talk" || op === "accept-answer" || op === "output")
+    return data === null;
   if (!data || typeof data !== "object" || Array.isArray(data)) return false;
   if (op === "status") {
     const status = data as {
       phase: string;
       capturing: boolean;
       transmitting: boolean;
+      outputLevel: number | null;
     };
     return (
-      exact(data, ["phase", "capturing", "transmitting"]) &&
+      exact(data, ["phase", "capturing", "transmitting", "outputLevel"]) &&
       [
         "idle",
         "capturing",
@@ -109,7 +136,12 @@ export function validMediaResult(op: MediaOperation, data: unknown): boolean {
         "failed",
       ].includes(status.phase) &&
       typeof status.capturing === "boolean" &&
-      typeof status.transmitting === "boolean"
+      typeof status.transmitting === "boolean" &&
+      (status.outputLevel === null ||
+        (typeof status.outputLevel === "number" &&
+          Number.isFinite(status.outputLevel) &&
+          status.outputLevel >= 0 &&
+          status.outputLevel <= 1))
     );
   }
   const metrics = data as {
