@@ -11,6 +11,7 @@ export function mediaError(value: unknown): string {
       "MEDIA_OPUS_UNAVAILABLE",
       "MEDIA_NEGOTIATION_FAILED",
       "MEDIA_CONNECTION_FAILED",
+      "MEDIA_NOT_CONNECTED",
       "MEDIA_OUTPUT_FAILED",
     ].includes(value)
     ? value
@@ -132,6 +133,7 @@ export function validMediaResult(op: MediaOperation, data: unknown): boolean {
         "capturing",
         "negotiating",
         "connected",
+        "reconnecting",
         "closed",
         "failed",
       ].includes(status.phase) &&

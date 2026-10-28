@@ -1,5 +1,5 @@
 // Browser-only media owner primitive. Main-process permission/identity IPC is a
-// separate boundary; this module is not loaded by either production renderer yet.
+// separate boundary; only the dedicated media owner loads this primitive.
 export interface AudioPeerOptions {
   permitted: () => boolean;
   capture?: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
@@ -38,6 +38,7 @@ export class AudioPeer {
     | "capturing"
     | "negotiating"
     | "connected"
+    | "reconnecting"
     | "closed"
     | "failed" = "idle";
   private busy = false;
@@ -84,11 +85,16 @@ export class AudioPeer {
         this.fail("MEDIA_CONNECTION_FAILED");
       else if (this.connection.connectionState === "connected")
         this.phase = "connected";
-      else if (this.connection.connectionState === "disconnected")
+      else if (this.connection.connectionState === "disconnected") {
+        this.phase = "reconnecting";
+        this.talking = false;
+        for (const track of this.stream?.getAudioTracks() ?? [])
+          track.enabled = false;
         this.disconnectTimer = setTimeout(
           () => this.fail("MEDIA_DISCONNECTED"),
           5000,
         );
+      }
     };
   }
   private allowed(): boolean {

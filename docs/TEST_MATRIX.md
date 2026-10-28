@@ -1,4 +1,5 @@
 # Test matrix
+Voice interruption: Node121/121; typecheck/lint/build; native audio, media-host and desktop UI pass. Injected browser state loss silences actual synthetic decoded audio and recovery requires fresh PTT; coordinator preserves call/owner through a stale talking race. `pnpm test:voice-crash` abruptly kills one owned independent client; survivor shows reconnecting and confirms capture-off/zero hosts at11491ms in this run. No physical audio, real mobility, cross-NAT or universal latency guarantee. Exact evidence: docs/evidence/voice-interruption.md.
 
 2026-10-28 call-output artifact: clean22ed719,656 files/415575582 bytes/56 external copies. Actual executable smoke and independent integrity verifier pass, NotSigned, default network/mic off/sandbox/context isolation/protected reopen. Source-built independent media proof remains distinct from packaged-pair/hardware/cross-NAT acceptance. See evidence/windows-output-package-summary.json.
 

@@ -1,4 +1,5 @@
 # Decisions
+Voice interruption (2026-10-28): preserve the browser's existing five-second disconnect grace, expose reconnecting and mute immediately. Require fresh PTT after recovery. Treat only the trusted bounded MEDIA_NOT_CONNECTED talking race as nonfatal; retain hard teardown for timeout/invalid/error paths. Do not add an authenticated heartbeat while native RPC setup remains serialized: queued control traffic is not reliable evidence of media failure. Same-host process-kill observations and injected transient browser events have distinct evidence labels.
 
 ADR 018 (2026-10-28): implement call output attenuation/mute in an owned WebAudio gain graph, independently of capture/PTT/transport. Keep Chromium's decoder-driving element silent; measure RMS after user gain before hardware/OS output, exporting only a bounded scalar/null. Verify actual quarter-gain and mute waveforms in separate desktop processes; do not infer VAD, perceived volume, physical output or latency from the meter. Call-local settings reset and updates coalesce under bounded IPC.
 

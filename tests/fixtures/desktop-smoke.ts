@@ -93,6 +93,7 @@ async function run() {
   let remoteVoice: VoiceCalls | undefined,
     localMediaStarts = 0,
     holdVoiceMute = false;
+  let mediaConnectionState: ((phase: string) => void) | undefined;
   const networkFactory: DesktopNetworkFactory = async (
     _signal,
     value,
@@ -143,6 +144,11 @@ async function run() {
       let phase = "negotiating",
         talking = false,
         closed = false;
+      if (local)
+        mediaConnectionState = (next) => {
+          phase = next;
+          talking = false;
+        };
       return {
         async offer() {
           if (local) localMediaStarts++;
@@ -481,8 +487,28 @@ async function run() {
         .transmitting,
       true,
     );
+    assert.ok(mediaConnectionState);
+    mediaConnectionState("reconnecting");
+    await until(
+      "document.querySelector('#voiceState')?.textContent === 'Reconnecting audio…' && document.querySelector('#pushToTalk') === null && document.querySelector('#hangupCall') !== null",
+    );
+    await until(
+      "window.companion.voice().then(s=>s.capturing && !s.transmitting)",
+    );
+    mediaConnectionState("connected");
+    await until("document.querySelector('#pushToTalk') !== null");
+    await delay(300);
+    assert.equal(
+      (await execute<{ transmitting: boolean }>("window.companion.voice()"))
+        .transmitting,
+      false,
+    );
     contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    console.log("desktop voice: key released");
+    await execute("document.querySelector('#pushToTalk').focus()");
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.transmitting)");
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    console.log("desktop voice: recovered with fresh press and released");
     await until("window.companion.voice().then(s=>!s.transmitting)");
     assert.ok(
       await execute(

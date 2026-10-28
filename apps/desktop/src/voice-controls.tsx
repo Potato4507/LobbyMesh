@@ -113,7 +113,9 @@ export function VoiceControls({
       } catch {
         release();
         if (alive.current)
-          setNotice("Talking stopped. Keep this window focused and try again.");
+          setNotice(
+            "Talking stopped. Wait for connected audio, focus this window and press again.",
+          );
       } finally {
         busy = false;
       }
@@ -160,6 +162,7 @@ export function VoiceControls({
     "ringing",
     "negotiating",
     "connected",
+    "reconnecting",
   ].includes(phase);
   const permissionDenied =
     voice?.microphonePermission === "denied" ||
@@ -173,6 +176,7 @@ export function VoiceControls({
     ringing: "Incoming call",
     negotiating: "Connecting audio…",
     connected: "Connected",
+    reconnecting: "Reconnecting audio…",
     unavailable: "Voice unavailable",
   };
   return (

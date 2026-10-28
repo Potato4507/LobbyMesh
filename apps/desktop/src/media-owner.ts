@@ -132,11 +132,14 @@ export function installMediaOwner(
         }
         bridge.reply({ id: command.id, ok: true, data });
       } catch (error) {
-        close();
+        const reason = mediaError(
+          error instanceof Error ? error.message : null,
+        );
+        if (reason !== "MEDIA_NOT_CONNECTED") close();
         bridge.reply({
           id: command.id,
           ok: false,
-          data: mediaError(error instanceof Error ? error.message : null),
+          data: reason,
         });
       } finally {
         active--;

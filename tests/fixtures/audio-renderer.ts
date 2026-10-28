@@ -134,6 +134,37 @@ async function run() {
         talkingRms > 0.01,
       `NO_SYNTHETIC_RTP_AUDIO ${JSON.stringify({ muted, talking, mutedRms, talkingRms, context: context.state })}`,
     );
+    // Inject only the browser state event; the native RTP connection stays live.
+    // Actual process-loss detection is exercised separately by the crash harness.
+    const connection = (left as unknown as { connection: RTCPeerConnection })
+      .connection;
+    Object.defineProperty(connection, "connectionState", {
+      value: "disconnected",
+      configurable: true,
+    });
+    connection.dispatchEvent(new Event("connectionstatechange"));
+    check(
+      left.status().phase === "reconnecting" &&
+        left.status().capturing &&
+        !left.status().transmitting &&
+        !tracks[0]?.enabled,
+      "INTERRUPTION_DID_NOT_MUTE",
+    );
+    await delay(400);
+    check(rms() < 0.00001, "INTERRUPTION_AUDIO_LEAK");
+    Reflect.deleteProperty(connection, "connectionState");
+    connection.dispatchEvent(new Event("connectionstatechange"));
+    check(
+      left.status().phase === "connected" &&
+        !left.status().transmitting &&
+        !tracks[0]?.enabled,
+      "RECOVERY_REARMED_TALKING",
+    );
+    await delay(200);
+    check(rms() < 0.00001, "RECOVERY_AUDIO_LEAK");
+    left.setTalking(true);
+    await delay(400);
+    check(rms() > 0.01, "FRESH_PRESS_DID_NOT_RESTORE_AUDIO");
     left.setTalking(false);
     check(
       !left.status().transmitting && !tracks[0]?.enabled,

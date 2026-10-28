@@ -22,6 +22,9 @@ const entry = path.resolve(
   `independent-voice-${process.pid}-${Date.now()}.cjs`,
 );
 const clients = [];
+const crashMode = process.argv.includes("--crash");
+let crashCleanupMs = null;
+const crashTrace = [];
 let bootstrap;
 function client(directory, address, assets) {
   const env = { ...process.env };
@@ -236,7 +239,43 @@ try {
     async () => (await b.command("snapshot")).voice.phase === "connected",
     "reopened protected client connected",
   );
-  await a.command("hangup");
+  if (crashMode) {
+    const started = performance.now();
+    b.child.kill();
+    await b.exited;
+    console.log(
+      "independent voice: peer process terminated; observing surviving call",
+    );
+    let previous = "";
+    while (performance.now() - started < 45_000) {
+      const snapshot = await a.command("snapshot"),
+        sample = await a.command("samples");
+      const state = JSON.stringify({
+        phase: snapshot.voice.phase,
+        capturing: snapshot.voice.capturing,
+        hosts: sample.hosts,
+      });
+      if (state !== previous) {
+        previous = state;
+        const entry = {
+          elapsedMs: Math.round(performance.now() - started),
+          ...JSON.parse(state),
+        };
+        crashTrace.push(entry);
+        console.log(JSON.stringify({ crashObservation: entry }));
+      }
+      if (sample.hosts === 0 && snapshot.voice.capturing === false) {
+        crashCleanupMs = Math.round(performance.now() - started);
+        break;
+      }
+      await delay(200);
+    }
+    assert.notEqual(
+      crashCleanupMs,
+      null,
+      `CRASH_CAPTURE_STILL_ACTIVE ${JSON.stringify(crashTrace)}`,
+    );
+  } else await a.command("hangup");
   for (const name of ["a", "b"]) {
     const encryptedIdentity = await readFile(
       path.join(root, name, "network", "identity", "identity-os-v1.bin"),
@@ -247,6 +286,7 @@ try {
     assert.equal(encryptedIdentity.includes(Buffer.from("PRIVATE KEY")), false);
   }
   for (const value of [a, b]) {
+    if (value.child.exitCode !== null || value.child.signalCode) continue;
     const stopped = await value.command("stop");
     assert.equal(stopped.windows, 0);
     assert.equal(await value.exited, 0);
@@ -272,6 +312,8 @@ try {
       microphone: false,
       audibleOutput: false,
       crossNat: false,
+      crashCleanupMs,
+      crashTrace,
     }),
   );
 } finally {

@@ -1,4 +1,5 @@
 # Versioned implementation contracts
+Voice interruption: browser disconnected clears talking and disables audio tracks immediately, exposes local reconnecting, and starts the existing5000ms failure grace. Connected recovery never rearms transmission. Main accepts mute during reconnecting; new talking requires locally connected media. The exact MEDIA_NOT_CONNECTED reply is nonfatal for a talking race; other errors/invalid replies/timeouts retain owner teardown. Capture remains on until cleanup confirms otherwise. No remote state assertion can promote media connectivity.
 
 Call output v1 (local only): finite volume0–1 and boolean incoming mute, strict current-call-bound main-window action/media command. No wire protocol or microphone/PTT change. Gain->analyser->hardware graph exports only normalized post-gain RMS0–1/null via status; unavailable is never zero. Per-call settings reset, one output write at a time; UI coalesces slider intent and main mute watchdog closes unconfirmed output. See evidence/call-output-controls.md.
 

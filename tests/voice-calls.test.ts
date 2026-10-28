@@ -124,6 +124,54 @@ test("call coordinator never creates incoming media before local answer and clos
   assert.equal(left.status().phase, "idle");
   assert.equal(right.status().phase, "idle");
 });
+test("transient media loss mutes talking and recovers the same call without automatic transmission", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  await delay(10);
+  await left.setTalking(true);
+  const owner = media[0];
+  assert.ok(owner);
+  owner.phase = "reconnecting";
+  owner.talking = false;
+  await delay(10);
+  assert.equal(left.status().phase, "reconnecting");
+  assert.equal(left.status().capturing, true);
+  assert.equal(left.status().transmitting, false);
+  await assert.rejects(left.setTalking(true), /VOICE_NOT_CONNECTED/);
+  await left.setTalking(false);
+  assert.equal(owner.closed, false);
+  owner.phase = "connected";
+  await delay(10);
+  assert.equal(left.status().phase, "connected");
+  assert.equal(left.status().callId, id);
+  assert.equal(left.status().transmitting, false);
+  await left.setTalking(true);
+  assert.equal(owner.talking, true);
+});
+test("a talking request racing a media interruption does not destroy the recovering owner", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  await delay(10);
+  const owner = media[0];
+  assert.ok(owner);
+  const setTalking = owner.setTalking;
+  owner.setTalking = async () => {
+    throw new Error("MEDIA_NOT_CONNECTED");
+  };
+  await assert.rejects(left.setTalking(true), /MEDIA_NOT_CONNECTED/);
+  assert.equal(owner.closed, false);
+  assert.equal(left.status().callId, id);
+  assert.equal(left.status().transmitting, false);
+  owner.setTalking = setTalking;
+  await left.setTalking(true);
+  assert.equal(owner.talking, true);
+});
 test("local connected media outlives negotiation, expires once, and denial stops capture immediately", async (t) => {
   const { left, right, media, deny } = fixture(t, {
     negotiationTimeoutMs: 40,

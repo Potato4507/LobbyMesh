@@ -95,8 +95,9 @@ export class DesktopMediaHost {
       if (!result.ok) {
         this.pending.delete(result.id);
         clearTimeout(pending.timer);
-        pending.reject(new Error(mediaError(result.data)));
-        this.close();
+        const reason = mediaError(result.data);
+        pending.reject(new Error(reason));
+        if (reason !== "MEDIA_NOT_CONNECTED") this.close();
         return;
       }
       if (!validMediaResult(pending.op, result.data))

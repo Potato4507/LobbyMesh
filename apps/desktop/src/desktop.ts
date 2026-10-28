@@ -368,6 +368,7 @@ export async function createDesktop(
           "VOICE_STATE_MISMATCH",
           "VOICE_NOT_PERMITTED",
           "VOICE_NOT_CONNECTED",
+          "MEDIA_NOT_CONNECTED",
           "VOICE_BUSY",
           "CONTACT_NOT_DISCOVERED",
           "MEDIA_PERMISSION_DENIED",

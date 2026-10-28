@@ -34,6 +34,7 @@ interface OwnedMedia {
   outputMuted: boolean;
   outputPending: boolean;
   outputLevel: number | null;
+  mediaPhase: string;
 }
 
 // Main-process call lifecycle. Remote SDP can only enter through authenticated
@@ -158,7 +159,9 @@ export class VoiceCalls {
         ? "failed"
         : this.owner && !this.owner.callId
           ? "preparing"
-          : control.phase,
+          : this.owner?.mediaPhase === "reconnecting"
+            ? "reconnecting"
+            : control.phase,
       peerId: this.owner?.peerId ?? control.peerId,
       callId: control.callId,
       capturing: this.owner
@@ -203,6 +206,7 @@ export class VoiceCalls {
       outputMuted: false,
       outputPending: false,
       outputLevel: null,
+      mediaPhase: "preparing",
     };
     this.owner = owner;
     this.failure = null;
@@ -301,6 +305,7 @@ export class VoiceCalls {
           owner.polling = false;
           if (this.owner !== owner) return;
           owner.capturing = status.capturing;
+          owner.mediaPhase = status.phase;
           owner.transmitting = status.transmitting;
           owner.outputLevel =
             typeof status.outputLevel === "number" &&
@@ -386,6 +391,7 @@ export class VoiceCalls {
       !owner ||
       !owner.callId ||
       this.signaling.status().phase !== "connected" ||
+      (value === true && owner.mediaPhase !== "connected") ||
       typeof value !== "boolean"
     )
       throw new Error("VOICE_NOT_CONNECTED");
@@ -397,7 +403,9 @@ export class VoiceCalls {
       else if (!owner.talkDesired)
         await this.media(owner, () => owner.media.setTalking(false));
     } catch (error) {
-      this.stopWithError(owner, "MEDIA_TALK_FAILED");
+      if (error instanceof Error && error.message === "MEDIA_NOT_CONNECTED")
+        owner.transmitting = false;
+      else this.stopWithError(owner, "MEDIA_TALK_FAILED");
       throw error;
     }
   }

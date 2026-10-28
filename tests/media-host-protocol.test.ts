@@ -58,6 +58,15 @@ test("media commands and replies reject coercion, unknown fields, oversize and i
   });
   assert.equal(
     validMediaResult("status", {
+      phase: "reconnecting",
+      capturing: true,
+      transmitting: false,
+      outputLevel: null,
+    }),
+    true,
+  );
+  assert.equal(
+    validMediaResult("status", {
       phase: "connected",
       capturing: true,
       transmitting: false,
