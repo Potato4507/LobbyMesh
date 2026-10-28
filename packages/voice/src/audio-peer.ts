@@ -134,7 +134,7 @@ export class AudioPeer {
       this.lifetime.signal.removeEventListener("abort", abort);
     }
   }
-  private async capture(): Promise<void> {
+  private async capture(answering = false): Promise<void> {
     this.check();
     if (this.stream) return;
     this.phase = "capturing";
@@ -171,10 +171,23 @@ export class AudioPeer {
     const track = tracks[0];
     track.enabled = false;
     track.onended = () => this.fail("MEDIA_DEVICE_ENDED");
-    const transceiver = this.connection.addTransceiver(track, {
-      direction: "sendrecv",
-      streams: [stream],
-    });
+    const transceiver = answering
+      ? this.connection
+          .getTransceivers()
+          .find(
+            (value) =>
+              value.mid !== null && value.receiver.track.kind === "audio",
+          )
+      : this.connection.addTransceiver(track, {
+          direction: "sendrecv",
+          streams: [stream],
+        });
+    if (!transceiver) throw new Error("MEDIA_INVALID_DESCRIPTION");
+    if (answering) {
+      transceiver.direction = "sendrecv";
+      await this.bounded(transceiver.sender.replaceTrack(track));
+      transceiver.sender.setStreams(stream);
+    }
     const opus =
       RTCRtpSender.getCapabilities("audio")?.codecs.filter(
         (codec) => codec.mimeType.toLowerCase() === "audio/opus",
@@ -226,16 +239,21 @@ export class AudioPeer {
       return result;
     } catch (error) {
       const reason =
-        error instanceof Error &&
-        [
-          "MEDIA_TIMEOUT",
-          "MEDIA_CLOSED",
-          "MEDIA_PERMISSION_DENIED",
-          "MEDIA_INVALID_DESCRIPTION",
-          "MEDIA_OPUS_UNAVAILABLE",
-        ].includes(error.message)
-          ? error.message
-          : "MEDIA_NEGOTIATION_FAILED";
+        error instanceof Error && error.name === "NotAllowedError"
+          ? "MEDIA_PERMISSION_DENIED"
+          : error instanceof Error &&
+              ["NotFoundError", "NotReadableError"].includes(error.name)
+            ? "MEDIA_DEVICE_UNAVAILABLE"
+            : error instanceof Error &&
+                [
+                  "MEDIA_TIMEOUT",
+                  "MEDIA_CLOSED",
+                  "MEDIA_PERMISSION_DENIED",
+                  "MEDIA_INVALID_DESCRIPTION",
+                  "MEDIA_OPUS_UNAVAILABLE",
+                ].includes(error.message)
+              ? error.message
+              : "MEDIA_NEGOTIATION_FAILED";
       this.fail(reason);
       throw new Error(reason);
     } finally {
@@ -257,10 +275,10 @@ export class AudioPeer {
       if (consent !== true) throw new Error("MEDIA_PERMISSION_DENIED");
       if (this.phase !== "idle" || !validDescription(sdp))
         throw new Error("MEDIA_INVALID_DESCRIPTION");
-      await this.capture();
       await this.bounded(
         this.connection.setRemoteDescription({ type: "offer", sdp }),
       );
+      await this.capture(true);
       return this.localDescription(
         await this.bounded(this.connection.createAnswer()),
       );

@@ -1,5 +1,7 @@
 # Test matrix
 
+2026-10-28 isolated media host: Node112/112, typecheck/lint123 files/build; native test:audio and test:media-host pass. Scoped local-frame audio-only permission gate defaults deny, strict bounded commands/results, actual bidirectional synthetic decoded Opus audio/PTT silence, answerer transceiver regression, foreign ready rejection, startup deadline, cancellation, four-session cap/reuse and teardown checked. No physical microphone/audible output/app signaling bridge. See evidence/isolated-media-host.md.
+
 2026-10-28 browser audio primitive: `pnpm test:audio` passes real native sandboxed Electron with two PeerConnections and synthetic Opus audio, decoded receiver RMS, initial mute/PTT release, denied browser microphone, permission withdrawal, cancellation/deadline/late cleanup. No physical mic/audible output or authenticated app integration. See evidence/browser-audio.md; separate controller remains covered by 110 tests.
 
 2026-10-28 voice control foundation: full 110/110, typecheck/lint (109 files), build and native desktop smoke passed. Nine unit/adversarial cases plus real two-process Noise exchange use synthetic SDP/ICE with local consent/explicit answer, hangup/revocation, identity/freshness/field/replay checks, quotas/deadlines/cancel/close. Production media unavailable/default disabled; no capture or audio proof. Latest clean pairing artifact e17692d separately passed copied-executable smoke and independent verifier. See evidence/voice-signaling.md and evidence/windows-pairing-package-summary.json.

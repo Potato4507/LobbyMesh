@@ -1,14 +1,44 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { build } from "esbuild";
 
 const directory = await mkdtemp(path.join(tmpdir(), "lobbymesh-audio-smoke-"));
+const hostMode = process.argv[2] === "host";
 let child;
 try {
   await mkdir(path.join(directory, "profile"));
+  if (hostMode) {
+    for (const folder of ["host-assets", "production-assets"]) {
+      const assets = path.join(directory, folder);
+      await mkdir(assets);
+      await copyFile(
+        "apps/desktop/src/media.html",
+        path.join(assets, "media.html"),
+      );
+      await build({
+        entryPoints: ["apps/desktop/src/media-preload.ts"],
+        outfile: path.join(assets, "media-preload.cjs"),
+        bundle: true,
+        platform: "node",
+        format: "cjs",
+        external: ["electron"],
+      });
+      await build({
+        entryPoints: [
+          folder === "host-assets"
+            ? "tests/fixtures/media-host-renderer.ts"
+            : "apps/desktop/src/media-renderer.ts",
+        ],
+        outfile: path.join(assets, "media-renderer.js"),
+        bundle: true,
+        platform: "browser",
+        format: "iife",
+      });
+    }
+  }
   await build({
     entryPoints: ["tests/fixtures/audio-renderer.ts"],
     outfile: path.join(directory, "audio.js"),
@@ -17,7 +47,11 @@ try {
     format: "iife",
   });
   await build({
-    entryPoints: ["tests/fixtures/audio-smoke.ts"],
+    entryPoints: [
+      hostMode
+        ? "tests/fixtures/media-host-smoke.ts"
+        : "tests/fixtures/audio-smoke.ts",
+    ],
     outfile: path.join(directory, "main.cjs"),
     bundle: true,
     platform: "node",
@@ -61,7 +95,14 @@ try {
     });
     child.on("exit", (code) => {
       clearTimeout(timer);
-      if (code === 0 && output.includes('"result":"synthetic-audio-passed"'))
+      if (
+        code === 0 &&
+        output.includes(
+          hostMode
+            ? '"result":"media-host-passed"'
+            : '"result":"synthetic-audio-passed"',
+        )
+      )
         resolve();
       else reject(new Error(`AUDIO_SMOKE_EXIT ${code}: ${diagnostics}`));
     });

@@ -51,6 +51,9 @@ await writeFile(
 for (const name of [
   "main.cjs",
   "preload.cjs",
+  "media-preload.cjs",
+  "media-renderer.js",
+  "media.html",
   "renderer.js",
   "overlay.js",
   "index.html",

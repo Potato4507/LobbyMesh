@@ -1,0 +1,213 @@
+import assert from "node:assert/strict";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
+import { app, BrowserWindow, ipcMain, session } from "electron";
+import { DesktopMediaHost } from "../../apps/desktop/src/media-host.js";
+import { MEDIA_REPLY } from "../../packages/voice/src/media-host-protocol.js";
+
+async function run() {
+  const directory = process.argv[2];
+  if (!directory) throw new Error("ISOLATED_DIRECTORY_REQUIRED");
+  app.setPath("userData", path.join(directory, "host-profile"));
+  app.on("window-all-closed", () => {});
+  const hosts: DesktopMediaHost[] = [];
+  try {
+    await app.whenReady();
+    session.defaultSession.setPermissionRequestHandler((_c, _p, callback) =>
+      callback(false),
+    );
+    session.defaultSession.setPermissionCheckHandler(() => false);
+    const listenerCount = ipcMain.listenerCount(MEDIA_REPLY);
+    const assets = path.join(directory, "host-assets");
+    let permitted = true;
+    const left = new DesktopMediaHost(assets, { permitted: () => permitted });
+    const right = new DesktopMediaHost(assets, { permitted: () => true });
+    hosts.push(left, right);
+    assert.deepEqual(await left.status(), {
+      phase: "idle",
+      capturing: false,
+      transmitting: false,
+    });
+    await assert.rejects(left.offer(false), /MEDIA_HOST_DENIED/);
+    const offer = await left.offer(true);
+    const answer = await right.answer(offer, true);
+    await left.acceptAnswer(answer);
+    const windows = BrowserWindow.getAllWindows();
+    assert.equal(windows.length, 2);
+    for (const window of windows) {
+      assert.deepEqual(
+        await window.webContents.executeJavaScript(
+          "window.companionMedia.security()",
+        ),
+        { sandboxed: true, contextIsolated: true },
+      );
+      assert.deepEqual(
+        await window.webContents.executeJavaScript(
+          "[typeof require, typeof process, typeof window.companion, typeof window.companionMedia.reply]",
+        ),
+        ["undefined", "undefined", "undefined", "function"],
+      );
+    }
+    assert.notEqual(
+      windows[0]?.webContents.session,
+      windows[1]?.webContents.session,
+    );
+    const deadline = Date.now() + 7000;
+    while (
+      ((await left.status()).phase !== "connected" ||
+        (await right.status()).phase !== "connected") &&
+      Date.now() < deadline
+    )
+      await delay(25);
+    assert.equal((await left.status()).phase, "connected");
+    await delay(300);
+    const muted = await Promise.all(
+      windows.map((window) =>
+        window.webContents.executeJavaScript("window.syntheticRms()"),
+      ),
+    );
+    assert.ok(
+      muted.every((value) => typeof value === "number" && value < 0.00001),
+      `HOST_MUTED_RMS ${JSON.stringify(muted)}`,
+    );
+    await left.setTalking(true);
+    await delay(600);
+    const talking = await Promise.all(
+      windows.map((window) =>
+        window.webContents.executeJavaScript("window.syntheticRms()"),
+      ),
+    );
+    assert.equal(
+      talking.filter((value) => value > 0.01).length,
+      1,
+      `HOST_TALKING_RMS ${JSON.stringify(talking)}`,
+    );
+    const metrics = await right.metrics();
+    assert.ok(
+      metrics.receivedPackets > 0 && metrics.receivedBytes > 0,
+      `HOST_RTP_METRICS ${JSON.stringify(metrics)}`,
+    );
+    await left.setTalking(false);
+    await delay(400);
+    const released = await Promise.all(
+      windows.map((window) =>
+        window.webContents.executeJavaScript("window.syntheticRms()"),
+      ),
+    );
+    assert.ok(
+      released.every((value) => value < 0.00001),
+      `HOST_RELEASE_RMS ${JSON.stringify(released)}`,
+    );
+    await right.setTalking(true);
+    await delay(600);
+    const reverseTalking = await Promise.all(
+      windows.map((window) =>
+        window.webContents.executeJavaScript("window.syntheticRms()"),
+      ),
+    );
+    assert.equal(
+      reverseTalking.filter((value) => value > 0.01).length,
+      1,
+      `HOST_REVERSE_RMS ${JSON.stringify(reverseTalking)}`,
+    );
+    assert.ok((await left.metrics()).receivedPackets > 0);
+    await right.setTalking(false);
+    permitted = false;
+    await assert.rejects(left.status(), /MEDIA_HOST_DENIED/);
+    assert.equal(windows.filter((window) => window.isDestroyed()).length, 1);
+    right.close();
+    assert.equal(ipcMain.listenerCount(MEDIA_REPLY), listenerCount);
+    const denied = new DesktopMediaHost(
+      path.join(directory, "production-assets"),
+      {
+        permitted: () => true,
+      },
+    );
+    hosts.push(denied);
+    await assert.rejects(denied.offer(true), /MEDIA_PERMISSION_DENIED/);
+    assert.equal(BrowserWindow.getAllWindows().length, 0);
+    // A real foreign renderer with the genuine preload cannot unblock host startup.
+    const stalledAssets = path.join(directory, "stalled-host");
+    await mkdir(stalledAssets);
+    await writeFile(
+      path.join(stalledAssets, "media.html"),
+      "<!doctype html><html><body>no media listener</body></html>",
+    );
+    await writeFile(
+      path.join(stalledAssets, "media-preload.cjs"),
+      await readFile(path.join(assets, "media-preload.cjs")),
+    );
+    const stalled = new DesktopMediaHost(stalledAssets, {
+      permitted: () => true,
+      timeoutMs: 1000,
+    });
+    hosts.push(stalled);
+    const pending = stalled.status();
+    const rejection = assert.rejects(pending, /MEDIA_HOST_CLOSED/);
+    const foreign = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        sandbox: true,
+        contextIsolation: true,
+        nodeIntegration: false,
+        preload: path.join(stalledAssets, "media-preload.cjs"),
+      },
+    });
+    await foreign.loadFile(path.join(stalledAssets, "media.html"));
+    await foreign.webContents.executeJavaScript(
+      "window.companionMedia.reply({id:'ready',ok:true,data:null})",
+    );
+    await rejection;
+    foreign.destroy();
+    const canceledHost = new DesktopMediaHost(assets, {
+      permitted: () => true,
+    });
+    hosts.push(canceledHost);
+    await canceledHost.status();
+    const canceled = canceledHost.offer(true);
+    const canceledCheck = assert.rejects(
+      canceled,
+      /MEDIA_HOST_CLOSED|MEDIA_HOST_DENIED/,
+    );
+    canceledHost.close();
+    await canceledCheck;
+    const bounded = Array.from(
+      { length: 5 },
+      () => new DesktopMediaHost(assets, { permitted: () => true }),
+    );
+    hosts.push(...bounded);
+    await Promise.all(bounded.slice(0, 4).map((host) => host.status()));
+    const excess = bounded[4];
+    assert.ok(excess);
+    await assert.rejects(excess.status(), /MEDIA_HOST_SESSION_QUOTA/);
+    assert.equal(BrowserWindow.getAllWindows().length, 4);
+    for (const host of bounded) host.close();
+    assert.equal(ipcMain.listenerCount(MEDIA_REPLY), listenerCount);
+    assert.equal(BrowserWindow.getAllWindows().length, 0);
+    console.log(
+      JSON.stringify({
+        result: "media-host-passed",
+        sandbox: true,
+        isolatedSessions: true,
+        muted,
+        talking,
+        released,
+        reverseTalking,
+        receivedPackets: metrics.receivedPackets,
+        foreignReadyRejected: true,
+        microphone: false,
+        audibleOutput: false,
+      }),
+    );
+    app.exit(0);
+  } catch (error) {
+    console.error(
+      error instanceof Error ? error.message : "MEDIA_HOST_SMOKE_FAILED",
+    );
+    for (const host of hosts) host.close();
+    for (const window of BrowserWindow.getAllWindows()) window.destroy();
+    app.exit(1);
+  }
+}
+void run();
