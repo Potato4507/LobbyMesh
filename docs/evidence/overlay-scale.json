@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "results": [
+    {
+      "size": 1,
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 1,
+          "available": 1,
+          "incompleteLookups": 0
+        }
+      ],
+      "convergedInFixture": true,
+      "attempts": 0,
+      "dispatched": 0,
+      "framedBytes": 0,
+      "routing": {
+        "maxActive": 0,
+        "maxReplacements": 0,
+        "maxBuckets": 0
+      },
+      "lookupMs": {
+        "p50": 0.46180000000001087,
+        "p95": 0.46180000000001087,
+        "max": 0.46180000000001087
+      },
+      "wallMs": 4.77709999999999,
+      "routingJsonBytes": 4
+    },
+    {
+      "size": 2,
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 2,
+          "available": 2,
+          "incompleteLookups": 0
+        }
+      ],
+      "convergedInFixture": true,
+      "attempts": 6,
+      "dispatched": 6,
+      "framedBytes": 10244,
+      "routing": {
+        "maxActive": 1,
+        "maxReplacements": 0,
+        "maxBuckets": 1
+      },
+      "lookupMs": {
+        "p50": 7.147699999999986,
+        "p95": 7.147699999999986,
+        "max": 7.147699999999986
+      },
+      "wallMs": 17.47059999999999,
+      "routingJsonBytes": 504
+    },
+    {
+      "size": 10,
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 2,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 8,
+          "available": 8,
+          "incompleteLookups": 8
+        }
+      ],
+      "convergedInFixture": true,
+      "attempts": 118,
+      "dispatched": 101,
+      "framedBytes": 226137,
+      "routing": {
+        "maxActive": 9,
+        "maxReplacements": 0,
+        "maxBuckets": 5
+      },
+      "lookupMs": {
+        "p50": 7.116800000000012,
+        "p95": 8.315499999999986,
+        "max": 8.315499999999986
+      },
+      "wallMs": 100.79670000000002,
+      "routingJsonBytes": 16307
+    },
+    {
+      "size": 100,
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 9,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 91,
+          "available": 90,
+          "incompleteLookups": 91
+        },
+        {
+          "round": 2,
+          "live": 91,
+          "available": 91,
+          "incompleteLookups": 53
+        }
+      ],
+      "convergedInFixture": true,
+      "attempts": 5156,
+      "dispatched": 4939,
+      "framedBytes": 21707463,
+      "routing": {
+        "maxActive": 65,
+        "maxReplacements": 20,
+        "maxBuckets": 8
+      },
+      "lookupMs": {
+        "p50": 26.57470000000012,
+        "p95": 51.65020000000004,
+        "max": 60.294299999999794
+      },
+      "wallMs": 5511.0651,
+      "routingJsonBytes": 812081
+    },
+    {
+      "size": 500,
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 53,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 447,
+          "available": 4,
+          "incompleteLookups": 447
+        },
+        {
+          "round": 2,
+          "live": 447,
+          "available": 6,
+          "incompleteLookups": 351
+        },
+        {
+          "round": 3,
+          "live": 447,
+          "available": 7,
+          "incompleteLookups": 62
+        }
+      ],
+      "convergedInFixture": false,
+      "attempts": 38455,
+      "dispatched": 36068,
+      "framedBytes": 154600092,
+      "routing": {
+        "maxActive": 85,
+        "maxReplacements": 46,
+        "maxBuckets": 10
+      },
+      "lookupMs": {
+        "p50": 29.050600000002305,
+        "p95": 49.69200000000092,
+        "max": 95.42240000000038
+      },
+      "wallMs": 42369.2413,
+      "routingJsonBytes": 3933032
+    }
+  ]
+}

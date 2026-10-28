@@ -74,11 +74,18 @@ export class RoutingTable {
         connectionHints: [],
       }));
   }
-  nearest(target: string, count = 20): PeerContact[] {
+  nearest(
+    target: string,
+    count = 20,
+    includeReplacements = false,
+  ): PeerContact[] {
     xorDistance(this.self, target);
     if (!Number.isSafeInteger(count) || count < 0 || count > 100)
       throw new Error("INVALID_COUNT");
-    return [...this.buckets.values()]
+    return [
+      ...this.buckets.values(),
+      ...(includeReplacements ? this.replacements.values() : []),
+    ]
       .flatMap((bucket) => [...bucket.values()])
       .sort((a, b) => {
         const x = xorDistance(a.id, target),
@@ -107,6 +114,19 @@ export class RoutingTable {
   }
   revision(id: string): number | undefined {
     return this.activity.get(id);
+  }
+  stats(): { buckets: number; active: number; replacements: number } {
+    return {
+      buckets: this.buckets.size,
+      active: [...this.buckets.values()].reduce(
+        (sum, bucket) => sum + bucket.size,
+        0,
+      ),
+      replacements: [...this.replacements.values()].reduce(
+        (sum, bucket) => sum + bucket.size,
+        0,
+      ),
+    };
   }
   remove(id: string, allowed: (id: string) => boolean = () => true): boolean {
     const distance = xorDistance(this.self, id);

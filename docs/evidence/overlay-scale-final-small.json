@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "results": [
+    {
+      "size": 1,
+      "cleanup": {
+        "routingEntriesAfterClose": 0
+      },
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "recovery": "production-maintenance-with-synthetic-shared-bootstrap",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 1,
+          "available": 1,
+          "incompleteLookups": 0,
+          "recordAvailability": [1],
+          "storedCopies": [1]
+        }
+      ],
+      "convergedInFixture": true,
+      "attempts": 0,
+      "dispatched": 0,
+      "framedBytes": 0,
+      "routing": {
+        "maxActive": 0,
+        "maxReplacements": 0,
+        "maxBuckets": 0
+      },
+      "lookupMs": {
+        "p50": 0.42329999999999757,
+        "p95": 0.42329999999999757,
+        "max": 0.42329999999999757
+      },
+      "wallMs": 5.192599999999999,
+      "routingJsonBytes": 4
+    },
+    {
+      "size": 2,
+      "cleanup": {
+        "routingEntriesAfterClose": 0
+      },
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "recovery": "production-maintenance-with-synthetic-shared-bootstrap",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 0,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 2,
+          "available": 2,
+          "incompleteLookups": 0,
+          "recordAvailability": [2, 2],
+          "storedCopies": [2, 2]
+        }
+      ],
+      "convergedInFixture": true,
+      "attempts": 15,
+      "dispatched": 15,
+      "framedBytes": 21053,
+      "routing": {
+        "maxActive": 1,
+        "maxReplacements": 0,
+        "maxBuckets": 1
+      },
+      "lookupMs": {
+        "p50": 6.7812999999999874,
+        "p95": 6.7812999999999874,
+        "max": 6.7812999999999874
+      },
+      "wallMs": 24.862399999999994,
+      "routingJsonBytes": 504
+    },
+    {
+      "size": 10,
+      "cleanup": {
+        "routingEntriesAfterClose": 0
+      },
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "recovery": "production-maintenance-with-synthetic-shared-bootstrap",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 2,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 8,
+          "available": 8,
+          "incompleteLookups": 0,
+          "recordAvailability": [8, 8],
+          "storedCopies": [5, 5]
+        }
+      ],
+      "convergedInFixture": true,
+      "attempts": 276,
+      "dispatched": 264,
+      "framedBytes": 562660,
+      "routing": {
+        "maxActive": 7,
+        "maxReplacements": 0,
+        "maxBuckets": 4
+      },
+      "lookupMs": {
+        "p50": 6.052900000000022,
+        "p95": 6.949999999999989,
+        "max": 6.949999999999989
+      },
+      "wallMs": 205.74030000000002,
+      "routingJsonBytes": 15315
+    },
+    {
+      "size": 100,
+      "cleanup": {
+        "routingEntriesAfterClose": 0
+      },
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "recovery": "production-maintenance-with-synthetic-shared-bootstrap",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 9,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 91,
+          "available": 91,
+          "incompleteLookups": 59,
+          "recordAvailability": [91, 91],
+          "storedCopies": [6, 6]
+        }
+      ],
+      "convergedInFixture": true,
+      "attempts": 6355,
+      "dispatched": 6157,
+      "framedBytes": 24633024,
+      "routing": {
+        "maxActive": 72,
+        "maxReplacements": 20,
+        "maxBuckets": 9
+      },
+      "lookupMs": {
+        "p50": 29.796800000000076,
+        "p95": 35.025399999999536,
+        "max": 44.177599999999984
+      },
+      "wallMs": 5906.691599999999,
+      "routingJsonBytes": 1272891
+    }
+  ]
+}

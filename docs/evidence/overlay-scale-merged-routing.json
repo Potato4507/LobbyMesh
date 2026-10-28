@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "results": [
+    {
+      "size": 500,
+      "cleanup": {
+        "routingEntriesAfterClose": 0
+      },
+      "seed": 4507,
+      "transport": "synthetic-stream-metadata",
+      "admission": "injected-authenticated-topology",
+      "publicDht": false,
+      "crossNat": false,
+      "abruptlyUnreachable": 53,
+      "rounds": [
+        {
+          "round": 1,
+          "live": 447,
+          "available": 4,
+          "incompleteLookups": 447
+        },
+        {
+          "round": 2,
+          "live": 447,
+          "available": 4,
+          "incompleteLookups": 331
+        },
+        {
+          "round": 3,
+          "live": 447,
+          "available": 4,
+          "incompleteLookups": 4
+        }
+      ],
+      "convergedInFixture": false,
+      "attempts": 35635,
+      "dispatched": 33574,
+      "framedBytes": 142562364,
+      "routing": {
+        "maxActive": 85,
+        "maxReplacements": 46,
+        "maxBuckets": 10
+      },
+      "lookupMs": {
+        "p50": 32.02570000000014,
+        "p95": 48.00710000000254,
+        "max": 84.39260000000013
+      },
+      "wallMs": 48722.8595,
+      "routingJsonBytes": 3910256
+    }
+  ]
+}

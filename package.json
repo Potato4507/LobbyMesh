@@ -15,7 +15,8 @@
     "format": "biome check --write .",
     "start": "electron dist/main.cjs",
     "test:desktop": "node scripts/desktop-smoke.mjs",
-    "smoke:public-pair": "node scripts/public-pair-smoke.mjs"
+    "smoke:public-pair": "node scripts/public-pair-smoke.mjs",
+    "simulate:overlay": "tsx scripts/simulate-overlay.ts"
   },
   "dependencies": {
     "hyperdht": "6.35.0",

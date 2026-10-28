@@ -10,7 +10,7 @@ import {
   type RecordV1,
   validateRecord,
 } from "../../security/src/records.js";
-import { RoutingTable } from "./index.js";
+import { RoutingTable, xorDistance } from "./index.js";
 import {
   iterativeLookup,
   type LookupResult,
@@ -105,7 +105,32 @@ export class NetworkOverlay {
         if (combined.aborted) break;
         records++;
         if (this.options.blocked?.(record.author)) continue;
-        const contacts = this.routing.nearest(record.key, 3);
+        const resolution = new AbortController();
+        // Reserve time for actual replica writes even when target resolution
+        // stalls. Its partial authenticated discoveries remain useful next time.
+        const resolutionTimer = setTimeout(
+          () => resolution.abort(),
+          Math.max(
+            1,
+            Math.min(
+              500,
+              Math.floor((this.options.synchronizationMs ?? 2000) / 2),
+            ),
+          ),
+        );
+        let resolved: LookupResult;
+        try {
+          resolved = await this.findNodes(
+            record.key,
+            this.contacts(record.key),
+            AbortSignal.any([combined, resolution.signal]),
+          );
+        } finally {
+          clearTimeout(resolutionTimer);
+          resolution.abort();
+        }
+        if (combined.aborted) break;
+        const contacts = this.replicaContacts(record.key, resolved);
         const offset = this.syncReplicaOffset % (contacts.length || 1);
         for (const contact of [
           ...contacts.slice(offset),
@@ -167,12 +192,40 @@ export class NetworkOverlay {
   }
   private contacts(target: string): Referral[] {
     return this.routing
-      .nearest(target)
+      .nearest(target, 20, true)
       .filter((c) => !this.options.blocked?.(c.id))
       .map((c) => ({
         id: c.id,
         transportKey: Buffer.from(c.publicKey).toString("hex"),
       }));
+  }
+  private replicaContacts(
+    target: string,
+    resolved: LookupResult,
+  ): PeerContact[] {
+    const candidates = new Map(
+      this.routing.nearest(target, 20).map((contact) => [contact.id, contact]),
+    );
+    for (const contact of resolved.authenticated) {
+      if (
+        contact.id === this.identity.peerId ||
+        this.options.blocked?.(contact.id)
+      )
+        continue;
+      candidates.set(contact.id, {
+        id: contact.id,
+        publicKey: Buffer.from(contact.transportKey, "hex"),
+        connectionHints: [],
+      });
+    }
+    return [...candidates.values()]
+      .filter((contact) => !this.options.blocked?.(contact.id))
+      .sort((a, b) => {
+        const x = xorDistance(a.id, target),
+          y = xorDistance(b.id, target);
+        return x < y ? -1 : x > y ? 1 : 0;
+      })
+      .slice(0, 3);
   }
   readonly handle: RpcHandler = async (peer, value, signal) => {
     this.assertRunning();
@@ -503,10 +556,10 @@ export class NetworkOverlay {
     const existing = this.store.get(key).find((r) => r.author === valid.author);
     if (!existing || existing.signature !== valid.signature)
       this.store.put(key, valid);
-    await this.findNodes(key);
+    const resolved = await this.findNodes(key);
     let replicas = 0,
       failures = 0;
-    for (const contact of this.routing.nearest(key, 3)) {
+    for (const contact of this.replicaContacts(key, resolved)) {
       try {
         const result = (await this.call(
           contact.publicKey,

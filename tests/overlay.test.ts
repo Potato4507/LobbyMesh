@@ -24,6 +24,11 @@ test("routing retains incumbents under floods, bounds replacements and promotes 
   add(128);
   add(129);
   for (let n = 130; n < 140; n++) assert.equal(add(n), false);
+  assert.deepEqual(table.stats(), { buckets: 1, active: 2, replacements: 2 });
+  assert.deepEqual(
+    table.nearest(id(139), 2, true).map((contact) => contact.id),
+    [id(139), id(138)],
+  );
   assert.deepEqual(
     table.oldest(2).map((c) => c.id),
     [id(128), id(129)],
@@ -42,6 +47,7 @@ test("routing retains incumbents under floods, bounds replacements and promotes 
   );
   table.clear();
   assert.deepEqual(table.oldest(4), []);
+  assert.deepEqual(table.stats(), { buckets: 0, active: 0, replacements: 0 });
 });
 test("routing XOR order, bucket cap, self rejection and copy isolation", () => {
   const table = new RoutingTable(id(0), 2);

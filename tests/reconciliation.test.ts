@@ -186,7 +186,19 @@ test("synthetic partition merge reconciles existing signed records without exten
   });
   assert.deepEqual((await c.overlay.lookup(key)).records, []);
   partitioned = false;
-  await c.overlay.join(Buffer.from(b.key, "hex"));
+  await b.overlay.probe(
+    {
+      id: c.identity.peerId,
+      publicKey: Buffer.from(c.key, "hex"),
+      connectionHints: [],
+    },
+    signal,
+  );
+  assert.equal(
+    a.overlay.routing.has(c.identity.peerId),
+    false,
+    "repair must discover the new replica through B",
+  );
   const sync = await a.overlay.synchronize(signal);
   assert.equal(sync.state, "complete");
   assert.equal(sync.replicas, 2);
