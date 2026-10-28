@@ -10,6 +10,23 @@
 
 # /plan — Modular Implementation and Proof Plan
 
+## Unified product requirements (2026-10-28)
+
+Continue the existing implementation as one product. Historical M07 next-step notes above are superseded by current source and STATUS. Prioritize dependencies, implementation readiness, user value and acceptance gaps across these workstreams:
+
+- Automatic local Roblox session detection through supported Windows log monitoring: read only player logs in documented locations, recognize versioned/observed lifecycle markers, handle partial writes, rotation, stale files and unsupported formats. No manual server-ID fallback. Never infer missing universe/place/job identifiers, bystander rosters or platform verification; local evidence remains self-asserted.
+- Professional, polished desktop UI: coherent navigation, accessible controls, clear live state, actionable errors and consent/onboarding; verify rendered native UI and actual interactions.
+- Customizable functional in-game overlay: modular widgets for session/network, approved chat and voice controls as implemented, with saved layout/visibility and usable input/focus behavior. Use a separate non-injected Windows window; document fullscreen limitations. Do not display simulated voice controls as working audio.
+- Continue decentralized discovery/routing, encrypted text, consent-based voice, security, lifecycle reliability and release engineering. Detection and presentation do not replace networking or its real-world gates.
+
+### /steps
+
+Reconcile source and proof; implement the next ready production increment; verify its failure cases and neighboring integrations; update STATUS and TEST_MATRIX; commit verified milestones and continue. First resumed increment: bounded Windows log provider and desktop detection status, followed by consent-gated session integration and modular overlay work as dependencies permit. Retain native replication diagnostics and recovery coverage in the reliability backlog.
+
+### /proof
+
+Keep fixture parser/filesystem tests, native desktop UI proof, actual Roblox join/teleport/exit proof, and cross-machine network/audio/release acceptance separate. Document exact supported paths/markers and freshness limitations; changed or incomplete logs must withdraw stale presence and surface uncertainty. No module is complete solely because local fixtures pass.
+
 **Project:** Autonomous, infrastructure-independent, opt-in P2P Roblox companion with a public-bootstrap DHT and a separate self-starting application DHT.
 
 **Primary operator goal:** copy `MASTER_PROMPT.md` plus this file into a capable coding agent with filesystem and shell access; the agent should implement and validate each module, then integrate the verified modules without repeatedly asking for routine approval. These Markdown headings are conventions, **not magic ChatGPT commands**.

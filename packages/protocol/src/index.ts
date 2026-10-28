@@ -9,7 +9,7 @@ export interface SessionIdentity {
   universeId: string;
   placeId: string;
   jobId: string;
-  evidenceSource: "test" | "authorized-sdk" | "official-api";
+  evidenceSource: "test" | "authorized-sdk" | "official-api" | "windows-log";
   verification: "mock" | "self-asserted" | "externally-verified";
 }
 export interface SessionProvider {

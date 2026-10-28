@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
 import type { Preferences } from "../../../packages/protocol/src/preferences.js";
+import type { DetectionStatus } from "../../../packages/session/src/windows-logs.js";
 import { Messages } from "./messages.js";
 import type { ContactView, MessageView } from "./messaging.js";
 
@@ -11,6 +12,7 @@ declare global {
       status(): Promise<{
         network: string;
         session: string;
+        detection: DetectionStatus;
         microphone: string;
         preferences: string;
         connection: NetworkStatus;
@@ -33,6 +35,7 @@ function App() {
   const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [notice, setNotice] = useState("Loading your preferences…");
   const [connection, setConnection] = useState<NetworkStatus | null>(null);
+  const [detection, setDetection] = useState<DetectionStatus | null>(null);
   const [networkPending, setNetworkPending] = useState(false);
   const [networkNotice, setNetworkNotice] = useState("");
   const [pending, setPending] = useState(false),
@@ -41,7 +44,10 @@ function App() {
     let active = true;
     void (async () => {
       const status = await window.companion.status();
-      if (active) setConnection(status.connection);
+      if (active) {
+        setConnection(status.connection);
+        setDetection(status.detection);
+      }
       if (status.preferences !== "ready") throw new Error("UNAVAILABLE");
       const value = await window.companion.preferences();
       if (active) {
@@ -67,7 +73,10 @@ function App() {
       void window.companion
         .status()
         .then((status) => {
-          if (active) setConnection(status.connection);
+          if (active) {
+            setConnection(status.connection);
+            setDetection(status.detection);
+          }
         })
         .catch(() => {
           if (active) setNetworkNotice("Connection status is unavailable.");
@@ -100,6 +109,18 @@ function App() {
     }
   }
   const state = connection?.state;
+  const detectionLabel = !detection
+    ? "Checking session…"
+    : {
+        disabled: "Detection off",
+        unsupported: "Unsupported on this device",
+        waiting: "Waiting for Roblox",
+        detected: "Local session detected",
+        incomplete: "Session details incomplete",
+        stale: "Waiting for fresh game logs",
+        ambiguous: "Multiple recent clients",
+        unavailable: "Game logs unavailable",
+      }[detection.state];
   const peers = connection?.peers ?? 0;
   const networkLabel =
     state === "online"
@@ -173,7 +194,7 @@ function App() {
         </div>
         <div>
           <span className="status-label">Roblox session</span>
-          <strong>Detection unavailable</strong>
+          <strong id="sessionStatus">{detectionLabel}</strong>
         </div>
         <div>
           <span className="status-label">Microphone</span>
@@ -250,8 +271,9 @@ function App() {
       <section className="panel">
         <h2>Stay in control</h2>
         <p>
-          Choose how you appear to other LobbyMesh participants. Automatic
-          Roblox session detection and voice are not yet available.
+          Choose how you appear to other LobbyMesh participants. Session
+          detection reads local Windows player logs when enabled. Voice is not
+          yet available.
         </p>
         {preferences && (
           <form
@@ -294,13 +316,15 @@ function App() {
                 }}
               />
               <span>
-                Allow companion presence discovery when supported session
-                detection is available.
+                Detect my Roblox session from local logs and allow companion
+                presence discovery.
               </span>
             </label>
             <p className="hint">
-              Off by default. Changing this preference does not activate peer
-              discovery by itself.
+              Off by default. Raw logs, account details and server addresses
+              stay out of the UI and public discovery. Detection needs fresh
+              supported log events and cannot verify Roblox identity. Enable
+              peer discovery separately to connect.
             </p>
             <button
               type="submit"

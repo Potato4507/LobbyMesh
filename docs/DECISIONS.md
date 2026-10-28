@@ -1,5 +1,7 @@
 # Decisions
 
+ADR 010 (2026-10-28): Windows player logs are a local, read-only, self-asserted session source. Match only explicit timestamped engine lifecycle markers, require all scope identifiers and connection confirmation, bound reads and reject stale/ambiguous files. Keep detection permission coupled to the explicit session-consent control; networking/contact permission remains independent. No HTTP identity/roster enrichment, addresses/account IDs retained, or manual seed fallback. Native fixture proof does not establish real Roblox compatibility. See windows-log-detection.md for freshness/exit limits.
+
 ADR 001: Node 24 LTS, TypeScript strict, pnpm 11.25.0, Electron 45.1.0 and React 19.3.1. Node built-in test runner via tsx is the equivalent deterministic test framework. Electron renderer is sandboxed with no Node, denied permissions, local CSP, no navigation, and one argument-validated status IPC restricted to its main frame. No network or audio is enabled by the scaffold.
 
 ADR 002: Use Node OpenSSL Ed25519, never custom crypto. Initial fallback storage is a 0700 directory and 0600 exclusive-created key file on POSIX; Windows needs an OS-protected adapter before release. Unsupported future key formats fail closed rather than being overwritten.

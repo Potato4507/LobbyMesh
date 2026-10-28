@@ -1,7 +1,8 @@
 # STATUS
 Goal: Build a serverless-by-ownership two-DHT P2P companion.
-Current module: M08 partition-recovery simulation checkpoint. Development stopped at the user's request after finishing the pending changes; goal remains paused.
+Current module: resumed 2026-10-28 for unified product development. Clean starting HEAD c0b07a3; previous pause superseded by the current user request. Implement bounded Windows player-log detection and desktop status, then consent-gated integration and overlay work while retaining networking/reliability acceptance gaps.
 Completed modules: none fully accepted; see partial evidence below.
+Latest increment (2026-10-28): unified requirements persisted; bounded opt-in Windows log provider and native desktop detection status implemented. Full 78/78, typecheck/lint/build and native smoke passed; synthetic log evidence only. Actual Roblox validation and crash/process-bound lifecycle remain unverified. Next: wire detected sessions into consent-gated desktop membership; then modular overlay and remaining reliability work.
 Proof: latest continuation on 2026-10-27 Windows, Node v24.22.1 / pnpm 11.25.0; docs/evidence/local-*.md. Historical Linux proof (Node 24.19.0) retained in docs/evidence/checks*.log.
 
 | Module | State | Implemented / remaining |

@@ -20,13 +20,15 @@ export function canonicalSession(session: SessionIdentity): string {
     !/^[1-9][0-9]{0,19}$/.test(session.placeId) ||
     typeof session.jobId !== "string" ||
     !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(session.jobId) ||
-    !["test", "authorized-sdk", "official-api"].includes(
+    !["test", "authorized-sdk", "official-api", "windows-log"].includes(
       session.evidenceSource,
     ) ||
     !["mock", "self-asserted", "externally-verified"].includes(
       session.verification,
     ) ||
-    (session.evidenceSource === "test") !== (session.verification === "mock")
+    (session.evidenceSource === "test") !== (session.verification === "mock") ||
+    (session.evidenceSource === "windows-log" &&
+      session.verification !== "self-asserted")
   )
     throw new Error("INVALID_SESSION_EVIDENCE");
   return JSON.stringify([
@@ -96,7 +98,11 @@ function parseAdvertisement(record: RecordV1): Advertisement {
     !["mock", "self-asserted", "externally-verified"].includes(
       value.claimedVerification,
     ) ||
-    !["test", "authorized-sdk", "official-api"].includes(value.claimedSource) ||
+    !["test", "authorized-sdk", "official-api", "windows-log"].includes(
+      value.claimedSource,
+    ) ||
+    (value.claimedSource === "windows-log" &&
+      value.claimedVerification !== "self-asserted") ||
     (value.claimedSource === "test") !== (value.claimedVerification === "mock")
   )
     throw new Error("INVALID_SESSION_AD");

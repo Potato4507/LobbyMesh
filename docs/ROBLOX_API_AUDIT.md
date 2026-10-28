@@ -1,6 +1,6 @@
 # Roblox feasibility checkpoint (2026-10-27 UTC)
 
-No production provider implemented. Universal independent automatic session identification: UNVERIFIED / unsupported by this implementation, not a claim that no such API could ever exist.
+2026-10-28: a bounded Windows local player-log provider is implemented with synthetic filesystem/native desktop proof; see evidence/windows-log-detection.md for inspected sources, supported scope and limitations. Actual Roblox acceptance remains UNVERIFIED; local logs do not establish account identity or authorized roster access. Universal independent automatic session identification remains unproven.
 
 | Source | Observed evidence | Capability / limit |
 | --- | --- | --- |

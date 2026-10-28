@@ -13,6 +13,10 @@ import {
   parsePreferencePatch,
 } from "../../../packages/protocol/src/preferences.js";
 import { PreferenceStore } from "../../../packages/security/src/preferences.js";
+import {
+  WindowsLogSessionProvider,
+  windowsLogDirectories,
+} from "../../../packages/session/src/windows-logs.js";
 import { DesktopMessaging } from "./messaging.js";
 import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
 
@@ -20,7 +24,10 @@ export async function createDesktop(
   directory: string,
   assets: string,
   show = true,
-  options: { networkFactory?: DesktopNetworkFactory } = {},
+  options: {
+    networkFactory?: DesktopNetworkFactory;
+    logProvider?: WindowsLogSessionProvider;
+  } = {},
 ) {
   let preferences: PreferenceStore | undefined;
   try {
@@ -47,6 +54,11 @@ export async function createDesktop(
   let tearingDown = false,
     permissionRevision = 0,
     activeRequests = 0;
+  const logProvider =
+    options.logProvider ??
+    new WindowsLogSessionProvider(
+      windowsLogDirectories(process.env.LOCALAPPDATA),
+    );
   const suspend = () => network.suspend(),
     resume = () => network.resume();
   powerMonitor.on("suspend", suspend);
@@ -112,7 +124,8 @@ export async function createDesktop(
     parseStatusRequest(request);
     return {
       version: 1,
-      session: "unsupported",
+      session: logProvider.status().state,
+      detection: logProvider.status(),
       network: network.status().state,
       connection: network.status(),
       microphone: "off",
@@ -129,7 +142,11 @@ export async function createDesktop(
     try {
       const patch = parsePreferencePatch(request);
       if ("networkEnabled" in patch) throw new Error("USE_NETWORK_CONTROL");
-      return await preferences.update(patch);
+      if (patch.sessionConsent === false) await logProvider.setEnabled(false);
+      const saved = await preferences.update(patch);
+      if (patch.sessionConsent !== undefined)
+        await logProvider.setEnabled(saved.sessionConsent);
+      return saved;
     } catch {
       throw new Error("PREFERENCES_UPDATE_FAILED");
     }
@@ -220,6 +237,7 @@ export async function createDesktop(
     closing ??= (async () => {
       for (const channel of channels) ipcMain.removeHandler(channel);
       try {
+        await logProvider.stop();
         await network.close();
       } finally {
         await preferences?.close();
@@ -228,6 +246,7 @@ export async function createDesktop(
     return closing;
   };
   if (preferences?.snapshot().networkEnabled) network.setEnabled(true);
+  await logProvider.setEnabled(preferences?.snapshot().sessionConsent ?? false);
   try {
     await window.loadFile(path.join(assets, "index.html"));
   } catch (error) {

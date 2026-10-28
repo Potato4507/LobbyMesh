@@ -1,5 +1,7 @@
 # Test matrix
 
+2026-10-28 Windows log detection: full 78/78, typecheck, lint (86 files), build and native desktop smoke passed. Read-only filesystem fixtures cover complete/partial/stale/future/oversize events, truncation, rotation, ambiguity, ignored Studio/crash files, disable and recovery. Native Electron verifies consent-controlled status using synthetic logs; screenshot inspected. Actual Roblox join/teleport/exit and process-bound lifecycle acceptance remain unverified. See docs/evidence/windows-log-detection.md.
+
 [x] executed, [ ] unexecuted. Tests use synthetic identities and sessions only.
 
 | Area | Unit | Simulation | 2-process | Cross-machine | External API | Security | Release |

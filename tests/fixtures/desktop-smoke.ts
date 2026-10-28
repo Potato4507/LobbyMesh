@@ -19,6 +19,7 @@ import {
 } from "../../packages/protocol/src/direct.js";
 import { loadTransportKeys } from "../../packages/public-discovery/src/hyperdht.js";
 import { PreferenceStore } from "../../packages/security/src/preferences.js";
+import { WindowsLogSessionProvider } from "../../packages/session/src/windows-logs.js";
 
 async function run() {
   assert.equal(typeof createOverlayRuntime, "function");
@@ -30,6 +31,19 @@ async function run() {
   app.on("window-all-closed", () => {});
   const preferencesPath = path.join(directory, "preferences"),
     allowed = "ab".repeat(32);
+  const logsPath = path.join(directory, "synthetic-player-logs");
+  await mkdir(logsPath, { recursive: true });
+  const logPrefix = `${new Date().toISOString()},1,abcd,6,Info `;
+  await writeFile(
+    path.join(logsPath, "0.1_Player_ABCD_last.log"),
+    [
+      "[FLog::Output] ! Joining game '12345678-abcd-1234-abcd-123456789abc' place 123 at 127.0.0.1",
+      "[FLog::GameJoinLoadTime] Report game_join_loadtime: universeid:456, userid:999",
+      "[FLog::Network] Replicator created: serverId: 127.0.0.1|1",
+    ]
+      .map((entry) => `${logPrefix}${entry}\n`)
+      .join(""),
+  );
   const seed = await PreferenceStore.open(preferencesPath);
   await seed.allow(allowed);
   await seed.close();
@@ -112,7 +126,10 @@ async function run() {
       preferencesPath,
       path.resolve("dist"),
       false,
-      { networkFactory },
+      {
+        networkFactory,
+        logProvider: new WindowsLogSessionProvider([logsPath]),
+      },
     );
     console.log("desktop stage: loaded");
     let contents = desktop.window.webContents;
@@ -283,6 +300,19 @@ async function run() {
     }>("window.companion.preferences()");
     assert.equal(saved.displayName, "Local smoke test");
     assert.equal(saved.sessionConsent, true);
+    await until(
+      "document.querySelector('#sessionStatus')?.textContent === 'Local session detected'",
+    );
+    const detectionStatus = await execute<{
+      session: string;
+      detection: { verification: string };
+    }>("window.companion.status()");
+    assert.equal(detectionStatus.session, "detected");
+    assert.equal(detectionStatus.detection.verification, "self-asserted");
+    assert.equal(
+      JSON.stringify(detectionStatus).includes("12345678-abcd"),
+      false,
+    );
     assert.equal(saved.networkEnabled, true);
     assert.equal(saved.voiceMode, "off");
     assert.ok(
@@ -349,7 +379,10 @@ async function run() {
       preferencesPath,
       path.resolve("dist"),
       false,
-      { networkFactory },
+      {
+        networkFactory,
+        logProvider: new WindowsLogSessionProvider([logsPath]),
+      },
     );
     contents = desktop.window.webContents;
     await until("window.companion.status().then(s => s.network === 'online')");

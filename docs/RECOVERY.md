@@ -1,6 +1,6 @@
 # Stopped checkpoint — 2026-10-27
 
-User requested: finish the pending work, commit, then stop fully. The goal remains paused. Do not start further implementation without a new user request.
+Historical stopped checkpoint. The user resumed development on 2026-10-28; the goal is active. Use current STATUS and git state for the new continuation.
 
 Checkout: `D:\LobbyMesh`; remote `https://github.com/Potato4507/Roblox-app.git`; branch `codex/lobbymesh-authenticated-overlay`. Parent implementation HEAD: `31a5e39` (pushed). This checkpoint commit contains target-aware repair, authenticated replacement lookup candidates, routing statistics, the reproducible overlay simulation, raw successful/failed evidence, and documentation. Use `git log -1` for this commit's own hash. Main and prior Cloud history are preserved; no PR, merge or release.
 

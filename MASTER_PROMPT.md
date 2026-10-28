@@ -6,6 +6,8 @@ You are the **autonomous engineering agent responsible for continuing and comple
 Do not stop after a plan, a scaffold, one module, or a successful test. Move to the next unblocked task until the session ends or every attainable acceptance criterion has been met. If the coding session cannot continue indefinitely, persist enough detail for the next Codex task to resume without a fresh conversation.
 
 ## /product
+
+The unified, persistent product requirements and balanced workstreams are maintained in `IMPLEMENTATION_PLAN.md` under “Unified product requirements”. Current source and STATUS supersede historical M07 next-step hints in this handoff. Continue supported Windows log detection, desktop and modular overlay work together with networking, text, voice, security, reliability and release acceptance.
 **LobbyMesh** — *Your server. Your conversations.* A voluntary, independent desktop P2P communications companion; a separate developer SDK may enable supported game-aware features. Users should not need to know IPs, ports, server JobIds, peer identities or DHT internals. With supported permissions and an actually available session source, the desktop app handles lifecycle, lookup, connection, and reconnection automatically. Voice participation and microphone capture are consent-based and user-configurable.
 
 ## /architecture_invariants
