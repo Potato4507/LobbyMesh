@@ -12,7 +12,9 @@ const directory = await mkdtemp(path.join(tmpdir(), "lobbymesh-runtime-"));
 let messenger: DirectMessenger;
 const authorized = new Set<string>();
 const runtime = await createOverlayRuntime(directory, {
-  bootstrap: [process.argv[2] ?? ""],
+  ...(process.argv[2] === "public"
+    ? {}
+    : { bootstrap: [process.argv[2] ?? ""] }),
   directHandler: (peer, request, signal) =>
     messenger.handle(peer, request, signal),
 });

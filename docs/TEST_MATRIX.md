@@ -11,10 +11,11 @@
 | Roster | [x] 0/2/30/100, duplicate names, join/leave | [ ] | [ ] | [ ] | [ ] Roblox roster | [x] whitelist, block, quota | [ ] |
 | Simulator | [x] clock only | [ ] network/churn | [ ] | [ ] | [ ] | [ ] | [ ] |
 | Desktop | [ ] components | [ ] | [ ] | [ ] | [ ] | [ ] runtime IPC / sandbox | [ ] launch |
-| Public discovery | [x] fake, dedup, quota/rate, cleanup, timeout, installed key persistence | [x] two fake adapters | [ ] | [ ] | [ ] success; smoke timed out | [x] malformed key rejection | [ ] |
+| Public discovery | [x] fake, dedup, quota/rate, cleanup, timeout, installed key persistence | [x] two fake adapters | [x] local and public bootstrap | [ ] | [x] Windows pair; historical Linux timeout | [x] malformed key rejection | [ ] |
 | Entrypoint search | [x] four-concurrent cap, deadline, auth/version filtering, error states | [x] unreachable/incompatible/stalled | [ ] | [ ] | [ ] | [x] rejects unauthenticated | [ ] |
 | Local overlay | [x] XOR order, bucket cap, signed store, expiry, restart | [x] fake announcement only | [ ] | [ ] | [ ] | [x] forged record rejection | [ ] |
-| Multi-node overlay / text / voice | [ ] | [ ] | [ ] | [ ] NAT/audio | [ ] | [ ] | [ ] |
+| Multi-node overlay / text | [x] bounded protocols | [x] graph churn / text faults / small partition repair | [x] local/public bootstrap | [ ] NAT | [ ] Roblox | [x] authentication/consent gates | [ ] |
+| Voice | [ ] | [ ] | [ ] | [ ] audio | [ ] | [ ] | [ ] |
 
 Do not infer internet/NAT, audio, Roblox integration, Windows support or release readiness from these tests.
 
@@ -35,3 +36,5 @@ Direct text continuation: 45/45 tests, typecheck, lint (57 files), build passed.
 Persistent preferences: 49/49 tests, typecheck, lint (60 files), build passed. Four real-filesystem tests cover defaults, serialization/reopen, exclusive lock, schema/corruption, failed atomic replacement and immediate block despite disk failure. See docs/evidence/local-preferences.md. Windows ACL and desktop wiring remain pending.
 
 Desktop preferences: `pnpm test:desktop` passed against real Electron 45.1.0 on Windows with temporary profile, real form/persistence/contact actions and foreign-window IPC rejection; sandbox/context-isolation flags observed, Node absent in renderer. Screenshot visually inspected. Full 49/49 suite, typecheck, lint (63 files), build also passed. See docs/evidence/local-desktop.md and lobbymesh-settings.png. Desktop networking/audio and installer remain incomplete.
+
+Public bootstrap: explicit `pnpm smoke:public-pair` passed with two real processes, public entrypoint discovery, mutual app authentication and signed record exchange. Same host; not cross-NAT. Single smoke also exited 0 with one unauthenticated candidate. See docs/evidence/windows-public-bootstrap.md. Never infer cross-host/audio/Roblox support from these runs.
