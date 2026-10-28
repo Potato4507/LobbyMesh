@@ -126,6 +126,7 @@ function App() {
                   displayName: event.target.value,
                 });
                 setDirty(true);
+                setNotice("");
               }}
             />
             <p className="hint">
@@ -144,6 +145,7 @@ function App() {
                     sessionConsent: event.target.checked,
                   });
                   setDirty(true);
+                  setNotice("");
                 }}
               />
               <span>
