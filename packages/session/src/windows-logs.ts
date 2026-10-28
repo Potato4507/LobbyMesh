@@ -4,6 +4,7 @@ import type {
   SessionIdentity,
   SessionProvider,
 } from "../../protocol/src/index.js";
+import type { ActivityReader } from "./windows-activity.js";
 
 export type DetectionState =
   | "disabled"
@@ -18,6 +19,12 @@ export interface DetectionStatus {
   state: DetectionState;
   source: "windows-log";
   verification: "self-asserted";
+  reason:
+    | "multiple-player-processes"
+    | "multiple-player-logs"
+    | "process-query-failed"
+    | "log-read-failed"
+    | null;
 }
 const MAX_READ = 256 * 1024;
 const MAX_LINE = 16 * 1024;
@@ -53,7 +60,7 @@ export class PlayerLogParser {
   state(): "waiting" | "incomplete" | "detected" {
     return this.value ? "detected" : this.pending ? "incomplete" : "waiting";
   }
-  line(line: string, now: number): void {
+  line(line: string, now: number, processStartedAt?: number): void {
     if (line.length > MAX_LINE) {
       this.reset();
       return;
@@ -68,7 +75,9 @@ export class PlayerLogParser {
     if (
       !Number.isFinite(timestamp) ||
       timestamp > now + 5_000 ||
-      now - timestamp > FRESH_MS ||
+      (processStartedAt === undefined
+        ? now - timestamp > FRESH_MS
+        : timestamp < processStartedAt) ||
       timestamp < this.lastTime
     )
       return;
@@ -139,13 +148,19 @@ export class WindowsLogSessionProvider implements SessionProvider {
   private discardLine = false;
   private value: SessionIdentity | null = null;
   private view: DetectionState = "disabled";
+  private reason: DetectionStatus["reason"] = null;
   private enabled = false;
   private generation = 0;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private scanning: Promise<void> | undefined;
+  private processStartedAt: number | undefined;
   constructor(
     private readonly directories: readonly string[],
-    private readonly options: { now?: () => number; pollMs?: number } = {},
+    private readonly options: {
+      now?: () => number;
+      pollMs?: number;
+      activity?: ActivityReader;
+    } = {},
   ) {
     const interval = options.pollMs ?? 1_000;
     if (!Number.isSafeInteger(interval) || interval < 100 || interval > 10_000)
@@ -156,6 +171,7 @@ export class WindowsLogSessionProvider implements SessionProvider {
       state: this.view,
       source: "windows-log",
       verification: "self-asserted",
+      reason: this.reason,
     };
   }
   async current(): Promise<SessionIdentity | null> {
@@ -167,8 +183,13 @@ export class WindowsLogSessionProvider implements SessionProvider {
       this.handlers.delete(handler);
     };
   }
-  private publish(state: DetectionState, value: SessionIdentity | null): void {
+  private publish(
+    state: DetectionState,
+    value: SessionIdentity | null,
+    reason: DetectionStatus["reason"] = null,
+  ): void {
     this.view = state;
+    this.reason = reason;
     const changed = JSON.stringify(this.value) !== JSON.stringify(value);
     this.value = value ? { ...value } : null;
     if (changed)
@@ -196,6 +217,7 @@ export class WindowsLogSessionProvider implements SessionProvider {
     clearTimeout(this.timer);
     this.timer = undefined;
     this.reset();
+    this.processStartedAt = undefined;
     this.publish(
       enabled
         ? this.directories.length
@@ -228,7 +250,38 @@ export class WindowsLogSessionProvider implements SessionProvider {
   private async scan(generation: number): Promise<void> {
     const valid = () => this.enabled && generation === this.generation;
     const now = (this.options.now ?? Date.now)();
+    let phase: "activity" | "logs" = this.options.activity
+      ? "activity"
+      : "logs";
     try {
+      if (this.options.activity) {
+        const players = await this.options.activity();
+        if (!valid()) return;
+        if (players.length !== 1) {
+          this.reset();
+          this.processStartedAt = undefined;
+          this.publish(
+            players.length ? "ambiguous" : "waiting",
+            null,
+            players.length ? "multiple-player-processes" : null,
+          );
+          return;
+        }
+        const startedAt = players[0]?.startedAt;
+        if (
+          !Number.isSafeInteger(startedAt) ||
+          !startedAt ||
+          startedAt < 0 ||
+          startedAt > now + 5_000
+        )
+          throw new Error("PLAYER_ACTIVITY_UNAVAILABLE");
+        if (startedAt !== this.processStartedAt) {
+          this.reset();
+          this.processStartedAt = startedAt;
+          this.publish("waiting", null);
+        }
+      }
+      phase = "logs";
       const candidates: { file: string; modified: number }[] = [];
       let count = 0,
         sawOld = false;
@@ -252,7 +305,11 @@ export class WindowsLogSessionProvider implements SessionProvider {
           try {
             const stat = await handle.stat();
             if (!stat.isFile()) continue;
-            if (now - stat.mtimeMs > FRESH_MS) {
+            if (
+              this.processStartedAt === undefined
+                ? now - stat.mtimeMs > FRESH_MS
+                : stat.mtimeMs < this.processStartedAt
+            ) {
               sawOld = true;
               continue;
             }
@@ -269,6 +326,7 @@ export class WindowsLogSessionProvider implements SessionProvider {
         this.publish(
           candidates.length > 1 ? "ambiguous" : sawOld ? "stale" : "waiting",
           null,
+          candidates.length > 1 ? "multiple-player-logs" : null,
         );
         return;
       }
@@ -315,7 +373,7 @@ export class WindowsLogSessionProvider implements SessionProvider {
             continue;
           }
           if (line.endsWith("\r")) line = line.slice(0, -1);
-          this.parser.line(line, now);
+          this.parser.line(line, now, this.processStartedAt);
         }
         if (this.partial.length > MAX_LINE) {
           this.partial = "";
@@ -329,7 +387,11 @@ export class WindowsLogSessionProvider implements SessionProvider {
     } catch {
       if (valid()) {
         this.reset();
-        this.publish("unavailable", null);
+        this.publish(
+          "unavailable",
+          null,
+          phase === "activity" ? "process-query-failed" : "log-read-failed",
+        );
       }
     }
   }

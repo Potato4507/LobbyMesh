@@ -12,6 +12,10 @@ import path from "node:path";
 import test from "node:test";
 import { canonicalSession } from "../packages/session/src/matching.js";
 import {
+  createWindowsActivityReader,
+  parsePlayerActivity,
+} from "../packages/session/src/windows-activity.js";
+import {
   PlayerLogParser,
   WindowsLogSessionProvider,
   windowsLogDirectories,
@@ -126,6 +130,7 @@ test("read-only Windows monitor handles permission, partial append, truncation, 
     await writeFile(second, joined());
     await provider.refresh();
     assert.equal(provider.status().state, "ambiguous");
+    assert.equal(provider.status().reason, "multiple-player-logs");
     assert.equal(await provider.current(), null);
     await rm(file);
     await provider.refresh();
@@ -186,4 +191,118 @@ test("bounded log tail discards cropped records and huge partial lines, ignores 
     await provider.stop();
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test("live process lifetime accepts quiet-session evidence, withdraws on exit, and never reuses an earlier player's logs", async () => {
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "lobbymesh-player-lifetime-"),
+  );
+  const file = path.join(directory, "0.1_Player_ABCD_last.log");
+  let players = [{ startedAt: now - 160_000 }],
+    failed = false;
+  const provider = new WindowsLogSessionProvider([directory], {
+    now: () => now,
+    pollMs: 10_000,
+    activity: async () => {
+      if (failed) throw new Error("denied");
+      return players;
+    },
+  });
+  try {
+    const oldTime = now - 150_000;
+    await writeFile(
+      file,
+      joined().replaceAll(
+        new Date(now).toISOString(),
+        new Date(oldTime).toISOString(),
+      ),
+    );
+    await utimes(file, new Date(oldTime), new Date(oldTime));
+    await provider.setEnabled(true);
+    assert.equal(provider.status().state, "detected");
+    players = [];
+    await provider.refresh();
+    assert.equal(provider.status().state, "waiting");
+    assert.equal(await provider.current(), null);
+    players = [{ startedAt: now - 1_000 }];
+    await provider.refresh();
+    assert.equal(await provider.current(), null);
+    // Touching an older log cannot make its pre-process join events current.
+    await utimes(file, new Date(now), new Date(now));
+    await provider.refresh();
+    assert.equal(await provider.current(), null);
+    await writeFile(file, joined());
+    await provider.stop();
+    await provider.setEnabled(true);
+    assert.equal(provider.status().state, "detected");
+    players = [{ startedAt: now - 1_000 }, { startedAt: now - 500 }];
+    await provider.refresh();
+    assert.equal(provider.status().state, "ambiguous");
+    assert.equal(provider.status().reason, "multiple-player-processes");
+    assert.equal(await provider.current(), null);
+    failed = true;
+    await provider.refresh();
+    assert.equal(provider.status().state, "unavailable");
+    assert.equal(provider.status().reason, "process-query-failed");
+    failed = false;
+    players = [{ startedAt: now - 1_000 }];
+    await provider.refresh();
+    assert.equal(provider.status().state, "detected");
+  } finally {
+    await provider.stop();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("process metadata is strictly parsed, cached with copies, and failures back off without stale success", async () => {
+  assert.deepEqual(parsePlayerActivity([]), []);
+  for (const value of [
+    null,
+    {},
+    [{ startedAt: "invalid" }],
+    [{ startedAt: "2026-10-28T00:00:00Z", secret: "discard" }],
+    Array(5).fill({ startedAt: "2026-10-28T00:00:00Z" }),
+  ])
+    assert.throws(() => parsePlayerActivity(value), /UNAVAILABLE/);
+  let clock = 100,
+    queries = 0,
+    fail = false;
+  const reader = createWindowsActivityReader(
+    async () => {
+      queries++;
+      if (fail) throw new Error("unavailable");
+      return [{ startedAt: 123 }];
+    },
+    () => clock,
+  );
+  const snapshot = (await reader())[0];
+  assert.ok(snapshot);
+  snapshot.startedAt = 999;
+  assert.equal((await reader())[0]?.startedAt, 123);
+  assert.equal(queries, 1);
+  clock += 5_000;
+  fail = true;
+  await assert.rejects(reader());
+  await assert.rejects(reader());
+  assert.equal(queries, 2);
+  clock += 5_000;
+  fail = false;
+  assert.equal((await reader())[0]?.startedAt, 123);
+  assert.equal(queries, 3);
+});
+
+test("disabling while a process query is pending prevents late detection from restarting the monitor", async () => {
+  let finish: (value: { startedAt: number }[]) => void = () => {};
+  const pending = new Promise<{ startedAt: number }[]>((resolve) => {
+    finish = resolve;
+  });
+  const provider = new WindowsLogSessionProvider(["unused"], {
+    activity: () => pending,
+  });
+  const enabling = provider.setEnabled(true);
+  const disabling = provider.setEnabled(false);
+  finish([{ startedAt: now - 1_000 }]);
+  await Promise.all([enabling, disabling]);
+  assert.equal(provider.status().state, "disabled");
+  assert.equal(await provider.current(), null);
 });

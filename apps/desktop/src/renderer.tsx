@@ -127,7 +127,7 @@ function App() {
         detected: "Local session detected",
         incomplete: "Session details incomplete",
         stale: "Waiting for fresh game logs",
-        ambiguous: "Multiple recent clients",
+        ambiguous: "Session source ambiguous",
         unavailable: "Game logs unavailable",
       }[detection.state];
   const peers = connection?.peers ?? 0;
@@ -222,6 +222,22 @@ function App() {
           <strong>Off</strong>
         </div>
       </section>
+      {detection?.reason && (
+        <output className="hint" id="sessionSourceNotice">
+          {
+            {
+              "multiple-player-processes":
+                "More than one Roblox client is running. Close unused clients so LobbyMesh can select one local session.",
+              "multiple-player-logs":
+                "Multiple player logs match this run. LobbyMesh cannot select a session confidently yet.",
+              "process-query-failed":
+                "Windows player activity is unavailable. Session detection will retry automatically.",
+              "log-read-failed":
+                "Player logs could not be read. Session detection will retry automatically.",
+            }[detection.reason]
+          }
+        </output>
+      )}
       <section className="panel">
         <h2>Peer discovery</h2>
         <p>

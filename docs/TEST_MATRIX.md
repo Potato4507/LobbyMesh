@@ -1,5 +1,7 @@
 # Test matrix
 
+2026-10-28 Windows player lifecycle: full 85/85, focused 7/7, typecheck/lint (96 files)/build/native smoke passed. Quiet-session/exit/restart/ambiguity/query-failure/cancellation tested with injected process metadata. Actual native process query succeeded; read-only diagnose:session returned multiple-player-logs ambiguity and no selected session. Positive real Roblox lifecycle acceptance remains unverified. See evidence/windows-player-lifecycle.md.
+
 2026-10-28 modular overlay: full 82/82 (all original DHT tests preserved), typecheck/lint (94 files)/build and native smoke passed. Added schema/migration/persistence/copy/placement checks. Native sandboxed window sends approved chat, toggles focusable/passive modes, removes widgets, tears down and restores saved layout passively. Screenshot reviewed; physical game input/fullscreen/global-hotkey acceptance unverified. See evidence/desktop-overlay.md.
 
 2026-10-28 desktop sessions: full 80/80, typecheck, lint (88 files), build and native Electron smoke passed. Real generated files -> parser -> coordinator -> signed directory tested; native renderer shows matching state with synthetic directory/transport. No actual Roblox or new two-desktop/NAT acceptance claim. See evidence/desktop-sessions.md.

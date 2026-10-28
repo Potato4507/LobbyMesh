@@ -2,6 +2,8 @@
 
 Read MASTER_PROMPT.md and IMPLEMENTATION_PLAN.md for scope. Resume using docs/STATUS.md.
 
+Local detection diagnostic: `pnpm diagnose:session` explicitly reads supported Windows process metadata/player logs once, prints only redacted state/reason and whether a complete session was selected, then stops. It changes no saved settings and starts no network. Current host reports multiple-player-logs ambiguity; positive real Roblox lifecycle acceptance remains unverified. See [lifecycle evidence](docs/evidence/windows-player-lifecycle.md).
+
 Toolchain: Node 24, pnpm 11.25.0. Run `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`. On a graphical desktop run `pnpm start`. Peer discovery is off initially; explicitly enable it in the app to join the network automatically. Saved permission resumes on later launches. Opt-in Windows player-log detection and signed session matching are implemented with fixture proof; actual Roblox compatibility is unverified. Voice remains unavailable. No author-operated backend. Internet reachability and volunteer infrastructure availability are not guaranteed.
 
 If the pinned Electron binary is absent after installation, run `node node_modules/electron/install.js`. `pnpm test:desktop` verifies native preferences/network controls with an isolated temporary profile and writes `docs/evidence/lobbymesh-settings.png`; it requires a usable Electron graphical runtime. Its control tests inject a runtime; a separate native cancellation check uses unreachable local bootstrap, never public bootstrap. The microphone stays off. Current scope and exact evidence: [docs/STATUS.md](docs/STATUS.md).

@@ -13,6 +13,7 @@ import {
   parsePreferencePatch,
 } from "../../../packages/protocol/src/preferences.js";
 import { PreferenceStore } from "../../../packages/security/src/preferences.js";
+import { createWindowsActivityReader } from "../../../packages/session/src/windows-activity.js";
 import {
   WindowsLogSessionProvider,
   windowsLogDirectories,
@@ -41,6 +42,7 @@ export async function createDesktop(
     options.logProvider ??
     new WindowsLogSessionProvider(
       windowsLogDirectories(process.env.LOCALAPPDATA),
+      { activity: createWindowsActivityReader() },
     );
   let sessionConsent = preferences?.snapshot().sessionConsent ?? false;
   const network = new NetworkLifecycle(async (signal) => {
