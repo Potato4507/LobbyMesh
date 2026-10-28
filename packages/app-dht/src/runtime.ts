@@ -17,8 +17,10 @@ export async function createOverlayRuntime(
     blocked?: (id: string) => boolean;
     intervalMs?: number;
     directHandler?: RpcHandler;
+    signal?: AbortSignal;
   } = {},
 ) {
+  options.signal?.throwIfAborted();
   if (
     options.intervalMs !== undefined &&
     (!Number.isSafeInteger(options.intervalMs) ||
@@ -27,7 +29,9 @@ export async function createOverlayRuntime(
   )
     throw new Error("INVALID_MAINTENANCE_LIMITS");
   const identity = await loadOrCreateIdentity(path.join(directory, "identity"));
+  options.signal?.throwIfAborted();
   const keys = await loadTransportKeys(path.join(directory, "transport"));
+  options.signal?.throwIfAborted();
   let overlay: NetworkOverlay;
   const backend = new HyperDHTBackend(keys, {
     ...(options.bootstrap ? { bootstrap: options.bootstrap } : {}),
@@ -63,15 +67,29 @@ export async function createOverlayRuntime(
   const stop = (): Promise<void> => {
     stopping ??= (async () => {
       closed = true;
+      options.signal?.removeEventListener("abort", abort);
+      // Revoke overlay work immediately, then give directory cleanup a bounded
+      // grace period. A stopped app must not leave a native server listening.
+      const force = setTimeout(() => {
+        void backend.close().catch(() => {});
+      }, 1000);
       try {
-        await overlay.leave();
+        await Promise.allSettled([overlay.leave(), maintenance.stop()]);
       } finally {
-        await maintenance.stop();
+        clearTimeout(force);
         await backend.close();
       }
     })();
     return stopping;
   };
+  const abort = () => {
+    void stop().catch(() => {});
+  };
+  options.signal?.addEventListener("abort", abort, { once: true });
+  if (options.signal?.aborted) {
+    await stop();
+    throw new Error("RUNTIME_ABORTED");
+  }
   return {
     overlay,
     identity,

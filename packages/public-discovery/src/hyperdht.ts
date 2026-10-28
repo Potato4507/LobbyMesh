@@ -64,6 +64,7 @@ export class HyperDHTBackend implements DiscoveryBackend {
   private server: Server | null = null;
   private readonly streams = new Set<NoiseStream>();
   private closed = false;
+  private closing: Promise<void> | undefined;
   constructor(
     private readonly keys: KeyPair,
     private readonly options: {
@@ -145,12 +146,16 @@ export class HyperDHTBackend implements DiscoveryBackend {
     return this.node.announce(topic, this.keys);
   }
   async unannounce(topic: Buffer): Promise<void> {
+    if (this.closed) return;
     await this.node.unannounce(topic, this.keys);
   }
-  async close(): Promise<void> {
+  close(): Promise<void> {
     this.closed = true;
-    for (const stream of this.streams) stream.destroy();
-    await this.node.destroy({ force: true });
-    this.server = null;
+    this.closing ??= (async () => {
+      for (const stream of this.streams) stream.destroy();
+      await this.node.destroy({ force: true });
+      this.server = null;
+    })();
+    return this.closing;
   }
 }
