@@ -11,6 +11,9 @@ export function xorDistance(a: string, b: string): bigint {
 }
 export class RoutingTable {
   private buckets = new Map<number, Map<string, PeerContact>>();
+  private replacements = new Map<number, Map<string, PeerContact>>();
+  private activity = new Map<string, number>();
+  private tick = 0;
   constructor(
     private readonly self: string,
     private readonly k = 20,
@@ -29,15 +32,47 @@ export class RoutingTable {
       bucket = new Map();
       this.buckets.set(bucketIndex, bucket);
     }
-    // Retain established contacts; eviction requires a future authenticated liveness probe.
-    if (!bucket.has(contact.id) && bucket.size >= this.k) return false;
+    if (!bucket.has(contact.id) && bucket.size >= this.k) {
+      const cache =
+        this.replacements.get(bucketIndex) ?? new Map<string, PeerContact>();
+      cache.delete(contact.id);
+      cache.set(contact.id, {
+        ...contact,
+        publicKey: Buffer.from(contact.publicKey),
+        connectionHints: [],
+      });
+      if (cache.size > this.k) {
+        const oldest = cache.keys().next().value;
+        if (oldest) cache.delete(oldest);
+      }
+      this.replacements.set(bucketIndex, cache);
+      return false;
+    }
+    this.replacements.get(bucketIndex)?.delete(contact.id);
     bucket.delete(contact.id);
     bucket.set(contact.id, {
       ...contact,
       publicKey: Buffer.from(contact.publicKey),
       connectionHints: [],
     });
+    this.activity.set(contact.id, ++this.tick);
     return true;
+  }
+  oldest(count: number): PeerContact[] {
+    if (!Number.isSafeInteger(count) || count < 0 || count > 100)
+      throw new Error("INVALID_COUNT");
+    return [...this.buckets.values()]
+      .flatMap((bucket) => [...bucket.values()])
+      .sort(
+        (a, b) =>
+          (this.activity.get(a.id) ?? 0) - (this.activity.get(b.id) ?? 0),
+      )
+      .slice(0, count)
+      .map((contact) => ({
+        ...contact,
+        publicKey: Buffer.from(contact.publicKey),
+        connectionHints: [],
+      }));
   }
   nearest(target: string, count = 20): PeerContact[] {
     xorDistance(this.self, target);
@@ -59,6 +94,9 @@ export class RoutingTable {
   }
   clear(): void {
     this.buckets.clear();
+    this.replacements.clear();
+    this.activity.clear();
+    this.tick = 0;
   }
   has(id: string): boolean {
     const distance = xorDistance(this.self, id);
@@ -67,12 +105,27 @@ export class RoutingTable {
       (this.buckets.get(distance.toString(2).length - 1)?.has(id) ?? false)
     );
   }
-  remove(id: string): boolean {
+  revision(id: string): number | undefined {
+    return this.activity.get(id);
+  }
+  remove(id: string, allowed: (id: string) => boolean = () => true): boolean {
     const distance = xorDistance(this.self, id);
     if (distance === 0n) return false;
     const index = distance.toString(2).length - 1,
       bucket = this.buckets.get(index);
     const removed = bucket?.delete(id) ?? false;
+    this.activity.delete(id);
+    const cache = this.replacements.get(index);
+    cache?.delete(id);
+    if (removed && cache) {
+      for (const contact of [...cache.values()].reverse()) {
+        cache.delete(contact.id);
+        if (!allowed(contact.id)) continue;
+        this.add(contact);
+        break;
+      }
+    }
+    if (cache?.size === 0) this.replacements.delete(index);
     if (bucket?.size === 0) this.buckets.delete(index);
     return removed;
   }

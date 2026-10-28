@@ -141,10 +141,13 @@ export class NetworkOverlay {
     });
   }
   private contacts(target: string): Referral[] {
-    return this.routing.nearest(target).map((c) => ({
-      id: c.id,
-      transportKey: Buffer.from(c.publicKey).toString("hex"),
-    }));
+    return this.routing
+      .nearest(target)
+      .filter((c) => !this.options.blocked?.(c.id))
+      .map((c) => ({
+        id: c.id,
+        transportKey: Buffer.from(c.publicKey).toString("hex"),
+      }));
   }
   readonly handle: RpcHandler = async (peer, value, signal) => {
     this.assertRunning();
@@ -211,20 +214,43 @@ export class NetworkOverlay {
     signal?: AbortSignal,
   ): Promise<unknown> {
     this.assertRunning();
+    const combined = signal
+      ? AbortSignal.any([signal, this.controller.signal])
+      : this.controller.signal;
+    if (combined.aborted) return Promise.reject(new Error("RPC_ABORTED"));
     if (this.queuedRpc >= 64)
       return Promise.reject(new Error("RPC_QUEUE_QUOTA"));
     this.queuedRpc++;
     // Pinned native transport stalls one same-host connection when setup overlaps.
     // Keep transaction scheduling conservative until that path has separate proof.
     const task = this.rpcTail.then(() =>
-      this.performCall(key, request, expectedPeerId, signal),
+      this.performCall(key, request, expectedPeerId, combined),
     );
     this.rpcTail = task.then(
       () => {},
       () => {},
     );
-    return task.finally(() => {
+    const completion = task.finally(() => {
       this.queuedRpc--;
+    });
+    // Cancel the caller promptly even while a previous native transaction owns
+    // the queue. The queued task retains its slot until drained and checks the
+    // signal before opening a socket.
+    return new Promise((resolve, reject) => {
+      const abort = () => reject(new Error("RPC_ABORTED"));
+      const cleanup = () => combined.removeEventListener("abort", abort);
+      combined.addEventListener("abort", abort, { once: true });
+      completion.then(
+        (value) => {
+          cleanup();
+          resolve(value);
+        },
+        (error: unknown) => {
+          cleanup();
+          reject(error);
+        },
+      );
+      if (combined.aborted) abort();
     });
   }
   private async performCall(
@@ -238,6 +264,9 @@ export class NetworkOverlay {
     if (expectedPeerId && this.options.blocked?.(expectedPeerId))
       throw new Error("BLOCKED_PEER");
     let response: Awaited<ReturnType<typeof requestRpc>>;
+    const revision = expectedPeerId
+      ? this.routing.revision(expectedPeerId)
+      : undefined;
     try {
       response = await requestRpc(
         this.connector.connect(key),
@@ -256,11 +285,15 @@ export class NetworkOverlay {
         expectedPeerId &&
         !signal?.aborted &&
         !this.controller.signal.aborted &&
+        revision === this.routing.revision(expectedPeerId) &&
         this.routing.has(expectedPeerId)
       ) {
         const count = (this.failures.get(expectedPeerId) ?? 0) + 1;
         if (count >= 2) {
-          this.routing.remove(expectedPeerId);
+          this.routing.remove(
+            expectedPeerId,
+            (id) => !this.options.blocked?.(id),
+          );
           this.failures.delete(expectedPeerId);
         } else this.failures.set(expectedPeerId, count);
       }
@@ -364,7 +397,57 @@ export class NetworkOverlay {
     parseReferrals(result?.contacts);
     return { version: 1, authenticated: true };
   }
-  refresh(signal: AbortSignal): Promise<LookupResult> {
+  async maintainRouting(signal: AbortSignal): Promise<{
+    checked: number;
+    failed: number;
+    state: "complete" | "budget" | "aborted";
+  }> {
+    this.assertRunning();
+    const deadline = new AbortController();
+    const combined = AbortSignal.any([
+      signal,
+      this.controller.signal,
+      deadline.signal,
+    ]);
+    const timer = setTimeout(() => deadline.abort(), 2000);
+    let checked = 0,
+      failed = 0;
+    try {
+      for (const contact of this.routing.oldest(4)) {
+        if (combined.aborted) break;
+        if (this.options.blocked?.(contact.id)) {
+          this.routing.remove(contact.id, (id) => !this.options.blocked?.(id));
+          continue;
+        }
+        checked++;
+        try {
+          await this.call(
+            contact.publicKey,
+            { op: "find-node", target: this.identity.peerId },
+            contact.id,
+            combined,
+          );
+        } catch {
+          if (!combined.aborted) failed++;
+        }
+      }
+      return {
+        checked,
+        failed,
+        state:
+          signal.aborted || this.controller.signal.aborted
+            ? "aborted"
+            : deadline.signal.aborted
+              ? "budget"
+              : "complete",
+      };
+    } finally {
+      clearTimeout(timer);
+      deadline.abort();
+    }
+  }
+  async refresh(signal: AbortSignal): Promise<LookupResult> {
+    await this.maintainRouting(signal);
     return this.findNodes(
       this.identity.peerId,
       this.contacts(this.identity.peerId),
@@ -499,6 +582,8 @@ export class NetworkOverlay {
     await this.options.discovery?.stop();
   }
   authenticatedContacts(): PeerContact[] {
-    return this.routing.nearest(this.identity.peerId, 100);
+    return this.routing
+      .nearest(this.identity.peerId, 100)
+      .filter((c) => !this.options.blocked?.(c.id));
   }
 }

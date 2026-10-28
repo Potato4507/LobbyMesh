@@ -1,6 +1,6 @@
 # STATUS
 Goal: Build a serverless-by-ownership two-DHT P2P companion.
-Current module: M01 Windows protected credentials integrated with desktop network lifecycle; earlier acceptance gaps remain.
+Current module: M08 bounded routing recovery; Windows protected credentials integrated; earlier acceptance gaps remain.
 Completed modules: none fully accepted; see partial evidence below.
 Proof: latest continuation on 2026-10-27 Windows, Node v24.22.1 / pnpm 11.25.0; docs/evidence/local-*.md. Historical Linux proof (Node 24.19.0) retained in docs/evidence/checks*.log.
 
@@ -25,7 +25,7 @@ Proof: latest continuation on 2026-10-27 Windows, Node v24.22.1 / pnpm 11.25.0; 
 
 Blocked modules: M02/M03/M16 require verified official API capability, creator authorization and Roblox Studio/experience tests; M10/M13/M17 require real NAT networks/audio devices; M18 requires installer/package acceptance. Earlier Electron download/launch blocker was resolved on Windows; Linux graphical acceptance remains unverified.
 Risks: high—development-only; public-bootstrap discovery and same-host authenticated P2P observed, no production session source or cross-NAT/audio proof; desktop protection is Windows-only and does not isolate secrets from other apps running as the same OS user. Explicit Node development loaders remain plaintext and Windows ACL unverified; record replay state is process-local; safety acceptance remains incomplete. Do not release.
-Next immediate action: Implement the next unblocked M08 routing/healing acceptance gap, inspecting replacement/liveness handling and partition tests first. Protected reset and supported session/provider/contact onboarding remain outstanding; no manual server-ID fallback.
+Next immediate action: Address fairness of bounded record synchronization under slow/failing peers, then extend partition/churn measurements using production overlay logic. Protected reset and supported session/provider/contact onboarding remain outstanding; no manual server-ID fallback.
 
 Resume: read MASTER_PROMPT.md, IMPLEMENTATION_PLAN.md, this file and TEST_MATRIX.md. Current checkout D:\LobbyMesh, branch codex/lobbymesh-authenticated-overlay, preserving imported Cloud commits through 4fb38a1. Run pnpm typecheck, pnpm lint, pnpm test, pnpm build. No release or deployment. No paid services.
 

@@ -13,6 +13,36 @@ import {
 import { signRecord } from "../packages/security/src/records.js";
 
 const id = (n: number) => n.toString(16).padStart(64, "0");
+test("routing retains incumbents under floods, bounds replacements and promotes only eligible cached contacts", () => {
+  const table = new RoutingTable(id(0), 2);
+  const add = (n: number) =>
+    table.add({
+      id: id(n),
+      publicKey: Buffer.alloc(32, n),
+      connectionHints: [],
+    });
+  add(128);
+  add(129);
+  for (let n = 130; n < 140; n++) assert.equal(add(n), false);
+  assert.deepEqual(
+    table.oldest(2).map((c) => c.id),
+    [id(128), id(129)],
+  );
+  add(128);
+  assert.equal(table.oldest(1)[0]?.id, id(129));
+  const copy = table.oldest(1)[0];
+  copy?.publicKey.fill(0);
+  assert.equal(table.oldest(1)[0]?.publicKey[0], 129);
+  table.remove(id(129), (candidate) => candidate !== id(139));
+  assert.equal(table.has(id(138)), true);
+  table.remove(id(128));
+  assert.deepEqual(
+    table.oldest(2).map((c) => c.id),
+    [id(138)],
+  );
+  table.clear();
+  assert.deepEqual(table.oldest(4), []);
+});
 test("routing XOR order, bucket cap, self rejection and copy isolation", () => {
   const table = new RoutingTable(id(0), 2);
   assert.equal(
