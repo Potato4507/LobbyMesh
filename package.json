@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "start": "electron dist/main.cjs"
+    "start": "electron dist/main.cjs",
+    "test:desktop": "node scripts/desktop-smoke.mjs"
   },
   "dependencies": {
     "hyperdht": "6.35.0",
