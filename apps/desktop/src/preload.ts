@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld(
       contextIsolated: process.contextIsolated === true,
     }),
     status: () => ipcRenderer.invoke("companion:status"),
+    network: (enabled: unknown) =>
+      ipcRenderer.invoke("companion:network", enabled),
     preferences: () => ipcRenderer.invoke("companion:preferences"),
     updatePreferences: (request: unknown) =>
       ipcRenderer.invoke("companion:preferences:update", request),

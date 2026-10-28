@@ -3,15 +3,20 @@ import {
   BrowserWindow,
   type IpcMainInvokeEvent,
   ipcMain,
+  powerMonitor,
   session,
 } from "electron";
+import { NetworkLifecycle } from "../../../packages/app-dht/src/lifecycle.js";
 import { parseStatusRequest } from "../../../packages/protocol/src/index.js";
+import { parsePreferencePatch } from "../../../packages/protocol/src/preferences.js";
 import { PreferenceStore } from "../../../packages/security/src/preferences.js";
+import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
 
 export async function createDesktop(
   directory: string,
   assets: string,
   show = true,
+  options: { networkFactory?: DesktopNetworkFactory } = {},
 ) {
   let preferences: PreferenceStore | undefined;
   try {
@@ -19,6 +24,27 @@ export async function createDesktop(
   } catch {
     /* Fail closed; the existing file/lock is preserved. */
   }
+  const network = new NetworkLifecycle(async (signal) => {
+    if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");
+    const policy = {
+      blocked: preferences.isBlocked,
+      authorized: preferences.isAuthorized,
+    };
+    return options.networkFactory
+      ? options.networkFactory(signal, policy)
+      : createDesktopNetwork(
+          path.join(path.dirname(directory), "network"),
+          signal,
+          policy,
+        );
+  });
+  let tearingDown = false,
+    permissionRevision = 0,
+    activeRequests = 0;
+  const suspend = () => network.suspend(),
+    resume = () => network.resume();
+  powerMonitor.on("suspend", suspend);
+  powerMonitor.on("resume", resume);
   session.defaultSession.setPermissionRequestHandler(
     (_contents, _permission, callback) => callback(false),
   );
@@ -54,7 +80,14 @@ export async function createDesktop(
     channels.push(name);
     ipcMain.handle(name, async (event, request: unknown) => {
       trusted(event);
-      return action(request);
+      if (tearingDown) throw new Error("DESKTOP_CLOSING");
+      if (activeRequests >= 16) throw new Error("REQUEST_QUOTA");
+      activeRequests++;
+      try {
+        return await action(request);
+      } finally {
+        activeRequests--;
+      }
     });
   };
   handle("companion:status", (request) => {
@@ -62,7 +95,8 @@ export async function createDesktop(
     return {
       version: 1,
       session: "unsupported",
-      network: "offline",
+      network: network.status().state,
+      connection: network.status(),
       microphone: "off",
       preferences: preferences ? "ready" : "unavailable",
     };
@@ -75,10 +109,31 @@ export async function createDesktop(
   handle("companion:preferences:update", async (request) => {
     if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");
     try {
-      return await preferences.update(request);
+      const patch = parsePreferencePatch(request);
+      if ("networkEnabled" in patch) throw new Error("USE_NETWORK_CONTROL");
+      return await preferences.update(patch);
     } catch {
       throw new Error("PREFERENCES_UPDATE_FAILED");
     }
+  });
+  handle("companion:network", async (request) => {
+    if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");
+    if (typeof request !== "boolean")
+      throw new Error("INVALID_NETWORK_PERMISSION");
+    const revision = ++permissionRevision;
+    if (!request) network.setEnabled(false);
+    try {
+      await preferences.update({ networkEnabled: request });
+    } catch {
+      throw new Error(
+        request
+          ? "NETWORK_PERMISSION_SAVE_FAILED"
+          : "NETWORK_STOPPED_SAVE_FAILED",
+      );
+    }
+    if (revision === permissionRevision && request && !tearingDown)
+      network.setEnabled(true);
+    return network.status();
   });
   handle("companion:contact", async (request) => {
     if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");
@@ -101,12 +156,20 @@ export async function createDesktop(
   });
   let closing: Promise<void> | undefined;
   const close = (): Promise<void> => {
+    tearingDown = true;
+    powerMonitor.removeListener("suspend", suspend);
+    powerMonitor.removeListener("resume", resume);
     closing ??= (async () => {
       for (const channel of channels) ipcMain.removeHandler(channel);
-      await preferences?.close();
+      try {
+        await network.close();
+      } finally {
+        await preferences?.close();
+      }
     })();
     return closing;
   };
+  if (preferences?.snapshot().networkEnabled) network.setEnabled(true);
   try {
     await window.loadFile(path.join(assets, "index.html"));
   } catch (error) {

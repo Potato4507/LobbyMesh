@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
 import type { Preferences } from "../../../packages/protocol/src/preferences.js";
 
 declare global {
@@ -10,7 +11,9 @@ declare global {
         session: string;
         microphone: string;
         preferences: string;
+        connection: NetworkStatus;
       }>;
+      network(enabled: boolean): Promise<NetworkStatus>;
       preferences(): Promise<Preferences>;
       updatePreferences(request: unknown): Promise<Preferences>;
       contact(action: string, peerId: string): Promise<Preferences>;
@@ -20,12 +23,16 @@ declare global {
 function App() {
   const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [notice, setNotice] = useState("Loading your preferences…");
+  const [connection, setConnection] = useState<NetworkStatus | null>(null);
+  const [networkPending, setNetworkPending] = useState(false);
+  const [networkNotice, setNetworkNotice] = useState("");
   const [pending, setPending] = useState(false),
     [dirty, setDirty] = useState(false);
   useEffect(() => {
     let active = true;
     void (async () => {
       const status = await window.companion.status();
+      if (active) setConnection(status.connection);
       if (status.preferences !== "ready") throw new Error("UNAVAILABLE");
       const value = await window.companion.preferences();
       if (active) {
@@ -42,6 +49,67 @@ function App() {
       active = false;
     };
   }, []);
+  useEffect(() => {
+    let active = true,
+      busy = false;
+    const timer = setInterval(() => {
+      if (busy) return;
+      busy = true;
+      void window.companion
+        .status()
+        .then((status) => {
+          if (active) setConnection(status.connection);
+        })
+        .catch(() => {
+          if (active) setNetworkNotice("Connection status is unavailable.");
+        })
+        .finally(() => {
+          busy = false;
+        });
+    }, 1000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+  async function changeNetwork(enabled: boolean) {
+    setNetworkPending(true);
+    setNetworkNotice("");
+    try {
+      setConnection(await window.companion.network(enabled));
+      setPreferences((previous) =>
+        previous ? { ...previous, networkEnabled: enabled } : previous,
+      );
+    } catch {
+      setNetworkNotice(
+        enabled
+          ? "Could not save permission to connect. Discovery has not been enabled."
+          : "Could not save the startup preference. Check connection status before reopening LobbyMesh.",
+      );
+    } finally {
+      setNetworkPending(false);
+    }
+  }
+  const state = connection?.state;
+  const peers = connection?.peers ?? 0;
+  const networkLabel =
+    state === "online"
+      ? peers
+        ? `${peers} authenticated ${peers === 1 ? "peer" : "peers"}`
+        : "Discovering peers"
+      : state === "starting"
+        ? "Connecting…"
+        : state === "retrying"
+          ? "Retrying discovery…"
+          : state === "stopping"
+            ? "Disconnecting…"
+            : state === "suspended"
+              ? "Paused"
+              : state === "error"
+                ? "Connection unavailable"
+                : state === "offline"
+                  ? "Offline"
+                  : "Checking connection…";
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!preferences || pending) return;
@@ -85,12 +153,14 @@ function App() {
             <span>Your conversations.</span>
           </h1>
         </div>
-        <span className="badge">Offline</span>
+        <span className="badge">
+          {state === "online" ? "Connected" : networkLabel}
+        </span>
       </header>
       <section className="status-grid" aria-label="Current connection status">
         <div>
           <span className="status-label">Peer network</span>
-          <strong>Offline</strong>
+          <strong>{networkLabel}</strong>
         </div>
         <div>
           <span className="status-label">Roblox session</span>
@@ -102,11 +172,75 @@ function App() {
         </div>
       </section>
       <section className="panel">
+        <h2>Peer discovery</h2>
+        <p>
+          Connect automatically to other running LobbyMesh apps. Discovery can
+          reveal your network address to peers. Once enabled, it starts when you
+          open LobbyMesh.
+        </p>
+        <div className="connection-actions">
+          <button
+            id="networkControl"
+            type="button"
+            disabled={
+              !preferences ||
+              !connection ||
+              networkPending ||
+              state === "stopping"
+            }
+            onClick={() => {
+              void changeNetwork(
+                connection?.error === "STOP_FAILED"
+                  ? false
+                  : state === "error"
+                    ? true
+                    : !connection?.enabled,
+              );
+            }}
+          >
+            {connection?.error === "STOP_FAILED"
+              ? "Retry disconnect"
+              : state === "error"
+                ? "Retry connection"
+                : connection?.enabled
+                  ? "Disconnect"
+                  : "Enable peer discovery"}
+          </button>
+          {state === "error" && connection?.enabled && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={networkPending}
+              onClick={() => {
+                void changeNetwork(false);
+              }}
+            >
+              Disconnect
+            </button>
+          )}
+        </div>
+        <p className="hint">
+          A connection does not verify a Roblox account or give someone
+          permission to contact you.
+        </p>
+        <output id="networkNotice" className="notice" aria-live="polite">
+          {networkNotice ||
+            (connection?.error === "START_TIMEOUT"
+              ? "Connection timed out. Check your network and try again."
+              : connection?.error === "START_FAILED"
+                ? state === "retrying"
+                  ? "Discovery is temporarily unavailable. Retrying automatically."
+                  : "Could not connect. You can retry or stay offline."
+                : connection?.error === "STOP_FAILED"
+                  ? "Connection cleanup could not be confirmed. Try disconnecting again."
+                  : "")}
+        </output>
+      </section>
+      <section className="panel">
         <h2>Stay in control</h2>
         <p>
-          Peer networking and voice are not available in this desktop preview.
-          You can set your local privacy preferences now. No connection or
-          microphone capture starts here.
+          Choose how you appear to other LobbyMesh participants. Automatic
+          Roblox session detection and voice are not yet available.
         </p>
         {preferences && (
           <form
@@ -154,8 +288,8 @@ function App() {
               </span>
             </label>
             <p className="hint">
-              Off by default. Changing this preference does not activate
-              networking in this preview.
+              Off by default. Changing this preference does not activate peer
+              discovery by itself.
             </p>
             <button
               type="submit"
@@ -165,7 +299,7 @@ function App() {
             </button>
           </form>
         )}
-        <output aria-live="polite" className="notice">
+        <output id="preferencesNotice" aria-live="polite" className="notice">
           {notice ||
             (dirty
               ? "You have unsaved changes."
