@@ -6,6 +6,96 @@ import { createIdentity } from "../packages/identity/src/index.js";
 import { RecordStore, signRecord } from "../packages/security/src/records.js";
 import { pair } from "./fixtures/noise-pair.js";
 
+test(
+  "synchronization budgets advance records and rotate replicas past a permanently stalled closest peer",
+  { timeout: 10_000 },
+  async () => {
+    const identity = createIdentity(),
+      slow = createIdentity(),
+      healthy = createIdentity();
+    const key = slow.peerId,
+      now = 100;
+    const receiver = new NetworkOverlay(
+      healthy,
+      {
+        connect() {
+          throw new Error("unused");
+        },
+      },
+      { now: () => now },
+    );
+    const servers: ReturnType<typeof pair>[1][] = [],
+      serving: Promise<void>[] = [];
+    const sender = new NetworkOverlay(
+      identity,
+      {
+        connect(address) {
+          const [client, server] = pair();
+          servers.push(server);
+          Object.assign(client, { remotePublicKey: Buffer.from(address) });
+          Object.assign(server, { publicKey: Buffer.from(address) });
+          if (Buffer.from(address)[0] === 2)
+            serving.push(
+              serveRpc(server, healthy, receiver.handle).catch(() => {}),
+            );
+          return client;
+        },
+      },
+      { now: () => now, synchronizationMs: 80 },
+    );
+    await sender.start();
+    await receiver.start();
+    const signal = new AbortController().signal;
+    const records = Array.from({ length: 3 }, () =>
+      signRecord(createIdentity(), key, "retained original", 0, now),
+    );
+    try {
+      for (const record of records)
+        await sender.handle(
+          {
+            id: identity.peerId,
+            publicKey: identity.publicKey,
+            transportKey: "03".repeat(32),
+          },
+          { op: "put", key, record },
+          signal,
+        );
+      sender.routing.add({
+        id: slow.peerId,
+        publicKey: Buffer.alloc(32, 1),
+        connectionHints: [],
+      });
+      sender.routing.add({
+        id: healthy.peerId,
+        publicKey: Buffer.alloc(32, 2),
+        connectionHints: [],
+      });
+      for (let cycle = 0; cycle < 6; cycle++) {
+        const report = await sender.synchronize(signal);
+        assert.equal(report.state, "budget");
+        assert.equal(report.records, 1);
+      }
+      receiver.routing.clear();
+      const received = await receiver.get(key);
+      assert.deepEqual(
+        received.map((record) => record.signature).sort(),
+        records.map((record) => record.signature).sort(),
+      );
+      assert.ok(received.every((record) => record.expiresAt === now + 60_000));
+      assert.equal(
+        sender.routing.has(slow.peerId),
+        true,
+        "budget cancellation is not evidence of peer failure",
+      );
+    } finally {
+      await sender.leave();
+      await receiver.leave();
+      for (const server of servers) server.destroy();
+      await Promise.all(serving);
+    }
+  },
+);
+
 test("bounded store scans page without mutation and omit expired records", () => {
   let now = 100;
   const store = new RecordStore(() => now),

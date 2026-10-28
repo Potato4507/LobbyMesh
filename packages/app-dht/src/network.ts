@@ -47,9 +47,17 @@ export class NetworkOverlay {
       blocked?: (id: string) => boolean;
       timeoutMs?: number;
       lookupTimeoutMs?: number;
+      synchronizationMs?: number;
       selfTransportKey?: string;
     } = {},
   ) {
+    const synchronizationMs = options.synchronizationMs ?? 2000;
+    if (
+      !Number.isSafeInteger(synchronizationMs) ||
+      synchronizationMs < 1 ||
+      synchronizationMs > 10_000
+    )
+      throw new Error("INVALID_SYNCHRONIZATION_LIMIT");
     this.routing = new RoutingTable(identity.peerId);
     this.store = new RecordStore(options.now ?? Date.now);
   }
@@ -70,6 +78,7 @@ export class NetworkOverlay {
     this.running = true;
   }
   private syncCursor = 0;
+  private syncReplicaOffset = 0;
   async synchronize(signal: AbortSignal): Promise<{
     records: number;
     replicas: number;
@@ -83,7 +92,10 @@ export class NetworkOverlay {
       this.controller.signal,
       controller.signal,
     ]);
-    const timer = setTimeout(() => controller.abort(), 2000);
+    const timer = setTimeout(
+      () => controller.abort(),
+      this.options.synchronizationMs ?? 2000,
+    );
     const batch = this.store.scan(this.syncCursor, 16);
     let records = 0,
       replicas = 0,
@@ -93,7 +105,12 @@ export class NetworkOverlay {
         if (combined.aborted) break;
         records++;
         if (this.options.blocked?.(record.author)) continue;
-        for (const contact of this.routing.nearest(record.key, 3)) {
+        const contacts = this.routing.nearest(record.key, 3);
+        const offset = this.syncReplicaOffset % (contacts.length || 1);
+        for (const contact of [
+          ...contacts.slice(offset),
+          ...contacts.slice(0, offset),
+        ]) {
           if (combined.aborted) break;
           try {
             const response = (await this.call(
@@ -110,7 +127,15 @@ export class NetworkOverlay {
           }
         }
       }
-      if (!combined.aborted) this.syncCursor = batch.next ?? 0;
+      // A slow record must not starve the rest of the store. Visit the next
+      // record after a budget stop and rotate replica order on each full sweep,
+      // so a consistently slow closest peer cannot starve a reachable replica.
+      if (!signal.aborted && !this.controller.signal.aborted) {
+        if (records === batch.records.length && batch.next === null) {
+          this.syncCursor = 0;
+          this.syncReplicaOffset = (this.syncReplicaOffset + 1) % 3;
+        } else this.syncCursor += records;
+      }
       return {
         records,
         replicas,
