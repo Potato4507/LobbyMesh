@@ -1,5 +1,7 @@
 # Self-contained Windows development package — 2026-10-28
 
+Clean checkpoint artifact: dist/LobbyMesh-win32-x64-1793211641916/LobbyMesh.exe, built from 8892eb92fcb67c06b0f6e7c3c74557b7ef5fa893 with dirty=false. Actual packaged smoke and independent integrity check passed: 653 hashed files / 415,452,586 bytes, plus manifest. Durable summary and manifest hash: windows-package-summary.json. The latest pointer references this artifact. Earlier prototypes remain under dist because automatic approval review rejected the command containing optional prototype-folder cleanup with "blocked by policy"; no deletion workaround attempted.
+
 Additional boundary check: invoking the copied executable with an arbitrary workspace path as smoke profile exited 1 before opening that profile. Windows Authenticode query returned NotSigned for the copied executable; no publisher signing claim. Final license-inclusive development build had 653 hashed files / 415,452,586 bytes and passed the independent verifier. Source was dirty during initial development validation; the clean-source artifact is recorded separately after checkpoint.
 
 /goal: deliver a runnable local package and verify the packaged boundary, without implying installer or release acceptance.

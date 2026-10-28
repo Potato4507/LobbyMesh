@@ -1,0 +1,391 @@
+{
+  "version": 1,
+  "date": "2026-10-28",
+  "artifactDirectory": "dist/LobbyMesh-win32-x64-1793211641916",
+  "executable": "dist/LobbyMesh-win32-x64-1793211641916/LobbyMesh.exe",
+  "source": {
+    "revision": "8892eb92fcb67c06b0f6e7c3c74557b7ef5fa893",
+    "dirty": false
+  },
+  "manifestSha256": "bca122bd889cce47c638a3f691227ad7ffdfa95afd6ffd96daec186c5b903a0c",
+  "lockfileSha256": "ded9b0be29ea68a766a94cbba272ac8057293b47bbe81385eb50d5cafb3f3de1",
+  "projectLicense": "UNDECLARED",
+  "files": 653,
+  "bytes": 415452586,
+  "packagedSmoke": {
+    "result": "passed",
+    "packaged": true,
+    "electron": "45.1.0",
+    "sandbox": true,
+    "contextIsolation": true,
+    "network": "offline",
+    "microphone": "off",
+    "credentials": "protected-reopen"
+  },
+  "dependencies": [
+    {
+      "name": "hyperdht",
+      "version": "6.35.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "@hyperswarm/secret-stream",
+      "version": "6.9.2",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "b4a",
+      "version": "1.9.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "hypercore-crypto",
+      "version": "3.7.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "compact-encoding",
+      "version": "3.5.2",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "sodium-universal",
+      "version": "5.0.1",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "sodium-native",
+      "version": "5.2.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "bare-assert",
+      "version": "1.3.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-inspect",
+      "version": "3.1.10",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-ansi-escapes",
+      "version": "2.2.3",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-stream",
+      "version": "2.13.4",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "streamx",
+      "version": "2.28.1",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "events-universal",
+      "version": "1.0.1",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-events",
+      "version": "2.9.2",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "fast-fifo",
+      "version": "1.3.2",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "text-decoder",
+      "version": "1.2.7",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "teex",
+      "version": "1.0.1",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "bare-type",
+      "version": "1.4.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "require-addon",
+      "version": "1.3.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-addon-resolve",
+      "version": "1.11.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-module-resolve",
+      "version": "1.12.6",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-semver",
+      "version": "1.1.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "which-runtime",
+      "version": "1.4.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "noise-curve-ed",
+      "version": "2.1.0",
+      "license": "ISC",
+      "bundled": false
+    },
+    {
+      "name": "nanoassert",
+      "version": "2.0.0",
+      "license": "ISC",
+      "bundled": false
+    },
+    {
+      "name": "noise-handshake",
+      "version": "4.2.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "sodium-secretstream",
+      "version": "1.2.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "timeout-refresh",
+      "version": "2.0.1",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "unslab",
+      "version": "1.3.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "blind-relay",
+      "version": "1.6.1",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bits-to-bytes",
+      "version": "1.3.0",
+      "license": "ISC",
+      "bundled": false
+    },
+    {
+      "name": "compact-encoding-bitfield",
+      "version": "1.1.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "protomux",
+      "version": "3.13.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "queue-tick",
+      "version": "1.0.1",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "safety-catch",
+      "version": "1.0.3",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "bogon",
+      "version": "1.3.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "compact-encoding-net",
+      "version": "1.3.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "dht-rpc",
+      "version": "6.27.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "adaptive-timeout",
+      "version": "1.0.1",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "xache",
+      "version": "1.3.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "kademlia-routing-table",
+      "version": "1.0.6",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "nat-sampler",
+      "version": "1.0.1",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "time-ordered-set",
+      "version": "2.0.1",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "udx-native",
+      "version": "1.22.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "hypercore-id-encoding",
+      "version": "1.3.0",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "z32",
+      "version": "1.1.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "hyperdht-address",
+      "version": "1.1.1",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "hyperschema",
+      "version": "1.26.2",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-fs",
+      "version": "4.8.4",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-path",
+      "version": "3.1.2",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "bare-url",
+      "version": "2.5.5",
+      "license": "Apache-2.0",
+      "bundled": false
+    },
+    {
+      "name": "generate-object-property",
+      "version": "2.0.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "is-property",
+      "version": "1.0.2",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "generate-string",
+      "version": "1.0.1",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "record-cache",
+      "version": "1.2.0",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "signal-promise",
+      "version": "1.0.3",
+      "license": "MIT",
+      "bundled": false
+    },
+    {
+      "name": "react",
+      "version": "19.3.1",
+      "license": "MIT",
+      "bundled": true
+    },
+    {
+      "name": "react-dom",
+      "version": "19.3.1",
+      "license": "MIT",
+      "bundled": true
+    },
+    {
+      "name": "scheduler",
+      "version": "0.28.0",
+      "license": "MIT",
+      "bundled": true
+    }
+  ],
+  "notVerified": [
+    "installer",
+    "fresh-machine",
+    "publisher-signature",
+    "upgrade-uninstall",
+    "actual-Roblox-lifecycle",
+    "voice",
+    "cross-NAT",
+    "distribution-approval"
+  ]
+}
