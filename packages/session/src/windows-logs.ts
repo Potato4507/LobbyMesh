@@ -11,6 +11,7 @@ export type DetectionState =
   | "unsupported"
   | "waiting"
   | "incomplete"
+  | "scanning"
   | "detected"
   | "stale"
   | "ambiguous"
@@ -26,7 +27,7 @@ export interface DetectionStatus {
     | "log-read-failed"
     | null;
 }
-const MAX_READ = 256 * 1024;
+const MAX_READ = 4 * 1024 * 1024;
 const MAX_LINE = 16 * 1024;
 const FRESH_MS = 120_000;
 const id = "([1-9][0-9]{0,19})";
@@ -308,7 +309,8 @@ export class WindowsLogSessionProvider implements SessionProvider {
             if (
               this.processStartedAt === undefined
                 ? now - stat.mtimeMs > FRESH_MS
-                : stat.mtimeMs < this.processStartedAt
+                : stat.mtimeMs < this.processStartedAt ||
+                  stat.birthtimeMs < this.processStartedAt
             ) {
               sawOld = true;
               continue;
@@ -345,16 +347,9 @@ export class WindowsLogSessionProvider implements SessionProvider {
           this.reset();
           this.selected = candidate.file;
           this.identity = identity;
-          this.offset = Math.max(0, stat.size - MAX_READ);
-          this.discardLine = this.offset > 0;
+          this.offset = 0;
+          this.discardLine = false;
           this.publish("waiting", null);
-        }
-        if (stat.size - this.offset > MAX_READ) {
-          this.parser.reset();
-          this.partial = "";
-          this.offset = stat.size - MAX_READ;
-          this.discardLine = true;
-          this.publish("incomplete", null);
         }
         const buffer = Buffer.alloc(
           Math.min(MAX_READ, Math.max(0, stat.size - this.offset)),
@@ -380,7 +375,8 @@ export class WindowsLogSessionProvider implements SessionProvider {
           this.discardLine = true;
           this.parser.reset();
         }
-        this.publish(this.parser.state(), this.parser.session());
+        if (this.offset < stat.size) this.publish("scanning", null);
+        else this.publish(this.parser.state(), this.parser.session());
       } finally {
         await handle.close();
       }

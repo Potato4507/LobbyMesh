@@ -126,6 +126,7 @@ function App() {
         waiting: "Waiting for Roblox",
         detected: "Local session detected",
         incomplete: "Session details incomplete",
+        scanning: "Reading player session…",
         stale: "Waiting for fresh game logs",
         ambiguous: "Session source ambiguous",
         unavailable: "Game logs unavailable",

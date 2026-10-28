@@ -157,7 +157,7 @@ test("read-only Windows monitor handles permission, partial append, truncation, 
     await rm(directory, { recursive: true, force: true });
   }
 });
-test("bounded log tail discards cropped records and huge partial lines, ignores Studio and crash handler logs", async () => {
+test("bounded log reads discard huge partial lines and ignore Studio and crash handler logs", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "lobbymesh-log-bounds-"));
   const provider = new WindowsLogSessionProvider([directory], {
     now: () => now,
@@ -187,6 +187,43 @@ test("bounded log tail discards cropped records and huge partial lines, ignores 
     assert.equal(windowsLogDirectories(undefined).length, 0);
     assert.equal(windowsLogDirectories(directory, "linux").length, 0);
     assert.equal(windowsLogDirectories(directory, "win32").length, 2);
+  } finally {
+    await provider.stop();
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("large player logs scan sequentially without publishing an earlier session before catching up", async () => {
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "lobbymesh-large-player-log-"),
+  );
+  const file = path.join(directory, "0.1_Player_ABCD_last.log");
+  const provider = new WindowsLogSessionProvider([directory], {
+    now: () => now,
+    pollMs: 10_000,
+  });
+  try {
+    // A disconnect after the first chunk must invalidate the apparently active head.
+    const filler = line("[FLog::Network] unrelated bounded diagnostic").repeat(
+      60_000,
+    );
+    assert.ok(Buffer.byteLength(filler) > 4 * 1024 * 1024);
+    await writeFile(
+      file,
+      joined() +
+        filler +
+        line("[FLog::Network] Time to disconnect replication data: 1"),
+    );
+    await provider.setEnabled(true);
+    assert.equal(provider.status().state, "scanning");
+    assert.equal(await provider.current(), null);
+    for (let n = 0; n < 4 && provider.status().state === "scanning"; n++)
+      await provider.refresh();
+    assert.equal(provider.status().state, "waiting");
+    assert.equal(await provider.current(), null);
+    await appendFile(file, joined());
+    await provider.refresh();
+    assert.equal(provider.status().state, "detected");
   } finally {
     await provider.stop();
     await rm(directory, { recursive: true, force: true });
@@ -289,6 +326,35 @@ test("process metadata is strictly parsed, cached with copies, and failures back
   fail = false;
   assert.equal((await reader())[0]?.startedAt, 123);
   assert.equal(queries, 3);
+});
+
+test("a preceding player's log flushed after the current process started is not admitted by modification time alone", async () => {
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "lobbymesh-old-player-log-"),
+  );
+  const file = path.join(directory, "0.1_Player_ABCD_last.log");
+  const clock = Date.now() + 20_000;
+  const provider = new WindowsLogSessionProvider([directory], {
+    now: () => clock,
+    pollMs: 10_000,
+    activity: async () => [{ startedAt: clock - 10_000 }],
+  });
+  try {
+    await writeFile(
+      file,
+      joined().replaceAll(
+        new Date(now).toISOString(),
+        new Date(clock).toISOString(),
+      ),
+    );
+    await utimes(file, new Date(clock), new Date(clock));
+    await provider.setEnabled(true);
+    assert.equal(await provider.current(), null);
+    assert.equal(provider.status().state, "stale");
+  } finally {
+    await provider.stop();
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("disabling while a process query is pending prevents late detection from restarting the monitor", async () => {

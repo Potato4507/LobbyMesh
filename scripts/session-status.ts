@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import { createWindowsActivityReader } from "../packages/session/src/windows-activity.js";
 import {
   WindowsLogSessionProvider,
@@ -11,6 +12,14 @@ const provider = new WindowsLogSessionProvider(
 );
 try {
   await provider.setEnabled(true);
+  // Optional, bounded catch-up for large existing logs; default remains one scan.
+  const deadline = Date.now() + 30_000;
+  while (
+    process.argv.includes("--follow") &&
+    provider.status().state === "scanning" &&
+    Date.now() < deadline
+  )
+    await delay(250);
   console.log(
     JSON.stringify({
       probe: "local-session-read-only",

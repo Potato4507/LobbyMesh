@@ -1,5 +1,7 @@
 # Test matrix
 
+2026-10-28 current-source/large-log recovery: full 87/87, typecheck/lint (96 files), build/native smoke passed. >4MiB sequential scan withholds old head presence until later disconnect processed; pre-process-created file rejected despite later flush. Live read-only diagnose:session --follow now returns waiting with no selected session, superseding initial ambiguity without positive game acceptance. See evidence/windows-log-catchup.md.
+
 2026-10-28 Windows player lifecycle: full 85/85, focused 7/7, typecheck/lint (96 files)/build/native smoke passed. Quiet-session/exit/restart/ambiguity/query-failure/cancellation tested with injected process metadata. Actual native process query succeeded; read-only diagnose:session returned multiple-player-logs ambiguity and no selected session. Positive real Roblox lifecycle acceptance remains unverified. See evidence/windows-player-lifecycle.md.
 
 2026-10-28 modular overlay: full 82/82 (all original DHT tests preserved), typecheck/lint (94 files)/build and native smoke passed. Added schema/migration/persistence/copy/placement checks. Native sandboxed window sends approved chat, toggles focusable/passive modes, removes widgets, tears down and restores saved layout passively. Screenshot reviewed; physical game input/fullscreen/global-hotkey acceptance unverified. See evidence/desktop-overlay.md.
