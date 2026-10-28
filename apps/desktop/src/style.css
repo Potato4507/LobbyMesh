@@ -445,6 +445,30 @@ textarea:focus-visible {
   gap: 16px;
   margin: 16px 0;
 }
+.pairing-code {
+  margin-top: 18px;
+}
+.pairing-code textarea {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+.pairing-preview {
+  margin-top: 20px;
+  padding: 18px;
+  background: #142332;
+  border: 1px solid #355769;
+  border-radius: 10px;
+}
+.pairing-preview h3 {
+  margin: 0 0 10px;
+  overflow-wrap: anywhere;
+}
+.pairing-preview code {
+  display: block;
+  color: #a6eee3;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
 .overlay-widgets {
   border: 1px solid #2a374c;
   border-radius: 10px;

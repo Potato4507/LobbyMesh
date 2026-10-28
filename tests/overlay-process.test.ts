@@ -3,6 +3,9 @@ import { type ChildProcess, spawn } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import type { NetworkOverlay } from "../packages/app-dht/src/network.js";
+import { createIdentity } from "../packages/identity/src/index.js";
+import type { ContactPreview } from "../packages/protocol/src/pairing.js";
+import { createContactCode } from "../packages/protocol/src/pairing.js";
 import type { RecordV1 } from "../packages/security/src/records.js";
 
 function child(argument: string, fixture = "overlay-process.ts") {
@@ -257,8 +260,42 @@ test(
       a.command("direct-send", { peerId: infoB.id, key: infoB.key }),
       /CONTACT_NOT_AUTHORIZED/,
     );
-    await a.command("direct-allow", { peerId: infoB.id });
-    await b.command("direct-allow", { peerId: infoA.id });
+    const codeB = (await b.command("pairing-code")) as { code: string };
+    const impostor = createIdentity();
+    const wrongTarget = createContactCode(
+      impostor,
+      infoB.key,
+      "synthetic wrong endpoint",
+    );
+    const rejectedPreview = (await a.command("pairing-preview", {
+      code: wrongTarget,
+    })) as ContactPreview;
+    await assert.rejects(
+      a.command("pairing-approve", { ticket: rejectedPreview.ticket }),
+      /PEER_ID_MISMATCH/,
+    );
+    await assert.rejects(
+      a.command("direct-history", { peerId: impostor.peerId }),
+      /CONTACT_NOT_AUTHORIZED/,
+    );
+    const previewB = (await a.command("pairing-preview", {
+      code: codeB.code,
+    })) as ContactPreview;
+    assert.equal(previewB.fingerprint.replaceAll(" ", ""), infoB.id);
+    await a.command("pairing-approve", { ticket: previewB.ticket });
+    // One local approval never overrides the other participant's deny policy.
+    await assert.rejects(
+      a.command("direct-send", {
+        peerId: infoB.id,
+        text: "must remain undelivered",
+      }),
+      /DELIVERY_UNCONFIRMED/,
+    );
+    const codeA = (await a.command("pairing-code")) as { code: string };
+    const previewA = (await b.command("pairing-preview", {
+      code: codeA.code,
+    })) as ContactPreview;
+    await b.command("pairing-approve", { ticket: previewA.ticket });
     const acknowledgement = (await a.command("direct-send", {
       peerId: infoB.id,
       key: infoB.key,

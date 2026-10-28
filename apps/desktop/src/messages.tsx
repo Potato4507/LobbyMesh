@@ -5,9 +5,11 @@ import type { ContactView, MessageView } from "./messaging.js";
 export function Messages({
   connection,
   compact = false,
+  onAddContact,
 }: {
   connection: NetworkStatus | null;
   compact?: boolean;
+  onAddContact?: () => void;
 }) {
   const [available, setAvailable] = useState(false),
     [contacts, setContacts] = useState<ContactView[]>([]);
@@ -146,7 +148,21 @@ export function Messages({
       ) : !available ? (
         <p className="empty">Messages are unavailable for this connection.</p>
       ) : !contacts.length ? (
-        <p className="empty">No approved contacts yet.</p>
+        <div className="empty">
+          <p>
+            No approved contacts yet. Exchange and review contact codes in
+            Preferences.
+          </p>
+          {onAddContact && (
+            <button
+              id="addContactFromMessages"
+              type="button"
+              onClick={onAddContact}
+            >
+              Add a contact
+            </button>
+          )}
+        </div>
       ) : (
         <>
           <label htmlFor="contactSelect">Conversation</label>

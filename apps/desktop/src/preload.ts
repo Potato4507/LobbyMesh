@@ -21,6 +21,13 @@ contextBridge.exposeInMainWorld(
     network: (enabled: unknown) =>
       ipcRenderer.invoke("companion:network", enabled),
     preferences: () => ipcRenderer.invoke("companion:preferences"),
+    createPairingCode: () => ipcRenderer.invoke("companion:pairing:create"),
+    previewPairingCode: (code: unknown) =>
+      ipcRenderer.invoke("companion:pairing:preview", code),
+    cancelPairing: (ticket: unknown) =>
+      ipcRenderer.invoke("companion:pairing:cancel", ticket),
+    approvePairing: (ticket: unknown, consent: unknown) =>
+      ipcRenderer.invoke("companion:pairing:approve", { ticket, consent }),
     updatePreferences: (request: unknown) =>
       ipcRenderer.invoke("companion:preferences:update", request),
     contact: (action: unknown, peerId: unknown) =>

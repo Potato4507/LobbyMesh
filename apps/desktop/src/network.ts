@@ -2,12 +2,14 @@ import type { ManagedNetwork } from "../../../packages/app-dht/src/lifecycle.js"
 import { createOverlayRuntime } from "../../../packages/app-dht/src/runtime.js";
 import { loadDesktopCredentials } from "./credentials.js";
 import { DesktopMessaging, type MessagingPolicy } from "./messaging.js";
+import { DesktopPairing } from "./pairing.js";
 import { type DesktopSessionOptions, DesktopSessions } from "./sessions.js";
 
 export type ContactPolicy = MessagingPolicy;
 export interface DesktopManagedNetwork extends ManagedNetwork {
   messaging: DesktopMessaging;
   sessions?: DesktopSessions;
+  pairing?: DesktopPairing;
 }
 export type DesktopNetworkFactory = (
   signal: AbortSignal,
@@ -49,8 +51,17 @@ export async function createDesktopNetwork(
         policy.blocked,
       )
     : undefined;
+  const pairing = new DesktopPairing(
+    runtime.identity,
+    runtime.transportKey,
+    policy,
+    (contact, signal) => runtime.overlay.authenticateContact(contact, signal),
+    () => sessionOptions?.preferences().displayName ?? "LobbyMesh user",
+    (contact) => messaging.rememberContact(contact),
+  );
   return {
     messaging,
+    pairing,
     ...(sessions ? { sessions } : {}),
     async start() {
       const report = await runtime.start();
@@ -64,10 +75,11 @@ export async function createDesktopNetwork(
         .authenticatedContacts()
         .filter((peer) => !policy.blocked(peer.id)).length,
     async stop() {
+      const pairingStopped = pairing.close();
       messaging.close();
       // Revoke local session state immediately; remote copies expire if shutdown
       // prevents a tombstone reaching them. Never keep sockets alive for presence.
-      await Promise.all([sessions?.stop(), runtime.stop()]);
+      await Promise.all([pairingStopped, sessions?.stop(), runtime.stop()]);
     },
   };
 }

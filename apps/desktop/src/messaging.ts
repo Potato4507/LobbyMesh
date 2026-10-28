@@ -150,6 +150,21 @@ export class DesktopMessaging {
       .slice(0, 256)
       .map((peerId) => ({ peerId, discovered: known.has(peerId) }));
   }
+  rememberContact(contact: { id: string; transportKey: string }): void {
+    this.permit(parsePeerId(contact.id));
+    if (!/^[a-f0-9]{64}$/.test(contact.transportKey))
+      throw new Error("INVALID_CONTACT");
+    this.prune();
+    if (
+      !this.incomingContacts.has(contact.id) &&
+      this.incomingContacts.size >= 256
+    )
+      throw new Error("CONTACT_QUOTA");
+    this.incomingContacts.set(contact.id, {
+      contact: { ...contact },
+      expiresAt: this.now() + 120_000,
+    });
+  }
   history(peerId: string): MessageView[] {
     this.permit(peerId);
     this.prune();

@@ -578,6 +578,17 @@ export class NetworkOverlay {
     parseReferrals(result?.contacts);
     return { version: 1, authenticated: true };
   }
+  async authenticateContact(
+    contact: { id: string; transportKey: string },
+    signal: AbortSignal,
+  ): Promise<void> {
+    const result = (await this.directRequest(
+      contact,
+      { op: "find-node", target: this.identity.peerId },
+      signal,
+    )) as { contacts?: unknown } | null;
+    parseReferrals(result?.contacts);
+  }
   async maintainRouting(signal: AbortSignal): Promise<{
     checked: number;
     failed: number;

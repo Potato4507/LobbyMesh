@@ -21,6 +21,7 @@ import {
 import { DesktopMessaging } from "./messaging.js";
 import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
 import { DesktopOverlay } from "./overlay-window.js";
+import { DesktopPairing } from "./pairing.js";
 import { DesktopSessions } from "./sessions.js";
 
 export async function createDesktop(
@@ -122,6 +123,15 @@ export async function createDesktop(
       throw new Error("UNTRUSTED_SENDER");
   };
   const channels: string[] = [];
+  const pairing = (): DesktopPairing =>
+    network.using((runtime) => {
+      if (
+        !("pairing" in runtime) ||
+        !(runtime.pairing instanceof DesktopPairing)
+      )
+        throw new Error("PAIRING_UNAVAILABLE");
+      return runtime.pairing;
+    });
   const sessions = (): DesktopSessions | undefined => {
     try {
       return network.using((runtime) =>
@@ -278,6 +288,11 @@ export async function createDesktop(
     if (action !== "revoke" && action !== "block" && action !== "unblock")
       throw new Error("INVALID_CONTACT_ACTION");
     try {
+      try {
+        pairing().policyChanged();
+      } catch {
+        /* Offline pairing has already been closed. */
+      }
       const saving = preferences[action](peerId);
       if (action !== "unblock") {
         try {
@@ -289,6 +304,42 @@ export async function createDesktop(
       return await saving;
     } catch {
       throw new Error("CONTACT_UPDATE_FAILED");
+    }
+  });
+  handle("companion:pairing:create", (request) => {
+    parseStatusRequest(request);
+    return pairing().create();
+  });
+  handle("companion:pairing:preview", (request) => pairing().preview(request));
+  handle("companion:pairing:cancel", (request) => {
+    pairing().cancel(request);
+    return { canceled: true };
+  });
+  handle("companion:pairing:approve", async (request) => {
+    if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");
+    if (
+      !request ||
+      typeof request !== "object" ||
+      Object.keys(request).sort().join(",") !== "consent,ticket" ||
+      Array.isArray(request) ||
+      !("consent" in request) ||
+      request.consent !== true ||
+      !("ticket" in request)
+    )
+      throw new Error("PAIRING_CONSENT_REQUIRED");
+    const store = preferences;
+    try {
+      await pairing().approve(request.ticket, (id, guard) =>
+        store.allow(id, guard),
+      );
+      return store.snapshot();
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "CONTACT_APPROVAL_ROLLBACK_FAILED"
+      )
+        throw new Error("CONTACT_APPROVAL_ROLLBACK_FAILED");
+      throw new Error("PAIRING_APPROVAL_FAILED");
     }
   });
   let closing: Promise<void> | undefined;

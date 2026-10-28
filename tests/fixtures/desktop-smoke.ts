@@ -10,6 +10,7 @@ import type {
   ContactPolicy,
   DesktopNetworkFactory,
 } from "../../apps/desktop/src/network.js";
+import { DesktopPairing } from "../../apps/desktop/src/pairing.js";
 import { DesktopSessions } from "../../apps/desktop/src/sessions.js";
 import { createOverlayRuntime } from "../../packages/app-dht/src/runtime.js";
 import {
@@ -21,6 +22,7 @@ import {
   DirectMessenger,
   type TextEnvelope,
 } from "../../packages/protocol/src/direct.js";
+import { createContactCode } from "../../packages/protocol/src/pairing.js";
 import { loadTransportKeys } from "../../packages/public-discovery/src/hyperdht.js";
 import { PreferenceStore } from "../../packages/security/src/preferences.js";
 import { RecordStore } from "../../packages/security/src/records.js";
@@ -80,6 +82,8 @@ async function run() {
   let starts = 0,
     stops = 0,
     policy: ContactPolicy | undefined;
+  const pairingRemote = createIdentity();
+  let pairingAuthentications = 0;
   const self = "aa".repeat(32),
     transportKey = "cd".repeat(32);
   let messaging: DesktopMessaging | undefined,
@@ -131,15 +135,29 @@ async function run() {
       () => [{ id: allowed, transportKey }],
     );
     messaging = service;
+    const pairing = new DesktopPairing(
+      createIdentity(),
+      transportKey,
+      value,
+      async (contact) => {
+        pairingAuthentications++;
+        if (contact.id !== pairingRemote.peerId)
+          throw new Error("synthetic mismatch");
+      },
+      () => sessionOptions.preferences().displayName,
+      (contact) => service.rememberContact(contact),
+    );
     receiver = remote;
     return {
       messaging: service,
+      pairing,
       sessions,
       async start() {
         starts++;
         await sessions.start();
       },
       async stop() {
+        await pairing.close();
         service.close();
         remote.close();
         await sessions.stop();
@@ -233,6 +251,11 @@ async function run() {
     assert.equal(starts, 0);
     assert.ok(
       await execute(
+        "window.companion.createPairingCode().then(() => false, () => true)",
+      ),
+    );
+    assert.ok(
+      await execute(
         "window.companion.network('yes').then(() => false, () => true)",
       ),
     );
@@ -273,6 +296,64 @@ async function run() {
       "document.querySelector('#view-preferences')?.checkVisibility() && document.activeElement?.id === 'viewTitle'",
     );
     desktop.window.hide();
+    await navigate("preferences");
+    await until("!document.querySelector('#createPairingCode')?.disabled");
+    await execute("document.querySelector('#createPairingCode').click()");
+    await until(
+      "document.querySelector('#myPairingCode')?.value.startsWith('LM1.')",
+    );
+    const pairingCode = createContactCode(
+      pairingRemote,
+      "ef".repeat(32),
+      "<script>Unverified contact</script>",
+    );
+    await execute(
+      `(() => { const input=document.querySelector('#pairingCode'); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,${JSON.stringify(pairingCode)}); input.dispatchEvent(new Event('input',{bubbles:true})); })()`,
+    );
+    await until("!document.querySelector('#previewPairingCode').disabled");
+    await execute("document.querySelector('#previewPairingCode').click()");
+    await until("document.querySelector('#pairingPreview') !== null");
+    assert.equal(pairingAuthentications, 0);
+    assert.equal(policy?.authorized(pairingRemote.peerId), false);
+    assert.equal(
+      await execute("document.querySelector('#approvePairingCode').disabled"),
+      true,
+    );
+    assert.equal(
+      await execute(
+        "document.querySelector('#pairingPreview script') === null",
+      ),
+      true,
+    );
+    const withoutConsent = await execute<{ ticket: string }>(
+      `window.companion.previewPairingCode(${JSON.stringify(pairingCode)})`,
+    );
+    assert.ok(
+      await execute(
+        `window.companion.approvePairing(${JSON.stringify(withoutConsent.ticket)},false).then(() => false, () => true)`,
+      ),
+    );
+    await execute(
+      `window.companion.cancelPairing(${JSON.stringify(withoutConsent.ticket)})`,
+    );
+    await execute("document.querySelector('#pairingConsent').click()");
+    await execute(
+      "(() => { const label=document.createElement('p'); label.className='eyebrow'; label.textContent='SYNTHETIC CONTACT · NO LIVE PERSON'; document.querySelector('#pairingPreview').prepend(label); document.querySelector('#pairingPreview').scrollIntoView(); })()",
+    );
+    await captureDesktop("docs/evidence/lobbymesh-pairing-test.png");
+    await execute("document.querySelector('#approvePairingCode').click()");
+    await until(
+      "document.querySelector('#pairingNotice').textContent.includes('Contact permission saved')",
+    );
+    assert.equal(pairingAuthentications, 1);
+    assert.equal(policy?.authorized(pairingRemote.peerId), true);
+    await execute(
+      `Array.from(document.querySelectorAll('.contact-row')).find(row=>row.textContent.includes(${JSON.stringify(pairingRemote.peerId.slice(0, 12))})).querySelector('button').click()`,
+    );
+    await until(
+      `window.companion.preferences().then(p=>!p.allowedPeers.includes(${JSON.stringify(pairingRemote.peerId)}))`,
+    );
+    assert.equal(policy?.authorized(pairingRemote.peerId), false);
     await navigate("overview");
     await until(
       "document.querySelector('.workspace .badge')?.textContent === 'Connected'",
@@ -348,6 +429,11 @@ async function run() {
       assert.ok(
         await overlayExecute(
           "window.companion.preferences().then(() => false, () => true)",
+        ),
+      );
+      assert.ok(
+        await overlayExecute(
+          "window.companion.createPairingCode().then(() => false, () => true)",
         ),
       );
       assert.ok(
@@ -698,6 +784,7 @@ async function run() {
           "live-policy-callbacks",
           "electron-native-runtime-cancellation",
           "authorized-messaging-ui",
+          "explicit-contact-preview-approval-and-revocation",
           "desktop-navigation-focus-and-retained-drafts",
           "consent-controlled-log-session-matching",
           ...(process.platform === "win32"

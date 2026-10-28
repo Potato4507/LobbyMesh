@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { DesktopMessaging } from "../../apps/desktop/src/messaging.js";
+import { DesktopPairing } from "../../apps/desktop/src/pairing.js";
 import { createOverlayRuntime } from "../../packages/app-dht/src/runtime.js";
 import { signRecord } from "../../packages/security/src/records.js";
 import { SessionCoordinator } from "../../packages/session/src/coordinator.js";
@@ -35,6 +36,18 @@ messenger = new DesktopMessaging(
 );
 await runtime.start();
 const provider = new MockSessionProvider();
+const pairing = new DesktopPairing(
+  runtime.identity,
+  runtime.transportKey,
+  {
+    authorized: (id) => authorized.has(id),
+    blocked: () => false,
+    allowed: () => [...authorized],
+  },
+  (contact, signal) => runtime.overlay.authenticateContact(contact, signal),
+  () => "synthetic fixture",
+  (contact) => messenger.rememberContact(contact),
+);
 const membership = new SessionMembership(runtime.identity, runtime.overlay, {
   transportKey: runtime.transportKey,
   displayName: "synthetic fixture",
@@ -51,9 +64,21 @@ process.on(
     room?: string;
     peerId?: string;
     text?: string;
+    code?: string;
+    ticket?: string;
   }) => {
     void (async () => {
       switch (message.op) {
+        case "pairing-code":
+          return pairing.create();
+        case "pairing-preview":
+          return pairing.preview(message.code);
+        case "pairing-approve":
+          await pairing.approve(message.ticket, async (id, guard) => {
+            if (!guard()) throw new Error("canceled");
+            authorized.add(id);
+          });
+          return true;
         case "diagnostics":
           return runtime.overlay.diagnostics();
         case "direct-allow":
@@ -105,6 +130,7 @@ process.on(
         case "contacts":
           return runtime.overlay.authenticatedContacts().map((c) => c.id);
         case "stop":
+          await pairing.close();
           messenger.close();
           await sessions.stop();
           await runtime.stop();

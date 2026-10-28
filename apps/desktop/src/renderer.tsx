@@ -2,11 +2,13 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
 import type { OverlayStatus } from "../../../packages/protocol/src/overlay.js";
+import type { ContactPreview } from "../../../packages/protocol/src/pairing.js";
 import type { Preferences } from "../../../packages/protocol/src/preferences.js";
 import type { DetectionStatus } from "../../../packages/session/src/windows-logs.js";
 import { Messages } from "./messages.js";
 import type { ContactView, MessageView } from "./messaging.js";
 import { OverlaySettings } from "./overlay-settings.js";
+import { PairContacts } from "./pair-contacts.js";
 import type { DesktopSessionStatus } from "./sessions.js";
 
 declare global {
@@ -34,6 +36,10 @@ declare global {
       preferences(): Promise<Preferences>;
       updatePreferences(request: unknown): Promise<Preferences>;
       contact(action: string, peerId: string): Promise<Preferences>;
+      createPairingCode(): Promise<{ code: string; expiresAt: number }>;
+      previewPairingCode(code: string): Promise<ContactPreview>;
+      cancelPairing(ticket: string): Promise<{ canceled: true }>;
+      approvePairing(ticket: string, consent: boolean): Promise<Preferences>;
     };
   }
 }
@@ -391,6 +397,11 @@ function App() {
           </section>
         </div>
         <div id="view-preferences" hidden={view !== "preferences"}>
+          <PairContacts
+            connection={connection}
+            disabled={dirty || pending}
+            onSaved={setPreferences}
+          />
           <section className="panel">
             <h2>Stay in control</h2>
             <p>
@@ -534,7 +545,10 @@ function App() {
           </section>
         </div>
         <div id="view-messages" hidden={view !== "messages"}>
-          <Messages connection={connection} />
+          <Messages
+            connection={connection}
+            onAddContact={() => setView("preferences")}
+          />
         </div>
         <div id="view-overlay" hidden={view !== "overlay"}>
           {dirty && (

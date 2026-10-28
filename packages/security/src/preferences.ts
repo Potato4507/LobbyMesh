@@ -14,8 +14,8 @@ export class PreferenceStore {
   private tail: Promise<void> = Promise.resolve();
   private closing = false;
   private closed: Promise<void> | undefined;
-  private readonly pendingBlocks = new Set<string>();
-  private readonly pendingRevocations = new Set<string>();
+  private readonly pendingBlocks = new Map<string, symbol>();
+  private readonly pendingRevocations = new Map<string, symbol>();
   private constructor(
     private readonly directory: string,
     private value: Preferences,
@@ -91,9 +91,11 @@ export class PreferenceStore {
     this.value.allowedPeers.includes(id);
   private mutate(
     change: (previous: Preferences) => Preferences,
+    guard: () => boolean = () => true,
   ): Promise<Preferences> {
     if (this.closing) return Promise.reject(new Error("PREFERENCES_CLOSED"));
     const task = this.tail.then(async () => {
+      if (!guard()) throw new Error("CONTACT_APPROVAL_CANCELED");
       const next = parsePreferences(change(this.snapshot()));
       const temporary = path.join(
         this.directory,
@@ -107,6 +109,7 @@ export class PreferenceStore {
         } finally {
           await handle.close();
         }
+        if (!guard()) throw new Error("CONTACT_APPROVAL_CANCELED");
         await rename(
           temporary,
           path.join(this.directory, "preferences-v1.json"),
@@ -128,8 +131,19 @@ export class PreferenceStore {
     const parsed = parsePreferencePatch(patch);
     return this.mutate((previous) => ({ ...previous, ...parsed }));
   }
-  allow(peerId: unknown): Promise<Preferences> {
+  allow(
+    peerId: unknown,
+    guard: () => boolean = () => true,
+  ): Promise<Preferences> {
     const id = parsePeerId(peerId);
+    const revocation = this.pendingRevocations.get(id);
+    const approved = () => {
+      try {
+        return guard() === true;
+      } catch {
+        return false;
+      }
+    };
     if (this.isBlocked(id)) return Promise.reject(new Error("PEER_BLOCKED"));
     return this.mutate((previous) => {
       if (previous.blockedPeers.includes(id)) throw new Error("PEER_BLOCKED");
@@ -137,19 +151,37 @@ export class PreferenceStore {
         ...previous,
         allowedPeers: [...new Set([...previous.allowedPeers, id])],
       };
-    }).then((value) => {
-      this.pendingRevocations.delete(id);
+    }, approved).then(async (value) => {
+      if (!approved()) {
+        // Cancellation during atomic rename must deny in memory immediately,
+        // then compensate the persisted grant before reporting cancellation.
+        try {
+          await this.revoke(id);
+        } catch {
+          throw new Error("CONTACT_APPROVAL_ROLLBACK_FAILED");
+        }
+        throw new Error("CONTACT_APPROVAL_CANCELED");
+      }
+      if (this.pendingRevocations.get(id) === revocation)
+        this.pendingRevocations.delete(id);
       return value;
     });
   }
   revoke(peerId: unknown): Promise<Preferences> {
     const id = parsePeerId(peerId);
-    if (this.value.allowedPeers.includes(id)) this.pendingRevocations.add(id);
+    if (
+      !this.pendingRevocations.has(id) &&
+      this.pendingRevocations.size >= 1024
+    )
+      return Promise.reject(new Error("PEER_LIST_QUOTA"));
+    const revocation = Symbol();
+    this.pendingRevocations.set(id, revocation);
     return this.mutate((previous) => ({
       ...previous,
       allowedPeers: previous.allowedPeers.filter((peer) => peer !== id),
     })).then((value) => {
-      this.pendingRevocations.delete(id);
+      if (this.pendingRevocations.get(id) === revocation)
+        this.pendingRevocations.delete(id);
       return value;
     });
   }
@@ -157,24 +189,28 @@ export class PreferenceStore {
     const id = parsePeerId(peerId);
     if (!this.pendingBlocks.has(id) && this.pendingBlocks.size >= 1024)
       return Promise.reject(new Error("PEER_LIST_QUOTA"));
-    this.pendingBlocks.add(id);
+    const blocking = Symbol();
+    this.pendingBlocks.set(id, blocking);
     return this.mutate((previous) => ({
       ...previous,
       blockedPeers: [...new Set([...previous.blockedPeers, id])],
       allowedPeers: previous.allowedPeers.filter((peer) => peer !== id),
     })).then((value) => {
-      this.pendingBlocks.delete(id);
+      if (this.pendingBlocks.get(id) === blocking)
+        this.pendingBlocks.delete(id);
       return value;
     });
   }
   unblock(peerId: unknown): Promise<Preferences> {
     const id = parsePeerId(peerId);
+    const blocking = this.pendingBlocks.get(id);
     return this.mutate((previous) => ({
       ...previous,
       blockedPeers: previous.blockedPeers.filter((peer) => peer !== id),
       allowedPeers: previous.allowedPeers.filter((peer) => peer !== id),
     })).then((value) => {
-      this.pendingBlocks.delete(id);
+      if (this.pendingBlocks.get(id) === blocking)
+        this.pendingBlocks.delete(id);
       return value;
     });
   }
