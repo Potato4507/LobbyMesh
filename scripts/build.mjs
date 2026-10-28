@@ -19,5 +19,13 @@ await build({
   format: "iife",
   jsx: "automatic",
 });
-for (const name of ["index.html", "style.css"])
+await build({
+  entryPoints: ["apps/desktop/src/overlay.tsx"],
+  outfile: "dist/overlay.js",
+  bundle: true,
+  platform: "browser",
+  format: "iife",
+  jsx: "automatic",
+});
+for (const name of ["index.html", "overlay.html", "style.css"])
   await copyFile(`apps/desktop/src/${name}`, `dist/${name}`);

@@ -19,6 +19,7 @@ import {
 } from "../../../packages/session/src/windows-logs.js";
 import { DesktopMessaging } from "./messaging.js";
 import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
+import { DesktopOverlay } from "./overlay-window.js";
 import { DesktopSessions } from "./sessions.js";
 
 export async function createDesktop(
@@ -93,7 +94,25 @@ export async function createDesktop(
   });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event) => event.preventDefault());
-  const trusted = (event: IpcMainInvokeEvent) => {
+  const overlay = new DesktopOverlay(assets, show);
+  const trusted = (event: IpcMainInvokeEvent, channel: string) => {
+    const overlayWindow = overlay.getWindow();
+    if (
+      overlayWindow &&
+      !overlayWindow.isDestroyed() &&
+      event.sender === overlayWindow.webContents &&
+      event.senderFrame === overlayWindow.webContents.mainFrame &&
+      [
+        "companion:status",
+        "companion:overlay",
+        "companion:overlay:mode",
+        "companion:messaging",
+        "companion:messages",
+        "companion:messages:send",
+        "companion:messages:clear",
+      ].includes(channel)
+    )
+      return;
     if (
       event.sender !== window.webContents ||
       event.senderFrame !== window.webContents.mainFrame
@@ -127,10 +146,12 @@ export async function createDesktop(
   ) => {
     channels.push(name);
     ipcMain.handle(name, async (event, request: unknown) => {
-      trusted(event);
+      trusted(event, name);
       if (tearingDown) throw new Error("DESKTOP_CLOSING");
       const priority =
         name === "companion:status" ||
+        name === "companion:overlay" ||
+        (name === "companion:overlay:mode" && request === false) ||
         (name === "companion:network" && request === false);
       if (!priority && activeRequests >= 16) throw new Error("REQUEST_QUOTA");
       if (!priority) activeRequests++;
@@ -154,6 +175,14 @@ export async function createDesktop(
       preferences: preferences ? "ready" : "unavailable",
     };
   });
+  handle("companion:overlay", (request) => {
+    parseStatusRequest(request);
+    return overlay.status();
+  });
+  handle("companion:overlay:mode", (request) => {
+    if (typeof request !== "boolean") throw new Error("INVALID_OVERLAY_MODE");
+    return overlay.setInteractive(request);
+  });
   handle("companion:preferences", (request) => {
     parseStatusRequest(request);
     if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");
@@ -174,7 +203,9 @@ export async function createDesktop(
         sessionConsent = saved.sessionConsent;
         await logProvider.setEnabled(saved.sessionConsent);
       }
-      void sessions()?.settingsChanged();
+      if (patch.sessionConsent !== undefined || patch.displayName !== undefined)
+        void sessions()?.settingsChanged();
+      if (patch.overlay !== undefined) await overlay.apply(saved.overlay);
       return saved;
     } catch {
       throw new Error("PREFERENCES_UPDATE_FAILED");
@@ -261,6 +292,7 @@ export async function createDesktop(
   let closing: Promise<void> | undefined;
   const close = (): Promise<void> => {
     tearingDown = true;
+    overlay.close();
     powerMonitor.removeListener("suspend", suspend);
     powerMonitor.removeListener("resume", resume);
     closing ??= (async () => {
@@ -274,8 +306,12 @@ export async function createDesktop(
     })();
     return closing;
   };
+  window.on("closed", () => {
+    void close().catch(() => {});
+  });
   if (preferences?.snapshot().networkEnabled) network.setEnabled(true);
   await logProvider.setEnabled(preferences?.snapshot().sessionConsent ?? false);
+  if (preferences) await overlay.apply(preferences.snapshot().overlay);
   try {
     await window.loadFile(path.join(assets, "index.html"));
   } catch (error) {
@@ -286,5 +322,6 @@ export async function createDesktop(
   return {
     window,
     close,
+    overlay,
   };
 }

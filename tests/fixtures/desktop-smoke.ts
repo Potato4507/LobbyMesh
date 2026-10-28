@@ -248,6 +248,77 @@ async function run() {
       receiver?.history(self)[0]?.envelope.text,
       "native UI message",
     );
+    if (process.platform === "win32") {
+      await execute("document.querySelector('#overlayEnabled').click()");
+      await until("window.companion.overlay().then(s => s.state === 'ready')");
+      const overlayWindow = desktop.overlay.getWindow();
+      assert.ok(overlayWindow);
+      const overlayExecute = <T>(code: string): Promise<T> =>
+        overlayWindow.webContents.executeJavaScript(code);
+      const untilOverlay = async (code: string) => {
+        for (let n = 0; n < 250; n++) {
+          if (await overlayExecute<boolean>(code)) return;
+          await delay(20);
+        }
+        throw new Error(`OVERLAY_UI_WAIT_TIMEOUT: ${code}`);
+      };
+      await untilOverlay(
+        "document.querySelector('#contactSelect')?.value.length === 64",
+      );
+      assert.equal(overlayWindow.isFocusable(), false);
+      assert.equal(overlayWindow.isAlwaysOnTop(), true);
+      assert.deepEqual(
+        await overlayExecute("[typeof require, typeof process]"),
+        ["undefined", "undefined"],
+      );
+      assert.ok(
+        await overlayExecute(
+          "window.companion.preferences().then(() => false, () => true)",
+        ),
+      );
+      assert.ok(
+        await overlayExecute(
+          "window.companion.network(true).then(() => false, () => true)",
+        ),
+      );
+      await execute("window.companion.overlayMode(true)");
+      assert.equal(overlayWindow.isFocusable(), true);
+      await untilOverlay("document.querySelector('#overlayLock') !== null");
+      await overlayExecute(`(() => {
+        const input = document.querySelector('#messageDraft');
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, 'native overlay message');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      })()`);
+      await untilOverlay("!document.querySelector('#sendMessage').disabled");
+      await overlayExecute("document.querySelector('#sendMessage').click()");
+      await untilOverlay(
+        "document.querySelector('#messageHistory').textContent.includes('native overlay message') && document.querySelectorAll('.outgoing[data-status=acknowledged]').length >= 2",
+      );
+      await overlayExecute("document.querySelector('#overlayLock').click()");
+      assert.equal(overlayWindow.isFocusable(), false);
+      await untilOverlay("document.querySelector('#overlayLock') === null");
+      await overlayExecute(
+        "(() => { const label = document.createElement('p'); label.className = 'eyebrow'; label.textContent = 'SYNTHETIC TEST · NO ROBLOX'; document.querySelector('main').prepend(label); })()",
+      );
+      // A hidden Windows compositor can retain an older painted frame. Show
+      // without focus briefly so the evidence captures the verified DOM state.
+      overlayWindow.showInactive();
+      await delay(200);
+      await writeFile(
+        path.resolve("docs/evidence/lobbymesh-overlay-test.png"),
+        (await overlayWindow.webContents.capturePage()).toPNG(),
+      );
+      overlayWindow.hide();
+      await execute("document.querySelector('[data-widget=network]').click()");
+      await untilOverlay(
+        "document.querySelector('[data-overlay-widget=network]') === null",
+      );
+      await execute("document.querySelector('#overlayEnabled').click()");
+      await until(
+        "window.companion.overlay().then(s => s.state === 'disabled')",
+      );
+      assert.equal(overlayWindow.isDestroyed(), true);
+    }
     assert.ok(messaging);
     const incoming: TextEnvelope = {
       namespace: DIRECT_NAMESPACE,
@@ -404,10 +475,17 @@ async function run() {
     await delay(100);
     const screenshot = path.resolve("docs/evidence/lobbymesh-settings.png");
     await writeFile(screenshot, (await contents.capturePage()).toPNG());
+    if (process.platform === "win32") {
+      await execute(
+        "window.companion.preferences().then(p => window.companion.updatePreferences({overlay:{...p.overlay,enabled:true}}))",
+      );
+      assert.ok(desktop.overlay.getWindow());
+    }
     // A prior explicit permission must resume without asking for network keys.
     await execute("window.companion.network(true)");
     await until("window.companion.status().then(s => s.network === 'online')");
     await desktop.close();
+    assert.equal(desktop.overlay.getWindow(), undefined);
     desktop.window.destroy();
     desktop = await createDesktop(
       preferencesPath,
@@ -419,6 +497,14 @@ async function run() {
       },
     );
     contents = desktop.window.webContents;
+    if (process.platform === "win32") {
+      assert.equal(desktop.overlay.getWindow()?.isFocusable(), false);
+      assert.deepEqual(desktop.overlay.status().preferences.widgets, [
+        "session",
+        "chat",
+      ]);
+      assert.equal(desktop.overlay.status().interactive, false);
+    }
     await until("window.companion.status().then(s => s.network === 'online')");
     assert.equal(starts, 5);
     await execute("window.companion.network(false)");
@@ -509,6 +595,13 @@ async function run() {
           "live-policy-callbacks",
           "electron-native-runtime-cancellation",
           "authorized-messaging-ui",
+          "consent-controlled-log-session-matching",
+          ...(process.platform === "win32"
+            ? [
+                "native-overlay-widgets-and-authorized-chat",
+                "overlay-input-modes-and-ipc-restrictions",
+              ]
+            : []),
           "incoming-text-escaped",
           "message-byte-limit-and-clear",
           "disconnect-under-ipc-load",

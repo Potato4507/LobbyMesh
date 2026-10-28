@@ -1,9 +1,15 @@
+import {
+  defaultOverlayPreferences,
+  type OverlayPreferences,
+  parseOverlayPreferences,
+} from "./overlay.js";
 export interface Preferences {
   version: 1;
   networkEnabled: boolean;
   sessionConsent: boolean;
   voiceMode: "off" | "push-to-talk";
   displayName: string;
+  overlay: OverlayPreferences;
   allowedPeers: string[];
   blockedPeers: string[];
 }
@@ -13,13 +19,18 @@ export const defaultPreferences = (): Preferences => ({
   sessionConsent: false,
   voiceMode: "off",
   displayName: "LobbyMesh user",
+  overlay: defaultOverlayPreferences(),
   allowedPeers: [],
   blockedPeers: [],
 });
 export type PreferencePatch = Partial<
   Pick<
     Preferences,
-    "networkEnabled" | "sessionConsent" | "voiceMode" | "displayName"
+    | "networkEnabled"
+    | "sessionConsent"
+    | "voiceMode"
+    | "displayName"
+    | "overlay"
   >
 >;
 export function parsePreferencePatch(value: unknown): PreferencePatch {
@@ -30,6 +41,8 @@ export function parsePreferencePatch(value: unknown): PreferencePatch {
     if (key === "networkEnabled" || key === "sessionConsent") {
       if (typeof entry !== "boolean") throw new Error("INVALID_PREFERENCES");
       result[key] = entry;
+    } else if (key === "overlay") {
+      result.overlay = parseOverlayPreferences(entry);
     } else if (key === "voiceMode") {
       if (entry !== "off" && entry !== "push-to-talk")
         throw new Error("INVALID_PREFERENCES");
@@ -60,8 +73,10 @@ export function parsePreferences(value: unknown): Preferences {
   const object = value as Record<string, unknown>;
   if (
     object.version !== 1 ||
-    Object.keys(object).sort().join(",") !==
-      "allowedPeers,blockedPeers,displayName,networkEnabled,sessionConsent,version,voiceMode"
+    ![
+      "allowedPeers,blockedPeers,displayName,networkEnabled,sessionConsent,version,voiceMode",
+      "allowedPeers,blockedPeers,displayName,networkEnabled,overlay,sessionConsent,version,voiceMode",
+    ].includes(Object.keys(object).sort().join(","))
   )
     throw new Error("UNSUPPORTED_PREFERENCES");
   const basic = parsePreferencePatch({
@@ -69,6 +84,7 @@ export function parsePreferences(value: unknown): Preferences {
     sessionConsent: object.sessionConsent,
     voiceMode: object.voiceMode,
     displayName: object.displayName,
+    ...(Object.hasOwn(object, "overlay") ? { overlay: object.overlay } : {}),
   });
   const peers = (list: unknown, limit: number): string[] => {
     if (!Array.isArray(list) || list.length > limit)

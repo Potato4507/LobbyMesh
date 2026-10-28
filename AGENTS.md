@@ -6,7 +6,7 @@ Continue implementing **LobbyMesh**, a Windows-first, open-source, no-owner-oper
 ## /repository
 - Expected existing GitHub repository: `Potato4507/Roblox-app` (current repository name does **not** need to be changed). This is an **existing partial implementation**, not a blank scaffold.
 - If source files or a repo branch differ from these notes, **trust the inspected repository**, not this historical snapshot. Preserve ALL existing Cloud Codex source, tests, branches, uncommitted work, and valuable docs.
-- Starting snapshot (2026-10-27): M00–M06 partly implemented, M05/M06 unit-tested, M07 authenticated overlay transport the next action; no module fully product-accepted. Public DHT live smoke timed out, not verified. Check `docs/STATUS.md` and `docs/evidence` for authoritative details.
+- Current implementation has partial M00–M15 work, including same-host public bootstrap, Windows log detection, desktop matching and modular overlay. No module is fully product-accepted. Check `docs/STATUS.md` and `docs/evidence` for authoritative details and the next dependency.
 - Use the repo's existing Node/pnpm/Electron stack. Do not regenerate package files, delete tests, reset history, or replace the architecture just because the master plan describes what an empty repository would look like.
 
 ## /defaults — make decisions without asking

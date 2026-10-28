@@ -1,5 +1,7 @@
 # Test matrix
 
+2026-10-28 modular overlay: full 82/82 (all original DHT tests preserved), typecheck/lint (94 files)/build and native smoke passed. Added schema/migration/persistence/copy/placement checks. Native sandboxed window sends approved chat, toggles focusable/passive modes, removes widgets, tears down and restores saved layout passively. Screenshot reviewed; physical game input/fullscreen/global-hotkey acceptance unverified. See evidence/desktop-overlay.md.
+
 2026-10-28 desktop sessions: full 80/80, typecheck, lint (88 files), build and native Electron smoke passed. Real generated files -> parser -> coordinator -> signed directory tested; native renderer shows matching state with synthetic directory/transport. No actual Roblox or new two-desktop/NAT acceptance claim. See evidence/desktop-sessions.md.
 
 2026-10-28 Windows log detection: full 78/78, typecheck, lint (86 files), build and native desktop smoke passed. Read-only filesystem fixtures cover complete/partial/stale/future/oversize events, truncation, rotation, ambiguity, ignored Studio/crash files, disable and recovery. Native Electron verifies consent-controlled status using synthetic logs; screenshot inspected. Actual Roblox join/teleport/exit and process-bound lifecycle acceptance remain unverified. See docs/evidence/windows-log-detection.md.

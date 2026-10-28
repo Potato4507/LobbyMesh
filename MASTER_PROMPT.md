@@ -20,14 +20,14 @@ E. **Independent desktop app**, no process injection, memory scraping, cookie th
 ## /existing_github_handoff
 - Existing repository: `Potato4507/Roblox-app`, default branch `main` at the time of writing. **Do not create a competing fresh repository or overwrite previous cloud work.** The repo name can remain `Roblox-app`; branding can change in the app/documentation gradually as tests allow.
 - Prior work already includes pnpm workspace, Electron/React scaffold, identity, simulated/session adapters, public DHT adapter, early private DHT and records, tests, and status/evidence. Read `docs/STATUS.md` first.
-- Current known next task from 2026-10-27 status is **M07: authenticated overlay RPC using HyperDHT Noise streams, binding the Ed25519 app identity to the transport key with a domain-separated signed handshake**. Replace reject-all inbound handling with a bounded injected handler. Prove in separate-process tests on a local test bootstrap and keep simulated, local-process, public-DHT and cross-NAT proofs distinct.
+- Authenticated overlay RPC, routing/repair, signed session matching, desktop text, protected Windows credentials, local log detection and modular overlay now have partial implementation/proof. Follow STATUS for the next dependency. Keep fixture, native desktop, local-process, public-DHT, actual Roblox and cross-NAT proofs distinct.
 - Treat this snapshot as a hint only. Before any code changes, reconcile with HEAD, available branches, dirty files, tests, and documentation.
 
 ## /first_actions_now
 1. Verify current repository and working tree (`pwd`, `git status`, branches, remotes, `git log -5 --oneline`). Avoid checking out other branches if that would overwrite dirty work. Identify completed Cloud Codex commits and any pending feature branches.
 2. Read `AGENTS.md`, `MASTER_PROMPT.md`, `docs/STATUS.md`, `docs/TEST_MATRIX.md`, `docs/CONTRACTS.md`, `docs/DECISIONS.md`, plus the M07 section of `IMPLEMENTATION_PLAN.md`; inspect relevant packages and tests.
 3. Run the fastest meaningful baseline (`pnpm typecheck`, `pnpm lint`, relevant tests); record genuine baseline failures separately from regressions. Do not rerun failing public-DHT smoke endlessly when the environment cannot reach public bootstrap nodes.
-4. Select the highest-value **incomplete production behavior**, normally M07 given the recorded checkpoint, and **start implementing code in the same session**.
+4. Select the highest-value **incomplete production behavior** from current STATUS and the unified plan, and **start implementing code in the same session**.
 5. After each real milestone: tests -> evidence -> concise status -> safe commit -> next unblocked task. Continue automatically.
 
 ## /authorization_and_check_ins

@@ -1,6 +1,6 @@
 # LobbyMesh — preserved 19-module implementation backlog
 
-> **Important for current local handoff (2026-10-27):** This plan defines desired functionality and acceptance criteria, **not** what remains unimplemented. The live source of truth is the repository's `docs/STATUS.md`, `docs/TEST_MATRIX.md`, and code. Existing GitHub repository `Potato4507/Roblox-app` already contains partial M00–M06 implementation. **Do not rerun M00 as a fresh scaffold.** M07 authenticated overlay RPC is the recorded next step. Keep existing code and tests. If live repo state has advanced, follow its actual current state.
+> **Current local handoff (2026-10-28):** This plan defines desired functionality and acceptance criteria, **not** what remains unimplemented. The live source of truth is `docs/STATUS.md`, `docs/TEST_MATRIX.md` and code. Existing GitHub repository `Potato4507/Roblox-app` contains partial work through desktop/session/overlay integration. **Do not rerun M00 as a fresh scaffold.** Keep existing code and tests; follow current evidence for the next dependency.
 
 > Branding is **LobbyMesh**; the GitHub repo can remain `Roblox-app` to avoid breaking remotes, branches, and existing Cloud Codex work. Package renames should be incremental and accompanied by passing tests.
 
@@ -12,7 +12,7 @@
 
 ## Unified product requirements (2026-10-28)
 
-Continue the existing implementation as one product. Historical M07 next-step notes above are superseded by current source and STATUS. Prioritize dependencies, implementation readiness, user value and acceptance gaps across these workstreams:
+Continue the existing implementation as one product. Prioritize dependencies, implementation readiness, user value and acceptance gaps across these workstreams:
 
 - Automatic local Roblox session detection through supported Windows log monitoring: read only player logs in documented locations, recognize versioned/observed lifecycle markers, handle partial writes, rotation, stale files and unsupported formats. No manual server-ID fallback. Never infer missing universe/place/job identifiers, bystander rosters or platform verification; local evidence remains self-asserted.
 - Professional, polished desktop UI: coherent navigation, accessible controls, clear live state, actionable errors and consent/onboarding; verify rendered native UI and actual interactions.
@@ -21,7 +21,7 @@ Continue the existing implementation as one product. Historical M07 next-step no
 
 ### /steps
 
-Reconcile source and proof; implement the next ready production increment; verify its failure cases and neighboring integrations; update STATUS and TEST_MATRIX; commit verified milestones and continue. First resumed increment: bounded Windows log provider and desktop detection status, followed by consent-gated session integration and modular overlay work as dependencies permit. Retain native replication diagnostics and recovery coverage in the reliability backlog.
+Reconcile source and proof; implement the next ready production increment; verify its failure cases and neighboring integrations; update STATUS and TEST_MATRIX; commit verified milestones and continue. Windows log provider, consent-gated desktop session integration and modular overlay now have fixture/native proof. Next close production lifecycle/reliability gaps and deepen actual-game acceptance alongside voice, safety and release work as dependencies permit. Retain native replication diagnostics and recovery coverage in the reliability backlog.
 
 ### /proof
 

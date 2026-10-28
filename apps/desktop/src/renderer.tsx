@@ -1,10 +1,12 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
+import type { OverlayStatus } from "../../../packages/protocol/src/overlay.js";
 import type { Preferences } from "../../../packages/protocol/src/preferences.js";
 import type { DetectionStatus } from "../../../packages/session/src/windows-logs.js";
 import { Messages } from "./messages.js";
 import type { ContactView, MessageView } from "./messaging.js";
+import { OverlaySettings } from "./overlay-settings.js";
 import type { DesktopSessionStatus } from "./sessions.js";
 
 declare global {
@@ -20,6 +22,8 @@ declare global {
         connection: NetworkStatus;
       }>;
       network(enabled: boolean): Promise<NetworkStatus>;
+      overlay(): Promise<OverlayStatus>;
+      overlayMode(interactive: boolean): Promise<OverlayStatus>;
       messaging(): Promise<{ available: boolean; contacts: ContactView[] }>;
       messages(peerId: string): Promise<MessageView[]>;
       sendText(
@@ -424,6 +428,13 @@ function App() {
         </p>
       </section>
       <Messages connection={connection} />
+      {preferences && (
+        <OverlaySettings
+          preferences={preferences}
+          disabled={dirty || pending}
+          onSaved={setPreferences}
+        />
+      )}
       <footer>
         Independent companion · No paid owner-operated backend · No Roblox
         process modification

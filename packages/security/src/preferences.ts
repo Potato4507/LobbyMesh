@@ -74,6 +74,10 @@ export class PreferenceStore {
   snapshot(): Preferences {
     return {
       ...this.value,
+      overlay: {
+        ...this.value.overlay,
+        widgets: [...this.value.overlay.widgets],
+      },
       allowedPeers: [...this.value.allowedPeers],
       blockedPeers: [...this.value.blockedPeers],
     };
