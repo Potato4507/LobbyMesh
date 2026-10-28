@@ -27,12 +27,16 @@ export async function createDesktopNetwork(
   policy: ContactPolicy,
   sessionOptions?: DesktopSessionOptions,
   createMedia?: CallMediaFactory,
+  runtimeOptions: { bootstrap?: string[] } = {},
 ): Promise<DesktopManagedNetwork> {
   let messaging: DesktopMessaging;
   let voice: VoiceCalls;
   const credentials = await loadDesktopCredentials(directory, signal);
   const runtime = await createOverlayRuntime(directory, {
     credentials,
+    ...(runtimeOptions.bootstrap
+      ? { bootstrap: [...runtimeOptions.bootstrap] }
+      : {}),
     signal,
     blocked: policy.blocked,
     directHandler: (peer, request, requestSignal) =>

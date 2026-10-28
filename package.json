@@ -20,6 +20,7 @@
     "test:audio": "node scripts/audio-smoke.mjs",
     "test:media-host": "node scripts/audio-smoke.mjs host",
     "test:voice-calls": "node scripts/audio-smoke.mjs calls",
+    "test:independent-voice": "node scripts/independent-voice-smoke.mjs",
     "diagnose:session": "tsx scripts/session-status.ts",
     "smoke:public-pair": "node scripts/public-pair-smoke.mjs",
     "simulate:overlay": "tsx scripts/simulate-overlay.ts"

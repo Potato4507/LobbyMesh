@@ -21,11 +21,7 @@
     "credentials": "protected-reopen"
   },
   "feature": "explicit-voice-controls-and-isolated-media",
-  "mediaAssets": [
-    "media.html",
-    "media-preload.cjs",
-    "media-renderer.js"
-  ],
+  "mediaAssets": ["media.html", "media-preload.cjs", "media-renderer.js"],
   "limits": [
     "no-physical-microphone-or-audible-acceptance",
     "no-independent-full-client-media-acceptance",
