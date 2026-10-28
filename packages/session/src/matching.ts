@@ -134,6 +134,10 @@ export class SessionMembership {
     if (!Number.isSafeInteger(now) || now < 0) throw new Error("INVALID_TIME");
     return now;
   }
+  setDisplayName(name: string): void {
+    if (!nameValid(name)) throw new Error("INVALID_MEMBERSHIP_OPTIONS");
+    this.options.displayName = name;
+  }
   private async write(
     key: string,
     ad: Advertisement,

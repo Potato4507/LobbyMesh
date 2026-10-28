@@ -1,0 +1,9 @@
+# Desktop session pipeline — 2026-10-28
+
+/goal: connect automatic Windows log evidence to the existing signed application-DHT session flow.
+
+/steps: production desktop networking now composes DesktopSessions, SessionMembership and SessionCoordinator with the same log provider used for detection. Live saved name/consent changes update signed presence; local opt-out denies immediately before persistence. Unrelated saved changes cannot reverse a failed session opt-out during this process. Matching starts after network startup without blocking it and stops with the network; no microphone or contact grant follows a match.
+
+/proof: Windows Node 24.22.1 / pnpm 11.25.0. `pnpm typecheck`, `pnpm lint` (88 files), `pnpm test` (80/80), `pnpm build`, `pnpm test:desktop` passed. Two added integration tests use real temporary log files, parser, signed records and coordinator with an in-memory directory. They prove consent, self-asserted remote matching, name refresh, blocked/self filtering, tombstones and visible failures. Native Electron smoke uses generated log files and synthetic directory/transport; verifies ready/zero-other-participant state in IPC and rendered UI. Existing two-process Noise/session fixtures still pass, but do not exercise the new log provider in two separate native desktops.
+
+Only redacted state and other-participant count cross status IPC. No raw log/session data, transport key, roster of nonparticipants or account identity is exposed. Matched peers never populate the authorized-contact policy automatically. Shutdown can interrupt tombstones; signed ads expire naturally (60s), no guaranteed immediate remote deletion. Detection freshness and unsupported schema limitations remain in windows-log-detection.md. Actual Roblox, cross-NAT and full safety acceptance are still unverified.

@@ -1,5 +1,7 @@
 # Versioned implementation contracts
 
+Desktop session integration supersedes the pending note below: production network factory receives the same local provider and live name/consent projection, starts DesktopSessions after network startup, and stops it alongside transport shutdown. Matching remains independent from contact authorization. Status projects state plus count excluding self/blocked; incomplete lookup is visible as error rather than global absence. Name updates republish on the next coordinator reconciliation. Remote shutdown copies may persist until signed TTL expiry.
+
 WindowsLogSessionProvider implements SessionProvider with `windows-log` / `self-asserted` provenance. See evidence/windows-log-detection.md for supported paths/markers and bounded freshness behavior. Desktop status adds a redacted detection object (state/source/verification); no session IDs or log contents are sent to the renderer. Session consent starts/stops polling, default off; failed opt-out persistence stops current monitoring, though saved consent may remain on disk for restart. A later unrelated preference save cannot re-enable it. Desktop matching integration remains pending.
 
 All implemented packages are v1. Preliminary ApplicationDHT/SignedRecord interfaces remain legacy scaffolding; NetworkOverlay uses the existing validated RecordV1 schema, not the legacy unsigned byte contract.

@@ -10,8 +10,12 @@ import type {
   ContactPolicy,
   DesktopNetworkFactory,
 } from "../../apps/desktop/src/network.js";
+import { DesktopSessions } from "../../apps/desktop/src/sessions.js";
 import { createOverlayRuntime } from "../../packages/app-dht/src/runtime.js";
-import { loadOrCreateIdentity } from "../../packages/identity/src/index.js";
+import {
+  createIdentity,
+  loadOrCreateIdentity,
+} from "../../packages/identity/src/index.js";
 import {
   DIRECT_NAMESPACE,
   DirectMessenger,
@@ -19,6 +23,7 @@ import {
 } from "../../packages/protocol/src/direct.js";
 import { loadTransportKeys } from "../../packages/public-discovery/src/hyperdht.js";
 import { PreferenceStore } from "../../packages/security/src/preferences.js";
+import { RecordStore } from "../../packages/security/src/records.js";
 import { WindowsLogSessionProvider } from "../../packages/session/src/windows-logs.js";
 
 async function run() {
@@ -80,7 +85,27 @@ async function run() {
   let messaging: DesktopMessaging | undefined,
     receiver: DirectMessenger | undefined,
     holdSends = false;
-  const networkFactory: DesktopNetworkFactory = async (_signal, value) => {
+  const networkFactory: DesktopNetworkFactory = async (
+    _signal,
+    value,
+    sessionOptions,
+  ) => {
+    assert.ok(sessionOptions);
+    const records = new RecordStore(Date.now);
+    const sessions = new DesktopSessions(
+      createIdentity(),
+      {
+        async put(key, record) {
+          records.put(key, record);
+        },
+        async lookup(key) {
+          return { records: records.get(key) };
+        },
+      },
+      transportKey,
+      sessionOptions,
+      value.blocked,
+    );
     policy = value;
     const remote = new DirectMessenger(allowed, async () => null, {
       authorized: (id) => id === self,
@@ -109,12 +134,15 @@ async function run() {
     receiver = remote;
     return {
       messaging: service,
+      sessions,
       async start() {
         starts++;
+        await sessions.start();
       },
       async stop() {
         service.close();
         remote.close();
+        await sessions.stop();
         stops++;
       },
       status: () => undefined,
@@ -309,6 +337,12 @@ async function run() {
     }>("window.companion.status()");
     assert.equal(detectionStatus.session, "detected");
     assert.equal(detectionStatus.detection.verification, "self-asserted");
+    await until(
+      "window.companion.status().then(s => s.matching.state === 'ready' && s.matching.participants === 0)",
+    );
+    await until(
+      "document.querySelector('#matchingStatus')?.textContent.includes('0 companions found')",
+    );
     assert.equal(
       JSON.stringify(detectionStatus).includes("12345678-abcd"),
       false,

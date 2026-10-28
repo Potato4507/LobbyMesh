@@ -19,6 +19,7 @@ import {
 } from "../../../packages/session/src/windows-logs.js";
 import { DesktopMessaging } from "./messaging.js";
 import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
+import { DesktopSessions } from "./sessions.js";
 
 export async function createDesktop(
   directory: string,
@@ -35,6 +36,12 @@ export async function createDesktop(
   } catch {
     /* Fail closed; the existing file/lock is preserved. */
   }
+  const logProvider =
+    options.logProvider ??
+    new WindowsLogSessionProvider(
+      windowsLogDirectories(process.env.LOCALAPPDATA),
+    );
+  let sessionConsent = preferences?.snapshot().sessionConsent ?? false;
   const network = new NetworkLifecycle(async (signal) => {
     if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");
     const store = preferences;
@@ -43,22 +50,25 @@ export async function createDesktop(
       authorized: store.isAuthorized,
       allowed: () => store.snapshot().allowedPeers,
     };
+    const sessions = {
+      provider: logProvider,
+      preferences: () => ({
+        displayName: store.snapshot().displayName,
+        sessionConsent,
+      }),
+    };
     return options.networkFactory
-      ? options.networkFactory(signal, policy)
+      ? options.networkFactory(signal, policy, sessions)
       : createDesktopNetwork(
           path.join(path.dirname(directory), "network"),
           signal,
           policy,
+          sessions,
         );
   });
   let tearingDown = false,
     permissionRevision = 0,
     activeRequests = 0;
-  const logProvider =
-    options.logProvider ??
-    new WindowsLogSessionProvider(
-      windowsLogDirectories(process.env.LOCALAPPDATA),
-    );
   const suspend = () => network.suspend(),
     resume = () => network.resume();
   powerMonitor.on("suspend", suspend);
@@ -91,6 +101,17 @@ export async function createDesktop(
       throw new Error("UNTRUSTED_SENDER");
   };
   const channels: string[] = [];
+  const sessions = (): DesktopSessions | undefined => {
+    try {
+      return network.using((runtime) =>
+        "sessions" in runtime && runtime.sessions instanceof DesktopSessions
+          ? runtime.sessions
+          : undefined,
+      );
+    } catch {
+      return undefined;
+    }
+  };
   const messaging = <T>(action: (service: DesktopMessaging) => T): T =>
     network.using((runtime) => {
       if (
@@ -126,6 +147,7 @@ export async function createDesktop(
       version: 1,
       session: logProvider.status().state,
       detection: logProvider.status(),
+      matching: sessions()?.status() ?? { state: "offline", participants: 0 },
       network: network.status().state,
       connection: network.status(),
       microphone: "off",
@@ -142,10 +164,17 @@ export async function createDesktop(
     try {
       const patch = parsePreferencePatch(request);
       if ("networkEnabled" in patch) throw new Error("USE_NETWORK_CONTROL");
-      if (patch.sessionConsent === false) await logProvider.setEnabled(false);
+      if (patch.sessionConsent === false) {
+        sessionConsent = false;
+        void sessions()?.settingsChanged();
+        await logProvider.setEnabled(false);
+      }
       const saved = await preferences.update(patch);
-      if (patch.sessionConsent !== undefined)
+      if (patch.sessionConsent !== undefined) {
+        sessionConsent = saved.sessionConsent;
         await logProvider.setEnabled(saved.sessionConsent);
+      }
+      void sessions()?.settingsChanged();
       return saved;
     } catch {
       throw new Error("PREFERENCES_UPDATE_FAILED");

@@ -5,6 +5,7 @@ import type { Preferences } from "../../../packages/protocol/src/preferences.js"
 import type { DetectionStatus } from "../../../packages/session/src/windows-logs.js";
 import { Messages } from "./messages.js";
 import type { ContactView, MessageView } from "./messaging.js";
+import type { DesktopSessionStatus } from "./sessions.js";
 
 declare global {
   interface Window {
@@ -13,6 +14,7 @@ declare global {
         network: string;
         session: string;
         detection: DetectionStatus;
+        matching: DesktopSessionStatus;
         microphone: string;
         preferences: string;
         connection: NetworkStatus;
@@ -36,6 +38,7 @@ function App() {
   const [notice, setNotice] = useState("Loading your preferences…");
   const [connection, setConnection] = useState<NetworkStatus | null>(null);
   const [detection, setDetection] = useState<DetectionStatus | null>(null);
+  const [matching, setMatching] = useState<DesktopSessionStatus | null>(null);
   const [networkPending, setNetworkPending] = useState(false);
   const [networkNotice, setNetworkNotice] = useState("");
   const [pending, setPending] = useState(false),
@@ -47,6 +50,7 @@ function App() {
       if (active) {
         setConnection(status.connection);
         setDetection(status.detection);
+        setMatching(status.matching);
       }
       if (status.preferences !== "ready") throw new Error("UNAVAILABLE");
       const value = await window.companion.preferences();
@@ -76,6 +80,7 @@ function App() {
           if (active) {
             setConnection(status.connection);
             setDetection(status.detection);
+            setMatching(status.matching);
           }
         })
         .catch(() => {
@@ -122,6 +127,18 @@ function App() {
         unavailable: "Game logs unavailable",
       }[detection.state];
   const peers = connection?.peers ?? 0;
+  const matchingLabel =
+    !matching || matching.state === "offline"
+      ? "Session matching is offline."
+      : matching.state === "error"
+        ? "Session matching is incomplete. Retrying automatically."
+        : matching.state === "matching"
+          ? "Finding opted-in companions in this session…"
+          : matching.state === "consent-required"
+            ? "Enable session presence to find companions."
+            : matching.state === "ready"
+              ? `${matching.participants} ${matching.participants === 1 ? "companion" : "companions"} found in this session. Contact permission is separate.`
+              : "Waiting for supported session evidence.";
   const networkLabel =
     state === "online"
       ? peers
@@ -252,6 +269,9 @@ function App() {
         <p className="hint">
           A connection does not verify a Roblox account or give someone
           permission to contact you.
+        </p>
+        <p id="matchingStatus" className="hint" aria-live="polite">
+          {matchingLabel}
         </p>
         <output id="networkNotice" className="notice" aria-live="polite">
           {networkNotice ||
