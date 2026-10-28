@@ -1,5 +1,7 @@
 # Test matrix
 
+2026-10-28 native RPC reliability: full 93/93, typecheck/lint (98 files)/build/native desktop smoke passed. Real two-process eight-PUT/eight-reverse-lookup burst reproduced a hello-stage timeout before mitigation; after bounded pre-request setup retry it passed with the failed attempt still visible. Six added diagnostic/retry cases include no retry on impostor, remote rejection or response timeout. See evidence/native-rpc-reliability.md. No root-cause/cross-NAT/persistent-reuse claim.
+
 2026-10-28 current-source/large-log recovery: full 87/87, typecheck/lint (96 files), build/native smoke passed. >4MiB sequential scan withholds old head presence until later disconnect processed; pre-process-created file rejected despite later flush. Live read-only diagnose:session --follow now returns waiting with no selected session, superseding initial ambiguity without positive game acceptance. See evidence/windows-log-catchup.md.
 
 2026-10-28 Windows player lifecycle: full 85/85, focused 7/7, typecheck/lint (96 files)/build/native smoke passed. Quiet-session/exit/restart/ambiguity/query-failure/cancellation tested with injected process metadata. Actual native process query succeeded; read-only diagnose:session returned multiple-player-logs ambiguity and no selected session. Positive real Roblox lifecycle acceptance remains unverified. See evidence/windows-player-lifecycle.md.

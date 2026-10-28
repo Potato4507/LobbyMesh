@@ -10,6 +10,12 @@ import {
   type RecordV1,
   validateRecord,
 } from "../../security/src/records.js";
+import {
+  RpcDiagnostics,
+  type RpcMeasurement,
+  rpcOperation,
+  rpcOutcome,
+} from "./diagnostics.js";
 import { RoutingTable, xorDistance } from "./index.js";
 import {
   iterativeLookup,
@@ -21,6 +27,7 @@ import {
   type AuthenticatedPeer,
   type NoiseStream,
   type RpcHandler,
+  type RpcPhase,
   requestRpc,
 } from "./rpc.js";
 
@@ -37,6 +44,10 @@ export class NetworkOverlay {
   private readonly controller = new AbortController();
   private rpcTail: Promise<void> = Promise.resolve();
   private queuedRpc = 0;
+  private readonly rpcMetrics = new RpcDiagnostics();
+  diagnostics() {
+    return this.rpcMetrics.snapshot(this.queuedRpc);
+  }
   private readonly failures = new Map<string, number>();
   constructor(
     private readonly identity: Identity,
@@ -296,14 +307,72 @@ export class NetworkOverlay {
       ? AbortSignal.any([signal, this.controller.signal])
       : this.controller.signal;
     if (combined.aborted) return Promise.reject(new Error("RPC_ABORTED"));
-    if (this.queuedRpc >= 64)
+    if (this.queuedRpc >= 64) {
+      this.rpcMetrics.record({
+        operation: rpcOperation(request),
+        outcome: "queue-quota",
+        phase: "queue",
+        queueMs: 0,
+        transactionMs: 0,
+      });
       return Promise.reject(new Error("RPC_QUEUE_QUOTA"));
+    }
     this.queuedRpc++;
     // Pinned native transport stalls one same-host connection when setup overlaps.
     // Keep transaction scheduling conservative until that path has separate proof.
-    const task = this.rpcTail.then(() =>
-      this.performCall(key, request, expectedPeerId, combined),
-    );
+    const enqueued = performance.now();
+    let started: number | undefined;
+    let retrying = false;
+    let phase: RpcMeasurement["phase"] = "queue";
+    const task = this.rpcTail.then(async () => {
+      if (!combined.aborted) {
+        started = performance.now();
+        phase = "connect";
+      }
+      try {
+        const result = await this.performCall(
+          key,
+          request,
+          expectedPeerId,
+          combined,
+          (value) => {
+            phase = value;
+          },
+          (error) => {
+            this.rpcMetrics.record({
+              operation: rpcOperation(request),
+              outcome: rpcOutcome(error),
+              phase,
+              queueMs: (started ?? performance.now()) - enqueued,
+              transactionMs:
+                started === undefined ? 0 : performance.now() - started,
+            });
+            retrying = true;
+            started = performance.now();
+            phase = "connect";
+          },
+        );
+        this.rpcMetrics.record({
+          operation: rpcOperation(request),
+          outcome: "success",
+          phase,
+          queueMs: retrying ? 0 : (started ?? performance.now()) - enqueued,
+          transactionMs:
+            started === undefined ? 0 : performance.now() - started,
+        });
+        return result;
+      } catch (error) {
+        this.rpcMetrics.record({
+          operation: rpcOperation(request),
+          outcome: rpcOutcome(error),
+          phase,
+          queueMs: retrying ? 0 : (started ?? performance.now()) - enqueued,
+          transactionMs:
+            started === undefined ? 0 : performance.now() - started,
+        });
+        throw error;
+      }
+    });
     this.rpcTail = task.then(
       () => {},
       () => {},
@@ -336,9 +405,11 @@ export class NetworkOverlay {
     request: unknown,
     expectedPeerId?: string,
     signal?: AbortSignal,
+    onPhase?: (phase: RpcPhase) => void,
+    onRetry?: (error: unknown) => void,
   ): Promise<unknown> {
-    this.assertRunning();
     if (signal?.aborted) throw new Error("RPC_ABORTED");
+    this.assertRunning();
     if (expectedPeerId && this.options.blocked?.(expectedPeerId))
       throw new Error("BLOCKED_PEER");
     let response: Awaited<ReturnType<typeof requestRpc>>;
@@ -346,18 +417,50 @@ export class NetworkOverlay {
       ? this.routing.revision(expectedPeerId)
       : undefined;
     try {
-      response = await requestRpc(
-        this.connector.connect(key),
-        this.identity,
-        request,
-        {
-          signal: signal
-            ? AbortSignal.any([this.controller.signal, signal])
-            : this.controller.signal,
-          timeoutMs: this.options.timeoutMs ?? 1500,
-          ...(expectedPeerId ? { expectedPeerId } : {}),
-        },
-      );
+      for (let attempt = 0; ; attempt++) {
+        if (signal?.aborted || this.controller.signal.aborted)
+          throw new Error("RPC_ABORTED");
+        if (expectedPeerId && this.options.blocked?.(expectedPeerId))
+          throw new Error("BLOCKED_PEER");
+        let phase: RpcPhase | undefined;
+        try {
+          response = await requestRpc(
+            this.connector.connect(key),
+            this.identity,
+            request,
+            {
+              signal: signal
+                ? AbortSignal.any([this.controller.signal, signal])
+                : this.controller.signal,
+              timeoutMs: this.options.timeoutMs ?? 1500,
+              ...(expectedPeerId ? { expectedPeerId } : {}),
+              onPhase(value) {
+                phase = value;
+                onPhase?.(value);
+              },
+            },
+          );
+          break;
+        } catch (error) {
+          // An authenticated/pinned known contact gets one setup retry only
+          // before request transmission. Identity/protocol errors never retry;
+          // reads and writes after transmission remain caller-owned policies.
+          if (
+            attempt !== 0 ||
+            !expectedPeerId ||
+            signal?.aborted ||
+            this.controller.signal.aborted ||
+            (phase !== "hello" && phase !== "proof") ||
+            !(error instanceof Error) ||
+            (error.message !== "RPC_TIMEOUT" && error.message !== "RPC_CLOSED")
+          )
+            throw error;
+          onRetry?.(error);
+          await delay(randomInt(25, 75), undefined, {
+            signal: signal ?? this.controller.signal,
+          });
+        }
+      }
     } catch (error) {
       if (
         expectedPeerId &&

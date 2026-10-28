@@ -72,6 +72,8 @@ if (process.argv[2] === "bootstrap") {
     }) => {
       void (async () => {
         switch (message.op) {
+          case "diagnostics":
+            return overlay.diagnostics();
           case "join":
             await Promise.all([
               overlay.join(Buffer.from(message.key ?? "", "hex")),

@@ -7,6 +7,15 @@ import {
 
 export const RPC_NAMESPACE = "companion/app-overlay/rpc/v1";
 export const MAX_FRAME_BYTES = 24 * 1024;
+export type RpcPhase = "hello" | "proof" | "request" | "response" | "complete";
+type PhaseObserver = (phase: RpcPhase) => void;
+function observe(observer: PhaseObserver | undefined, phase: RpcPhase): void {
+  try {
+    observer?.(phase);
+  } catch {
+    /* Diagnostics cannot alter authentication or dispatch. */
+  }
+}
 export interface NoiseStream extends EventEmitter {
   publicKey: Buffer;
   remotePublicKey: Buffer;
@@ -194,7 +203,9 @@ export async function authenticate(
   channel: FrameChannel,
   stream: NoiseStream,
   identity: Identity,
+  observer?: PhaseObserver,
 ): Promise<AuthenticatedPeer> {
+  observe(observer, "hello");
   const local = hello(identity);
   await channel.write(local);
   const remote = parseHello(await channel.read());
@@ -202,6 +213,7 @@ export async function authenticate(
   const signature = identity
     .sign(transcript(stream, local, remote, true))
     .toString("hex");
+  observe(observer, "proof");
   await channel.write({ signature });
   const proof = (await channel.read()) as { signature?: unknown } | null;
   if (
@@ -268,6 +280,7 @@ export function requestRpc(
     timeoutMs?: number;
     signal?: AbortSignal;
     expectedPeerId?: string;
+    onPhase?: PhaseObserver;
   } = {},
 ): Promise<{ peer: AuthenticatedPeer; result: unknown }> {
   return transaction(
@@ -275,10 +288,17 @@ export function requestRpc(
     options.timeoutMs ?? 5000,
     options.signal,
     async (channel) => {
-      const peer = await authenticate(channel, stream, identity);
+      const peer = await authenticate(
+        channel,
+        stream,
+        identity,
+        options.onPhase,
+      );
       if (options.expectedPeerId && peer.id !== options.expectedPeerId)
         throw new Error("PEER_ID_MISMATCH");
+      observe(options.onPhase, "request");
       await channel.write({ type: "request", body: request });
+      observe(options.onPhase, "response");
       const response = (await channel.read()) as {
         type?: unknown;
         body?: unknown;
@@ -286,6 +306,7 @@ export function requestRpc(
       if (response?.type === "error") throw new Error("REMOTE_RPC_REJECTED");
       if (response?.type !== "response")
         throw new Error("INVALID_RPC_RESPONSE");
+      observe(options.onPhase, "complete");
       return { peer, result: response.body };
     },
   );

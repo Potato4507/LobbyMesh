@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { type ChildProcess, spawn } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import type { NetworkOverlay } from "../packages/app-dht/src/network.js";
 import type { RecordV1 } from "../packages/security/src/records.js";
 
 function child(argument: string, fixture = "overlay-process.ts") {
@@ -181,6 +182,50 @@ test(
       replicas: 1,
       failures: 0,
     });
+    // Exercise real bidirectional connection setup plus each sender's bounded
+    // queue. A failed attempt is evidence, not an excuse to retry this assertion.
+    const burst = await Promise.all([
+      ...Array.from({ length: 8 }, (_, index) =>
+        a.command("put", { key: (index + 1).toString(16).padStart(64, "0") }),
+      ),
+      ...Array.from({ length: 8 }, () => b.command("lookup", { key })),
+    ]);
+    const diagnosticA = (await a.command("diagnostics")) as ReturnType<
+      NetworkOverlay["diagnostics"]
+    >;
+    const diagnosticB = (await b.command("diagnostics")) as ReturnType<
+      NetworkOverlay["diagnostics"]
+    >;
+    for (const result of burst.slice(0, 8))
+      assert.deepEqual(
+        result,
+        { replicas: 1, failures: 0 },
+        JSON.stringify({ diagnosticA, diagnosticB }),
+      );
+    for (const result of burst.slice(8)) {
+      const lookup = result as {
+        records: RecordV1[];
+        routing: { state: string; failures: number };
+      };
+      assert.equal(
+        lookup.routing.state,
+        "exhausted",
+        JSON.stringify({ diagnosticA, diagnosticB }),
+      );
+      assert.equal(
+        lookup.routing.failures,
+        0,
+        JSON.stringify({ diagnosticA, diagnosticB }),
+      );
+      assert.equal(lookup.records[0]?.content, "automatic bootstrap");
+    }
+    t.diagnostic(
+      JSON.stringify({
+        nativeBurst: { puts: 8, reverseLookups: 8 },
+        a: diagnosticA.outcomes,
+        b: diagnosticB.outcomes,
+      }),
+    );
     const result = (await b.command("lookup", { key })) as {
       records: RecordV1[];
       routing: { state: string; failures: number };

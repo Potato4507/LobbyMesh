@@ -54,6 +54,8 @@ process.on(
   }) => {
     void (async () => {
       switch (message.op) {
+        case "diagnostics":
+          return runtime.overlay.diagnostics();
         case "direct-allow":
           authorized.add(message.peerId ?? "");
           return true;
