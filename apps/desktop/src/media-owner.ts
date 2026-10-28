@@ -25,7 +25,9 @@ export function installMediaOwner(
     closed = false,
     active = 0;
   const sinks: HTMLAudioElement[] = [];
+  let talkLease: ReturnType<typeof setTimeout> | undefined;
   const close = () => {
+    clearTimeout(talkLease);
     closed = true;
     peer?.close();
     for (const sink of sinks) {
@@ -77,6 +79,15 @@ export function installMediaOwner(
           case "talk":
             if (!peer) throw new Error("MEDIA_NOT_READY");
             peer.setTalking(command.data === true);
+            clearTimeout(talkLease);
+            if (command.data === true)
+              talkLease = setTimeout(() => {
+                try {
+                  peer?.setTalking(false);
+                } catch {
+                  close();
+                }
+              }, 750);
             break;
           case "status":
             data = peer?.status() ?? {

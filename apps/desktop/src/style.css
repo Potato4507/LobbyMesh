@@ -549,3 +549,44 @@ textarea:focus-visible {
 .overlay-shell textarea {
   min-height: 60px;
 }
+.voice-panel {
+  border: 1px solid #34465f;
+  background: #101d30;
+  border-radius: 14px;
+  padding: 18px;
+  margin: 14px 0 22px;
+}
+.voice-heading,
+.voice-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.voice-heading {
+  justify-content: space-between;
+}
+.voice-heading h3 {
+  margin: 6px 0;
+  font-size: 18px;
+}
+.voice-heading .check {
+  margin: 0;
+}
+.voice-actions {
+  margin: 14px 0 10px;
+}
+.voice-panel .ptt {
+  touch-action: none;
+  user-select: none;
+  min-width: 170px;
+}
+.voice-panel .ptt[aria-pressed="true"] {
+  background: #d4f6c4;
+  color: #12251e;
+  box-shadow: 0 0 0 3px #67ae7e55;
+}
+.voice-peer {
+  color: #b4cce8;
+  font-family: monospace;
+}

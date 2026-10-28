@@ -1,15 +1,20 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
 import type { ContactView, MessageView } from "./messaging.js";
+import { VoiceControls } from "./voice-controls.js";
 
 export function Messages({
   connection,
   compact = false,
   onAddContact,
+  active = true,
+  onMicrophone,
 }: {
   connection: NetworkStatus | null;
   compact?: boolean;
   onAddContact?: () => void;
+  active?: boolean;
+  onMicrophone?: (value: "off" | "capturing" | "unknown") => void;
 }) {
   const [available, setAvailable] = useState(false),
     [contacts, setContacts] = useState<ContactView[]>([]);
@@ -136,6 +141,15 @@ export function Messages({
   return (
     <section id="messagesPanel" className="panel">
       <h2>Messages</h2>
+      {!compact && (
+        <VoiceControls
+          {...(onMicrophone ? { onMicrophone } : {})}
+          peerId={selected}
+          discovered={discovered}
+          online={connection?.state === "online"}
+          active={active}
+        />
+      )}
       {!compact && (
         <p className="hint">
           Only locally approved app contacts can exchange messages. Messages

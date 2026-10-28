@@ -27,6 +27,7 @@ import { loadTransportKeys } from "../../packages/public-discovery/src/hyperdht.
 import { PreferenceStore } from "../../packages/security/src/preferences.js";
 import { RecordStore } from "../../packages/security/src/records.js";
 import { WindowsLogSessionProvider } from "../../packages/session/src/windows-logs.js";
+import { VoiceCalls } from "../../packages/voice/src/calls.js";
 
 async function run() {
   assert.equal(typeof createOverlayRuntime, "function");
@@ -89,6 +90,9 @@ async function run() {
   let messaging: DesktopMessaging | undefined,
     receiver: DirectMessenger | undefined,
     holdSends = false;
+  let remoteVoice: VoiceCalls | undefined,
+    localMediaStarts = 0,
+    holdVoiceMute = false;
   const networkFactory: DesktopNetworkFactory = async (
     _signal,
     value,
@@ -135,6 +139,63 @@ async function run() {
       () => [{ id: allowed, transportKey }],
     );
     messaging = service;
+    const makeMedia = (local: boolean) => {
+      let phase = "negotiating",
+        talking = false,
+        closed = false;
+      return {
+        async offer() {
+          if (local) localMediaStarts++;
+          return "synthetic offer, no microphone";
+        },
+        async answer() {
+          if (local) localMediaStarts++;
+          phase = "connected";
+          return "synthetic answer, no microphone";
+        },
+        async acceptAnswer() {
+          phase = "connected";
+        },
+        async setTalking(value: boolean) {
+          if (local && holdVoiceMute && !value)
+            await new Promise<void>(() => {});
+          talking = value;
+        },
+        async status() {
+          return { phase, capturing: !closed, transmitting: talking };
+        },
+        close() {
+          phase = "closed";
+          closed = true;
+          talking = false;
+        },
+      };
+    };
+    const localVoice: VoiceCalls = new VoiceCalls(
+      self,
+      (_contact, request, signal) =>
+        otherVoice.handle(
+          { id: self, publicKey: "synthetic app", transportKey },
+          request,
+          signal,
+        ),
+      {
+        authorized: (id) => value.authorized(id) && !value.blocked(id),
+        createMedia: () => makeMedia(true),
+      },
+    );
+    const otherVoice: VoiceCalls = new VoiceCalls(
+      allowed,
+      (_contact, request, signal) =>
+        localVoice.handle(
+          { id: allowed, publicKey: "synthetic app", transportKey },
+          request,
+          signal,
+        ),
+      { authorized: (id) => id === self, createMedia: () => makeMedia(false) },
+    );
+    otherVoice.setConsent(true);
+    remoteVoice = otherVoice;
     const pairing = new DesktopPairing(
       createIdentity(),
       transportKey,
@@ -150,6 +211,7 @@ async function run() {
     receiver = remote;
     return {
       messaging: service,
+      voice: localVoice,
       pairing,
       sessions,
       async start() {
@@ -157,6 +219,8 @@ async function run() {
         await sessions.start();
       },
       async stop() {
+        localVoice.close();
+        otherVoice.close();
         await pairing.close();
         service.close();
         remote.close();
@@ -368,6 +432,133 @@ async function run() {
     await until(
       `document.querySelector('#contactSelect')?.value === ${JSON.stringify(allowed)}`,
     );
+    assert.equal(
+      (await execute<{ enabled: boolean }>("window.companion.voice()")).enabled,
+      false,
+    );
+    assert.equal(localMediaStarts, 0);
+    assert.ok(
+      await execute(
+        `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true,transportKey:'ignored'}).then(()=>false,()=>true)`,
+      ),
+    );
+    desktop.window.show();
+    desktop.window.focus();
+    await until("document.hasFocus()");
+    await until("!document.querySelector('#voiceConsent').disabled");
+    await execute("document.querySelector('#voiceConsent').click()");
+    await until(
+      "window.companion.voice().then(s=>s.enabled && s.phase==='idle')",
+    );
+    await until("document.querySelector('#callContact')?.disabled === false");
+    await execute("document.querySelector('#callContact').click()");
+    await until("window.companion.voice().then(s=>s.phase==='offering')");
+    assert.ok(remoteVoice);
+    const outbound = remoteVoice.status().callId;
+    assert.ok(outbound);
+    await remoteVoice.answer(outbound, true);
+    await until("document.querySelector('#pushToTalk') !== null");
+    await execute("document.querySelector('#pushToTalk').focus()");
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.transmitting)");
+    await delay(900);
+    assert.equal(
+      (await execute<{ transmitting: boolean }>("window.companion.voice()"))
+        .transmitting,
+      true,
+    );
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    console.log("desktop voice: key released");
+    await until("window.companion.voice().then(s=>!s.transmitting)");
+    assert.ok(
+      await execute(
+        "window.companion.voice().then(s=>window.companion.voiceAction({action:'talk',callId:s.callId,pressed:true,start:false})).then(()=>false,()=>true)",
+      ),
+    );
+    await execute(
+      "document.querySelector('#pushToTalk').scrollIntoView({block:'center'})",
+    );
+    const pttPoint = await execute<{ x: number; y: number }>(
+      "(() => { const r=document.querySelector('#pushToTalk').getBoundingClientRect(); return {x:Math.floor(r.left+r.width/2),y:Math.floor(r.top+r.height/2)}; })()",
+    );
+    contents.sendInputEvent({ type: "mouseMove", ...pttPoint });
+    contents.sendInputEvent({
+      type: "mouseDown",
+      button: "left",
+      clickCount: 1,
+      ...pttPoint,
+    });
+    await until("window.companion.voice().then(s=>s.transmitting)");
+    contents.sendInputEvent({
+      type: "mouseUp",
+      button: "left",
+      clickCount: 1,
+      ...pttPoint,
+    });
+    await until("window.companion.voice().then(s=>!s.transmitting)");
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.transmitting)");
+    const focusTarget = new BrowserWindow({
+      show: true,
+      width: 180,
+      height: 100,
+      skipTaskbar: true,
+      webPreferences: {
+        sandbox: true,
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+    focusTarget.focus();
+    await until("!document.hasFocus()");
+    await until("window.companion.voice().then(s=>!s.transmitting)");
+    focusTarget.destroy();
+    desktop.window.focus();
+    await until("document.hasFocus()");
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    await execute("document.querySelector('#pushToTalk').focus()");
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.transmitting)");
+    await navigate("overview");
+    await until("window.companion.voice().then(s=>!s.transmitting)");
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    await navigate("messages");
+    await execute("document.querySelector('#hangupCall').click()");
+    await until("window.companion.voice().then(s=>s.phase==='idle')");
+    const beforeIncoming = localMediaStarts;
+    const incomingCall = await remoteVoice.dial(
+      { id: self, transportKey },
+      true,
+    );
+    await until("document.querySelector('#answerCall') !== null");
+    assert.equal(localMediaStarts, beforeIncoming);
+    await execute("document.querySelector('#hangupCall').click()");
+    await until("window.companion.voice().then(s=>s.phase==='idle')");
+    assert.equal(remoteVoice.status().phase, "idle");
+    const answered = await remoteVoice.dial({ id: self, transportKey }, true);
+    assert.notEqual(answered, incomingCall);
+    await until("document.querySelector('#answerCall') !== null");
+    await until(
+      `document.querySelector('#voicePanel')?.dataset.callId === ${JSON.stringify(answered)}`,
+    );
+    await execute("document.querySelector('#answerCall').click()");
+    await until("document.querySelector('#pushToTalk') !== null");
+    assert.equal(localMediaStarts, beforeIncoming + 1);
+    await execute(
+      "(() => { const label=document.createElement('p'); label.className='eyebrow'; label.textContent='SYNTHETIC VOICE · NO MICROPHONE OR NETWORK'; document.querySelector('#voicePanel').prepend(label); document.querySelector('#voicePanel').scrollIntoView(); })()",
+    );
+    await captureDesktop("docs/evidence/lobbymesh-voice-test.png");
+    await execute("document.querySelector('#pushToTalk').focus()");
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.transmitting)");
+    holdVoiceMute = true;
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.phase==='idle')");
+    holdVoiceMute = false;
+    await execute("document.querySelector('#voicePanel .eyebrow').remove()");
+    await execute("document.querySelector('#voiceConsent').click()");
+    await until("window.companion.voice().then(s=>!s.enabled)");
+    desktop.window.hide();
     const draft = (text: string) =>
       execute(`(() => {
       const input = document.querySelector('#messageDraft');
@@ -434,6 +625,11 @@ async function run() {
       assert.ok(
         await overlayExecute(
           "window.companion.createPairingCode().then(() => false, () => true)",
+        ),
+      );
+      assert.ok(
+        await overlayExecute(
+          "window.companion.voiceAction({action:'consent',enabled:true}).then(()=>false,()=>true)",
         ),
       );
       assert.ok(
@@ -526,17 +722,36 @@ async function run() {
       /CONTACT_NOT_AUTHORIZED/,
     );
     // Disconnect must remain available even when all ordinary IPC slots are busy.
+    desktop.window.show();
+    desktop.window.focus();
+    await until("document.hasFocus()");
+    await execute(
+      "window.companion.voiceAction({action:'consent',enabled:true})",
+    );
     holdSends = true;
     await execute(
       `(() => { window.pendingMessages = Array.from({length:16}, () => window.companion.sendText('${allowed}', 'held fixture').catch(() => null)); return true; })()`,
     );
     await delay(30);
+    assert.equal(
+      (await execute<{ enabled: boolean }>("window.companion.voice()")).enabled,
+      true,
+    );
     await execute("window.companion.network(false)");
     await execute("Promise.all(window.pendingMessages)");
     await until("window.companion.status().then(s => s.network === 'offline')");
+    assert.equal(
+      (await execute<{ enabled: boolean }>("window.companion.voice()")).enabled,
+      false,
+    );
     holdSends = false;
     await execute("window.companion.network(true)");
     await until("window.companion.status().then(s => s.network === 'online')");
+    assert.equal(
+      (await execute<{ enabled: boolean }>("window.companion.voice()")).enabled,
+      false,
+    );
+    desktop.window.hide();
     await execute("window.scrollTo(0, 0)");
     await navigate("preferences");
     await execute(`(() => {
@@ -633,6 +848,11 @@ async function run() {
       },
     });
     await foreign.loadFile(path.resolve("dist/index.html"));
+    assert.ok(
+      await foreign.webContents.executeJavaScript(
+        "window.companion.voiceAction({action:'consent',enabled:true}).then(()=>false,()=>true)",
+      ),
+    );
     assert.ok(
       await foreign.webContents.executeJavaScript(
         "window.companion.preferences().then(() => false, () => true)",
@@ -784,6 +1004,9 @@ async function run() {
           "live-policy-callbacks",
           "electron-native-runtime-cancellation",
           "authorized-messaging-ui",
+          "explicit-voice-consent-call-answer-decline-and-ptt",
+          "voice-focus-loss-page-change-and-stalled-mute-teardown",
+          "voice-overlay-ipc-denied",
           "explicit-contact-preview-approval-and-revocation",
           "desktop-navigation-focus-and-retained-drafts",
           "consent-controlled-log-session-matching",

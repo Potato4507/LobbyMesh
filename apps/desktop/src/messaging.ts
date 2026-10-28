@@ -180,11 +180,7 @@ export class DesktopMessaging {
     if (!validText(text)) throw new Error("INVALID_TEXT");
     if (this.pending.size >= 16) throw new Error("SEND_QUEUE_QUOTA");
     this.prune();
-    const contact =
-      this.authenticatedContacts().find(
-        (candidate) => candidate.id === peerId,
-      ) ?? this.incomingContacts.get(peerId)?.contact;
-    if (!contact) throw new Error("CONTACT_NOT_DISCOVERED");
+    const contact = this.resolveContact(peerId);
     const localId = randomBytes(16).toString("hex"),
       controller = new AbortController();
     const message: MessageView = {
@@ -219,6 +215,17 @@ export class DesktopMessaging {
     } finally {
       this.pending.delete(localId);
     }
+  }
+  // Trusted main-process consumers only; transport endpoints never enter UI IPC.
+  resolveContact(peerId: string): DirectContact {
+    this.permit(peerId);
+    this.prune();
+    const contact =
+      this.authenticatedContacts().find(
+        (candidate) => candidate.id === peerId,
+      ) ?? this.incomingContacts.get(peerId)?.contact;
+    if (!contact) throw new Error("CONTACT_NOT_DISCOVERED");
+    return { ...contact };
   }
   policyChanged(peerId: string): void {
     if (this.policy.authorized(peerId) && !this.policy.blocked(peerId)) return;

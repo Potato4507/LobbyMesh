@@ -13,6 +13,10 @@ import {
   parsePeerId,
   parsePreferencePatch,
 } from "../../../packages/protocol/src/preferences.js";
+import {
+  parseVoiceAction,
+  type VoiceView,
+} from "../../../packages/protocol/src/voice.js";
 import { PreferenceStore } from "../../../packages/security/src/preferences.js";
 import { createWindowsActivityReader } from "../../../packages/session/src/windows-activity.js";
 import {
@@ -164,6 +168,79 @@ export async function createDesktop(
         throw new Error("MESSAGING_UNAVAILABLE");
       return action(runtime.messaging);
     });
+  let lastVoice: VoiceCalls | undefined;
+  const voice = (): VoiceCalls =>
+    network.using((runtime) => {
+      if (!("voice" in runtime) || !(runtime.voice instanceof VoiceCalls))
+        throw new Error("VOICE_UNAVAILABLE");
+      lastVoice = runtime.voice;
+      return runtime.voice;
+    });
+  const voiceView = (): VoiceView => {
+    let microphonePermission: VoiceView["microphonePermission"] = "unknown";
+    try {
+      microphonePermission =
+        systemPreferences.getMediaAccessStatus("microphone");
+    } catch {
+      /* Unsupported OS stays unknown. */
+    }
+    try {
+      const status = voice().status();
+      return {
+        ...status,
+        supported: true,
+        enabled: status.available,
+        microphonePermission,
+      };
+    } catch {
+      let capturing: boolean | null = lastVoice ? null : false;
+      let transmitting: boolean | null = lastVoice ? null : false;
+      let error: string | null = null;
+      try {
+        if (lastVoice) {
+          const retained = lastVoice.status();
+          capturing = retained.capturing;
+          transmitting = retained.transmitting;
+          error = retained.error;
+        }
+      } catch {
+        error = "VOICE_STATUS_UNKNOWN";
+      }
+      return {
+        supported: false,
+        enabled: false,
+        phase: error ? "failed" : "disabled",
+        peerId: null,
+        callId: null,
+        capturing,
+        transmitting,
+        error,
+        microphonePermission,
+      };
+    }
+  };
+  let talkDesired = false,
+    talkLease: ReturnType<typeof setTimeout> | undefined;
+  const stopTalking = () => {
+    talkDesired = false;
+    clearTimeout(talkLease);
+    try {
+      const service = voice(),
+        callId = service.status().callId;
+      const mute = service.setTalking(false);
+      const watchdog = setTimeout(() => {
+        if (callId && service.status().callId === callId)
+          void service.hangup().catch(() => {});
+      }, 200);
+      void mute.then(
+        () => clearTimeout(watchdog),
+        () => clearTimeout(watchdog),
+      );
+    } catch {
+      /* Offline runtime already owns teardown. */
+    }
+  };
+  window.on("blur", stopTalking);
   const handle = (
     name: string,
     action: (request: unknown) => unknown | Promise<unknown>,
@@ -174,9 +251,21 @@ export async function createDesktop(
       if (tearingDown) throw new Error("DESKTOP_CLOSING");
       const priority =
         name === "companion:status" ||
+        name === "companion:voice" ||
         name === "companion:overlay" ||
         (name === "companion:overlay:mode" && request === false) ||
-        (name === "companion:network" && request === false);
+        (name === "companion:network" && request === false) ||
+        (name === "companion:voice:action" &&
+          !!request &&
+          typeof request === "object" &&
+          "action" in request &&
+          (request.action === "hangup" ||
+            (request.action === "consent" &&
+              "enabled" in request &&
+              request.enabled === false) ||
+            (request.action === "talk" &&
+              "pressed" in request &&
+              request.pressed === false)));
       if (!priority && activeRequests >= 16) throw new Error("REQUEST_QUOTA");
       if (!priority) activeRequests++;
       try {
@@ -188,6 +277,7 @@ export async function createDesktop(
   };
   handle("companion:status", (request) => {
     parseStatusRequest(request);
+    const microphone = voiceView().capturing;
     return {
       version: 1,
       session: logProvider.status().state,
@@ -195,9 +285,78 @@ export async function createDesktop(
       matching: sessions()?.status() ?? { state: "offline", participants: 0 },
       network: network.status().state,
       connection: network.status(),
-      microphone: "off",
+      microphone:
+        microphone === null ? "unknown" : microphone ? "capturing" : "off",
       preferences: preferences ? "ready" : "unavailable",
     };
+  });
+  handle("companion:voice", (request) => {
+    parseStatusRequest(request);
+    return voiceView();
+  });
+  handle("companion:voice:action", async (request) => {
+    const action = parseVoiceAction(request);
+    if (action.action === "consent" && action.enabled === false) {
+      stopTalking();
+      try {
+        voice().setConsent(false);
+      } catch {
+        /* Already offline. */
+      }
+      return voiceView();
+    }
+    const service = voice();
+    try {
+      if (action.action === "consent") {
+        if (!window.isFocused()) throw new Error("VOICE_WINDOW_NOT_FOCUSED");
+        service.setConsent(true);
+      } else if (action.action === "call") {
+        if (!window.isFocused()) throw new Error("VOICE_WINDOW_NOT_FOCUSED");
+        await service.dial(
+          messaging((messages) => messages.resolveContact(action.peerId)),
+          true,
+        );
+      } else if (action.action === "answer") {
+        if (!window.isFocused()) throw new Error("VOICE_WINDOW_NOT_FOCUSED");
+        await service.answer(action.callId, true);
+      } else if (action.action === "hangup") {
+        if (service.status().callId !== action.callId)
+          throw new Error("VOICE_STATE_MISMATCH");
+        stopTalking();
+        await service.hangup();
+      } else {
+        if (service.status().callId !== action.callId)
+          throw new Error("VOICE_STATE_MISMATCH");
+        if (!action.pressed) stopTalking();
+        else {
+          if (!window.isFocused()) throw new Error("VOICE_WINDOW_NOT_FOCUSED");
+          if (!action.start && !talkDesired)
+            throw new Error("VOICE_NOT_CONNECTED");
+          talkDesired = true;
+          clearTimeout(talkLease);
+          talkLease = setTimeout(stopTalking, 600);
+          await service.setTalking(true);
+          if (!talkDesired || !window.isFocused()) stopTalking();
+        }
+      }
+      return voiceView();
+    } catch (error) {
+      const code =
+        error instanceof Error &&
+        [
+          "VOICE_WINDOW_NOT_FOCUSED",
+          "VOICE_STATE_MISMATCH",
+          "VOICE_NOT_PERMITTED",
+          "VOICE_NOT_CONNECTED",
+          "VOICE_BUSY",
+          "CONTACT_NOT_DISCOVERED",
+          "MEDIA_PERMISSION_DENIED",
+          "MEDIA_DEVICE_UNAVAILABLE",
+        ].includes(error.message)
+          ? error.message
+          : "VOICE_ACTION_FAILED";
+      throw new Error(code);
+    }
   });
   handle("companion:overlay", (request) => {
     parseStatusRequest(request);
@@ -240,7 +399,10 @@ export async function createDesktop(
     if (typeof request !== "boolean")
       throw new Error("INVALID_NETWORK_PERMISSION");
     const revision = ++permissionRevision;
-    if (!request) network.setEnabled(false);
+    if (!request) {
+      stopTalking();
+      network.setEnabled(false);
+    }
     try {
       await preferences.update({ networkEnabled: request });
     } catch {
@@ -365,6 +527,8 @@ export async function createDesktop(
   let closing: Promise<void> | undefined;
   const close = (): Promise<void> => {
     tearingDown = true;
+    stopTalking();
+    window.removeListener("blur", stopTalking);
     overlay.close();
     powerMonitor.removeListener("suspend", suspend);
     powerMonitor.removeListener("resume", resume);

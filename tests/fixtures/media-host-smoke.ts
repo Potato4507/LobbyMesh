@@ -113,6 +113,18 @@ async function run() {
     );
     assert.ok((await left.metrics()).receivedPackets > 0);
     await right.setTalking(false);
+    await right.setTalking(true);
+    await delay(1050);
+    const leaseExpired = await Promise.all(
+      windows.map((window) =>
+        window.webContents.executeJavaScript("window.syntheticRms()"),
+      ),
+    );
+    assert.ok(
+      leaseExpired.every((value) => value < 0.00001),
+      "PTT lease must mute without a release packet",
+    );
+    assert.equal((await right.status()).transmitting, false);
     permitted = false;
     await assert.rejects(left.status(), /MEDIA_HOST_DENIED/);
     assert.equal(windows.filter((window) => window.isDestroyed()).length, 1);

@@ -224,14 +224,40 @@ test("failed capture teardown retains ownership, denies new calls and reports un
   left.setConsent(false);
   assert.equal(left.status().error, "MEDIA_TEARDOWN_FAILED");
   assert.equal(left.status().capturing, null);
+  assert.equal(left.status().transmitting, null);
   await assert.rejects(
     left.dial({ id: b, transportKey: keyB }, true),
     /VOICE_NOT_PERMITTED/,
   );
   assert.throws(() => left.setConsent(true), /MEDIA_TEARDOWN_FAILED/);
+  assert.throws(() => left.close(), /MEDIA_TEARDOWN_FAILED/);
   original.close = () => {
     original.closed = true;
   };
   left.close();
   assert.equal(original.closed, true);
+});
+test("late talk activation cannot overwrite a newer release", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  await delay(10);
+  const local = media[0];
+  assert.ok(local);
+  let finish: () => void = () => {};
+  local.setTalking = async (value: boolean) => {
+    if (value)
+      await new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    local.talking = value;
+  };
+  const press = left.setTalking(true);
+  await left.setTalking(false);
+  finish();
+  await press;
+  assert.equal(local.talking, false);
+  assert.equal(left.status().transmitting, false);
 });

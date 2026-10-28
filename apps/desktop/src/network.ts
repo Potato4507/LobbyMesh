@@ -100,11 +100,17 @@ export async function createDesktopNetwork(
         .filter((peer) => !policy.blocked(peer.id)).length,
     async stop() {
       const pairingStopped = pairing.close();
-      voice.close();
+      let voiceError: unknown;
+      try {
+        voice.close();
+      } catch (error) {
+        voiceError = error;
+      }
       messaging.close();
       // Revoke local session state immediately; remote copies expire if shutdown
       // prevents a tombstone reaching them. Never keep sockets alive for presence.
       await Promise.all([pairingStopped, sessions?.stop(), runtime.stop()]);
+      if (voiceError) throw voiceError;
     },
   };
 }

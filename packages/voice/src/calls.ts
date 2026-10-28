@@ -26,6 +26,8 @@ interface OwnedMedia {
   capturing: boolean | null;
   transmitting: boolean;
   polling: boolean;
+  talkRevision: number;
+  talkDesired: boolean;
 }
 
 // Main-process call lifecycle. Remote SDP can only enter through authenticated
@@ -105,6 +107,7 @@ export class VoiceCalls {
     try {
       owner.media.close();
       if (this.owner === owner) this.owner = undefined;
+      if (this.failure === "MEDIA_TEARDOWN_FAILED") this.failure = null;
     } catch {
       // Retain ownership when teardown cannot be confirmed; no subsequent call.
       this.enabled = false;
@@ -135,7 +138,7 @@ export class VoiceCalls {
     peerId: string | null;
     callId: string | null;
     capturing: boolean | null;
-    transmitting: boolean;
+    transmitting: boolean | null;
     error: string | null;
   } {
     this.policyChanged();
@@ -154,7 +157,10 @@ export class VoiceCalls {
         : this.failure === "MEDIA_TEARDOWN_FAILED"
           ? null
           : false,
-      transmitting: this.owner?.transmitting ?? false,
+      transmitting:
+        this.failure === "MEDIA_TEARDOWN_FAILED"
+          ? null
+          : (this.owner?.transmitting ?? false),
       error: this.failure,
     };
   }
@@ -179,6 +185,8 @@ export class VoiceCalls {
       capturing: null,
       transmitting: false,
       polling: false,
+      talkRevision: 0,
+      talkDesired: false,
     };
     this.owner = owner;
     this.failure = null;
@@ -358,9 +366,13 @@ export class VoiceCalls {
       typeof value !== "boolean"
     )
       throw new Error("VOICE_NOT_CONNECTED");
+    const revision = ++owner.talkRevision;
+    owner.talkDesired = value;
     try {
       await this.media(owner, () => owner.media.setTalking(value));
-      owner.transmitting = value;
+      if (revision === owner.talkRevision) owner.transmitting = value;
+      else if (!owner.talkDesired)
+        await this.media(owner, () => owner.media.setTalking(false));
     } catch (error) {
       this.stopWithError(owner, "MEDIA_TALK_FAILED");
       throw error;
@@ -379,5 +391,6 @@ export class VoiceCalls {
     clearTimeout(this.timer);
     if (this.owner) this.release(this.owner);
     this.signaling.close();
+    if (this.owner) throw new Error("MEDIA_TEARDOWN_FAILED");
   }
 }

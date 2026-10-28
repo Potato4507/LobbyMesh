@@ -4,6 +4,10 @@ import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
 import type { OverlayStatus } from "../../../packages/protocol/src/overlay.js";
 import type { ContactPreview } from "../../../packages/protocol/src/pairing.js";
 import type { Preferences } from "../../../packages/protocol/src/preferences.js";
+import type {
+  VoiceAction,
+  VoiceView,
+} from "../../../packages/protocol/src/voice.js";
 import type { DetectionStatus } from "../../../packages/session/src/windows-logs.js";
 import { Messages } from "./messages.js";
 import type { ContactView, MessageView } from "./messaging.js";
@@ -24,6 +28,8 @@ declare global {
         connection: NetworkStatus;
       }>;
       network(enabled: boolean): Promise<NetworkStatus>;
+      voice(): Promise<VoiceView>;
+      voiceAction(request: VoiceAction): Promise<VoiceView>;
       overlay(): Promise<OverlayStatus>;
       overlayMode(interactive: boolean): Promise<OverlayStatus>;
       messaging(): Promise<{ available: boolean; contacts: ContactView[] }>;
@@ -81,6 +87,7 @@ function App() {
   const [connection, setConnection] = useState<NetworkStatus | null>(null);
   const [detection, setDetection] = useState<DetectionStatus | null>(null);
   const [matching, setMatching] = useState<DesktopSessionStatus | null>(null);
+  const [microphone, setMicrophone] = useState("off");
   const [networkPending, setNetworkPending] = useState(false);
   const [networkNotice, setNetworkNotice] = useState("");
   const [pending, setPending] = useState(false),
@@ -93,6 +100,7 @@ function App() {
         setConnection(status.connection);
         setDetection(status.detection);
         setMatching(status.matching);
+        setMicrophone(status.microphone);
       }
       if (status.preferences !== "ready") throw new Error("UNAVAILABLE");
       const value = await window.companion.preferences();
@@ -123,6 +131,7 @@ function App() {
             setConnection(status.connection);
             setDetection(status.detection);
             setMatching(status.matching);
+            setMicrophone(status.microphone);
           }
         })
         .catch(() => {
@@ -273,7 +282,11 @@ function App() {
           />
           <strong>{state === "online" ? "Connected" : networkLabel}</strong>
           <p>
-            Microphone off
+            {microphone === "capturing"
+              ? "Microphone on"
+              : microphone === "unknown"
+                ? "Microphone state unknown"
+                : "Microphone off"}
             <br />
             Development preview
           </p>
@@ -305,7 +318,13 @@ function App() {
           </div>
           <div>
             <span className="status-label">Microphone</span>
-            <strong>Off</strong>
+            <strong id="microphoneStatus">
+              {microphone === "capturing"
+                ? "On · call in progress"
+                : microphone === "unknown"
+                  ? "Unknown"
+                  : "Off"}
+            </strong>
           </div>
         </section>
         {detection?.reason && (
@@ -406,8 +425,8 @@ function App() {
             <h2>Stay in control</h2>
             <p>
               Choose how you appear to other LobbyMesh participants. Session
-              detection reads local Windows player logs when enabled. Voice is
-              not yet available.
+              detection reads local Windows player logs when enabled. Voice
+              controls are in Conversations and reset when you disconnect.
             </p>
             {preferences && (
               <form
@@ -546,6 +565,8 @@ function App() {
         </div>
         <div id="view-messages" hidden={view !== "messages"}>
           <Messages
+            onMicrophone={setMicrophone}
+            active={view === "messages"}
             connection={connection}
             onAddContact={() => setView("preferences")}
           />

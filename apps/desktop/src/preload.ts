@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld(
       contextIsolated: process.contextIsolated === true,
     }),
     status: () => ipcRenderer.invoke("companion:status"),
+    voice: () => ipcRenderer.invoke("companion:voice"),
+    voiceAction: (request: unknown) =>
+      ipcRenderer.invoke("companion:voice:action", request),
     overlay: () => ipcRenderer.invoke("companion:overlay"),
     overlayMode: (interactive: unknown) =>
       ipcRenderer.invoke("companion:overlay:mode", interactive),
