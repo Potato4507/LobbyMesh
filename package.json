@@ -9,6 +9,8 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "package:win": "node scripts/package-windows.mjs",
+    "verify:package": "node scripts/verify-windows-package.mjs",
     "test": "tsx --test tests/*.test.ts tests/simulation/*.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",

@@ -1,5 +1,7 @@
 # Test matrix
 
+2026-10-28 Windows development packaging: full 93/93, typecheck/lint (100 files), build/native desktop smoke passed. Copied self-contained executable ran with app.isPackaged=true, isolated profile, protected credential reopen and default-off network/mic; module cache stayed inside packaged resources. Independent manifest integrity passed, tamper rejected, restored bytes passed. No installer/fresh-machine/signature/release claim. See evidence/windows-development-package.md.
+
 2026-10-28 desktop workspace: 93/93 plus typecheck/lint/build/native smoke passed. Native checks cover page visibility/focus/Enter activation, retained chat/preference drafts, explicit widget reorder/passive persistence, and all views without horizontal overflow at 720x600. Reviewed new workspace/overlay-settings screenshots and updated settings/chat/overlay screenshots; synthetic source boundaries remain. See evidence/desktop-navigation.md.
 
 2026-10-28 native RPC reliability: full 93/93, typecheck/lint (98 files)/build/native desktop smoke passed. Real two-process eight-PUT/eight-reverse-lookup burst reproduced a hello-stage timeout before mitigation; after bounded pre-request setup retry it passed with the failed attempt still visible. Six added diagnostic/retry cases include no retry on impostor, remote rejection or response timeout. See evidence/native-rpc-reliability.md. No root-cause/cross-NAT/persistent-reuse claim.

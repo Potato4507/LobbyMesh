@@ -2,6 +2,8 @@
 
 Read MASTER_PROMPT.md and IMPLEMENTATION_PLAN.md for scope. Resume using docs/STATUS.md.
 
+Local Windows x64 development package: `pnpm package:win` builds and smoke-tests a self-contained folder with LobbyMesh.exe; no Node installation is needed to run the copied app. Inspect `dist/windows-development-latest.json` for the generated path and `pnpm verify:package PATH` for file integrity. This remains an unsigned development build with no installer, update or public-distribution acceptance; see [release gates](docs/RELEASE.md).
+
 Desktop navigation: Overview controls connectivity; Conversations contains approved online chat; Preferences manages local presence/contact policy; Overlay configures widget visibility, order, position and opacity. Switching pages preserves unsent drafts and unsaved preferences. Voice and safe fresh-profile contact onboarding remain unfinished.
 
 Local detection diagnostic: `pnpm diagnose:session` reads supported Windows process metadata/player logs once, prints only redacted state/reason and whether a complete session was selected, then stops. Add `--follow` to wait up to 30s for bounded large-log catch-up. It changes no saved settings and starts no network. Latest live probe reports waiting with no selected session; positive real Roblox lifecycle acceptance remains unverified. See [source/catch-up evidence](docs/evidence/windows-log-catchup.md).
