@@ -72,7 +72,7 @@ function Overlay() {
     ),
     chat: () => (
       <div data-overlay-widget="chat">
-        <Messages connection={status?.connection ?? null} />
+        <Messages connection={status?.connection ?? null} compact />
       </div>
     ),
   };

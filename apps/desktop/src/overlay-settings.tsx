@@ -3,6 +3,7 @@ import {
   OVERLAY_WIDGETS,
   type OverlayPreferences,
   type OverlayStatus,
+  type OverlayWidget,
 } from "../../../packages/protocol/src/overlay.js";
 import type { Preferences } from "../../../packages/protocol/src/preferences.js";
 
@@ -58,6 +59,25 @@ export function OverlaySettings({
   }
   const overlay = preferences.overlay,
     locked = disabled || pending;
+  const labels: Record<OverlayWidget, string> = {
+    network: "Connection",
+    session: "Session presence",
+    chat: "Approved chat",
+  };
+  const orderedWidgets = [
+    ...overlay.widgets,
+    ...OVERLAY_WIDGETS.filter((widget) => !overlay.widgets.includes(widget)),
+  ];
+  function move(widget: OverlayWidget, direction: -1 | 1) {
+    const index = overlay.widgets.indexOf(widget),
+      destination = index + direction;
+    if (index < 0 || destination < 0 || destination >= overlay.widgets.length)
+      return;
+    const widgets = [...overlay.widgets];
+    widgets.splice(index, 1);
+    widgets.splice(destination, 0, widget);
+    void save({ ...overlay, widgets });
+  }
   return (
     <section className="panel" id="overlaySettings">
       <h2>In-game overlay</h2>
@@ -120,38 +140,61 @@ export function OverlaySettings({
       </div>
       <fieldset className="overlay-widgets">
         <legend>Overlay widgets</legend>
-        {OVERLAY_WIDGETS.map((widget) => (
-          <label className="check" key={widget}>
-            <input
-              type="checkbox"
-              data-widget={widget}
-              checked={overlay.widgets.includes(widget)}
-              disabled={
-                locked ||
-                (overlay.widgets.length === 1 &&
-                  overlay.widgets.includes(widget))
-              }
-              onChange={(event) => {
-                void save({
-                  ...overlay,
-                  widgets: event.target.checked
-                    ? [...overlay.widgets, widget]
-                    : overlay.widgets.filter((item) => item !== widget),
-                });
-              }}
-            />
-            <span>
-              {widget === "network"
-                ? "Connection"
-                : widget === "session"
-                  ? "Session presence"
-                  : "Approved chat"}
-            </span>
-          </label>
+        {orderedWidgets.map((widget) => (
+          <div className="widget-row" key={widget}>
+            <label className="check">
+              <input
+                type="checkbox"
+                data-widget={widget}
+                checked={overlay.widgets.includes(widget)}
+                disabled={
+                  locked ||
+                  (overlay.widgets.length === 1 &&
+                    overlay.widgets.includes(widget))
+                }
+                onChange={(event) => {
+                  void save({
+                    ...overlay,
+                    widgets: event.target.checked
+                      ? [...overlay.widgets, widget]
+                      : overlay.widgets.filter((item) => item !== widget),
+                  });
+                }}
+              />
+              <span>{labels[widget]}</span>
+            </label>
+            {overlay.widgets.includes(widget) && (
+              <div className="widget-order">
+                <button
+                  type="button"
+                  className="secondary"
+                  aria-label={`Move ${labels[widget]} up`}
+                  data-move-up={widget}
+                  disabled={locked || overlay.widgets.indexOf(widget) === 0}
+                  onClick={() => move(widget, -1)}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  aria-label={`Move ${labels[widget]} down`}
+                  disabled={
+                    locked ||
+                    overlay.widgets.indexOf(widget) ===
+                      overlay.widgets.length - 1
+                  }
+                  onClick={() => move(widget, 1)}
+                >
+                  ↓
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </fieldset>
       <p className="hint">
-        Widget order follows your selection order. Ctrl + Shift + Space toggles
+        Move widgets up or down to arrange them. Ctrl + Shift + Space toggles
         interaction; otherwise clicks pass through to your game. Voice is not
         yet available. Exclusive fullscreen may hide the overlay.
       </p>

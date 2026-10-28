@@ -2,7 +2,13 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
 import type { ContactView, MessageView } from "./messaging.js";
 
-export function Messages({ connection }: { connection: NetworkStatus | null }) {
+export function Messages({
+  connection,
+  compact = false,
+}: {
+  connection: NetworkStatus | null;
+  compact?: boolean;
+}) {
   const [available, setAvailable] = useState(false),
     [contacts, setContacts] = useState<ContactView[]>([]);
   const [selected, setSelected] = useState(""),
@@ -128,11 +134,13 @@ export function Messages({ connection }: { connection: NetworkStatus | null }) {
   return (
     <section id="messagesPanel" className="panel">
       <h2>Messages</h2>
-      <p className="hint">
-        Only locally approved app contacts can exchange messages. Messages stay
-        in memory for up to 15 minutes and are cleared when you disconnect. No
-        offline delivery.
-      </p>
+      {!compact && (
+        <p className="hint">
+          Only locally approved app contacts can exchange messages. Messages
+          stay in memory for up to 15 minutes and are cleared when you
+          disconnect. No offline delivery.
+        </p>
+      )}
       {connection?.state !== "online" ? (
         <p className="empty">Enable peer discovery to use messages.</p>
       ) : !available ? (
@@ -214,7 +222,7 @@ export function Messages({ connection }: { connection: NetworkStatus | null }) {
             <label htmlFor="messageDraft">Message</label>
             <textarea
               id="messageDraft"
-              rows={3}
+              rows={compact ? 2 : 3}
               maxLength={4096}
               value={draft}
               onChange={(event) => {

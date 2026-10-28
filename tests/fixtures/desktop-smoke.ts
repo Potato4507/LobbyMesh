@@ -170,6 +170,38 @@ async function run() {
       }
       throw new Error(`UI_WAIT_TIMEOUT: ${code}`);
     }
+    async function navigate(
+      view: "overview" | "messages" | "preferences" | "overlay",
+    ) {
+      await execute(`document.querySelector('[data-view=${view}]').click()`);
+      await until(
+        `document.querySelector('#view-${view}')?.checkVisibility() && document.activeElement?.id === 'viewTitle'`,
+      );
+      assert.equal(
+        await execute(
+          `document.querySelector('[data-view=${view}]').getAttribute('aria-current')`,
+        ),
+        "page",
+      );
+      assert.equal(
+        await execute(
+          "Array.from(document.querySelectorAll('[id^=view-]')).filter(v => v.checkVisibility()).length",
+        ),
+        1,
+      );
+    }
+    async function captureDesktop(filename: string) {
+      const window = desktop?.window;
+      assert.ok(window);
+      const visible = window.isVisible();
+      if (!visible) window.showInactive();
+      await delay(100);
+      await writeFile(
+        path.resolve(filename),
+        (await contents.capturePage()).toPNG(),
+      );
+      if (!visible) window.hide();
+    }
     await until(
       "document.querySelector('#displayName')?.value === 'LobbyMesh user'",
     );
@@ -229,6 +261,29 @@ async function run() {
     powerMonitor.emit("resume");
     await until("window.companion.status().then(s => s.network === 'online')");
     assert.equal(starts, 2);
+    desktop.window.show();
+    desktop.window.focus();
+    contents.focus();
+    await delay(50);
+    await execute("document.querySelector('[data-view=preferences]').focus()");
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Return" });
+    contents.sendInputEvent({ type: "char", keyCode: "\r" });
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Return" });
+    await until(
+      "document.querySelector('#view-preferences')?.checkVisibility() && document.activeElement?.id === 'viewTitle'",
+    );
+    desktop.window.hide();
+    await navigate("overview");
+    await until(
+      "document.querySelector('.workspace .badge')?.textContent === 'Connected'",
+    );
+    await execute(
+      "(() => { const label = document.createElement('p'); label.id='workspaceFixture'; label.className='eyebrow'; label.textContent='NATIVE UI FIXTURE · SYNTHETIC NETWORK'; document.querySelector('.workspace').prepend(label); })()",
+    );
+    await delay(100);
+    await captureDesktop("docs/evidence/lobbymesh-workspace-test.png");
+    await execute("document.querySelector('#workspaceFixture').remove()");
+    await navigate("messages");
     await until(
       `document.querySelector('#contactSelect')?.value === ${JSON.stringify(allowed)}`,
     );
@@ -239,6 +294,12 @@ async function run() {
       input.dispatchEvent(new Event('input', { bubbles: true }));
     })()`);
     await draft("native UI message");
+    await navigate("overview");
+    await navigate("messages");
+    assert.equal(
+      await execute("document.querySelector('#messageDraft').value"),
+      "native UI message",
+    );
     await until("!document.querySelector('#sendMessage').disabled");
     await execute("document.querySelector('#sendMessage').click()");
     await until(
@@ -249,8 +310,18 @@ async function run() {
       "native UI message",
     );
     if (process.platform === "win32") {
+      await navigate("overlay");
       await execute("document.querySelector('#overlayEnabled').click()");
       await until("window.companion.overlay().then(s => s.state === 'ready')");
+      await execute(
+        "(() => { const label = document.createElement('p'); label.className='eyebrow'; label.textContent='NATIVE UI FIXTURE'; document.querySelector('#overlaySettings').prepend(label); })()",
+      );
+      await delay(100);
+      await captureDesktop("docs/evidence/lobbymesh-overlay-settings-test.png");
+      await execute("document.querySelector('[data-move-up=chat]').click()");
+      await until(
+        "window.companion.preferences().then(p => p.overlay.widgets.join(',') === 'network,chat,session')",
+      );
       const overlayWindow = desktop.overlay.getWindow();
       assert.ok(overlayWindow);
       const overlayExecute = <T>(code: string): Promise<T> =>
@@ -262,6 +333,9 @@ async function run() {
         }
         throw new Error(`OVERLAY_UI_WAIT_TIMEOUT: ${code}`);
       };
+      await untilOverlay(
+        "Array.from(document.querySelectorAll('[data-overlay-widget]')).map(e => e.getAttribute('data-overlay-widget')).join(',') === 'network,chat,session'",
+      );
       await untilOverlay(
         "document.querySelector('#contactSelect')?.value.length === 64",
       );
@@ -318,6 +392,7 @@ async function run() {
         "window.companion.overlay().then(s => s.state === 'disabled')",
       );
       assert.equal(overlayWindow.isDestroyed(), true);
+      await navigate("messages");
     }
     assert.ok(messaging);
     const incoming: TextEnvelope = {
@@ -350,10 +425,7 @@ async function run() {
       "(() => { const label = document.createElement('p'); label.id = 'syntheticLabel'; label.className = 'eyebrow'; label.textContent = 'SYNTHETIC UI TEST · NO LIVE PEER'; document.querySelector('#messagesPanel').prepend(label); document.querySelector('#messagesPanel').scrollIntoView(); })()",
     );
     await delay(100);
-    await writeFile(
-      path.resolve("docs/evidence/lobbymesh-messaging-test.png"),
-      (await contents.capturePage()).toPNG(),
-    );
+    await captureDesktop("docs/evidence/lobbymesh-messaging-test.png");
     await execute(
       "document.querySelector('#syntheticLabel').remove(); document.querySelector('#clearMessages').click()",
     );
@@ -380,6 +452,7 @@ async function run() {
     await execute("window.companion.network(true)");
     await until("window.companion.status().then(s => s.network === 'online')");
     await execute("window.scrollTo(0, 0)");
+    await navigate("preferences");
     await execute(`(() => {
     const input = document.querySelector('#displayName');
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Local smoke test');
@@ -387,6 +460,18 @@ async function run() {
     document.querySelector('#sessionConsent').click();
   })()`);
     await until("!document.querySelector('button[type=submit]').disabled");
+    await navigate("overview");
+    await navigate("preferences");
+    assert.equal(
+      await execute("document.querySelector('#displayName').value"),
+      "Local smoke test",
+    );
+    assert.equal(
+      await execute(
+        "document.querySelector('[data-view=preferences]').getAttribute('aria-label')",
+      ),
+      "Preferences, unsaved changes",
+    );
     await execute("document.querySelector('button[type=submit]').click()");
     await until(
       "document.querySelector('#preferencesNotice')?.textContent.includes('Saved on this device')",
@@ -445,6 +530,7 @@ async function run() {
       ),
       [[], []],
     );
+    await navigate("overview");
     await execute("document.querySelector('#networkControl').click()");
     await until("window.companion.status().then(s => s.network === 'offline')");
     await until(
@@ -472,9 +558,26 @@ async function run() {
       ),
     );
     desktop.window.setContentSize(1080, 1280);
+    await navigate("preferences");
     await delay(100);
     const screenshot = path.resolve("docs/evidence/lobbymesh-settings.png");
-    await writeFile(screenshot, (await contents.capturePage()).toPNG());
+    await captureDesktop(screenshot);
+    desktop.window.setContentSize(720, 600);
+    for (const view of [
+      "overview",
+      "messages",
+      "preferences",
+      "overlay",
+    ] as const) {
+      await navigate(view);
+      assert.ok(
+        await execute(
+          "document.documentElement.scrollWidth <= document.documentElement.clientWidth",
+        ),
+        `horizontal overflow in ${view}`,
+      );
+    }
+    desktop.window.setContentSize(1080, 800);
     if (process.platform === "win32") {
       await execute(
         "window.companion.preferences().then(p => window.companion.updatePreferences({overlay:{...p.overlay,enabled:true}}))",
@@ -500,8 +603,8 @@ async function run() {
     if (process.platform === "win32") {
       assert.equal(desktop.overlay.getWindow()?.isFocusable(), false);
       assert.deepEqual(desktop.overlay.status().preferences.widgets, [
-        "session",
         "chat",
+        "session",
       ]);
       assert.equal(desktop.overlay.status().interactive, false);
     }
@@ -595,6 +698,7 @@ async function run() {
           "live-policy-callbacks",
           "electron-native-runtime-cancellation",
           "authorized-messaging-ui",
+          "desktop-navigation-focus-and-retained-drafts",
           "consent-controlled-log-session-matching",
           ...(process.platform === "win32"
             ? [
