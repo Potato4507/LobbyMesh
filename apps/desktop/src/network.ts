@@ -1,5 +1,6 @@
 import type { ManagedNetwork } from "../../../packages/app-dht/src/lifecycle.js";
 import { createOverlayRuntime } from "../../../packages/app-dht/src/runtime.js";
+import { VoiceSignaling } from "../../../packages/voice/src/signaling.js";
 import { loadDesktopCredentials } from "./credentials.js";
 import { DesktopMessaging, type MessagingPolicy } from "./messaging.js";
 import { DesktopPairing } from "./pairing.js";
@@ -10,6 +11,7 @@ export interface DesktopManagedNetwork extends ManagedNetwork {
   messaging: DesktopMessaging;
   sessions?: DesktopSessions;
   pairing?: DesktopPairing;
+  voice?: VoiceSignaling;
 }
 export type DesktopNetworkFactory = (
   signal: AbortSignal,
@@ -23,14 +25,27 @@ export async function createDesktopNetwork(
   sessionOptions?: DesktopSessionOptions,
 ): Promise<DesktopManagedNetwork> {
   let messaging: DesktopMessaging;
+  let voice: VoiceSignaling;
   const credentials = await loadDesktopCredentials(directory, signal);
   const runtime = await createOverlayRuntime(directory, {
     credentials,
     signal,
     blocked: policy.blocked,
     directHandler: (peer, request, requestSignal) =>
-      messaging.handle(peer, request, requestSignal),
+      request &&
+      typeof request === "object" &&
+      "type" in request &&
+      request.type === "voice"
+        ? voice.handle(peer, request, requestSignal)
+        : messaging.handle(peer, request, requestSignal),
   });
+  // No media adapter or renderer activation exists yet; default-deny signaling.
+  voice = new VoiceSignaling(
+    runtime.peerId,
+    (contact, request, requestSignal) =>
+      runtime.overlay.directRequest(contact, request, requestSignal),
+    { authorized: (id) => policy.authorized(id) && !policy.blocked(id) },
+  );
   messaging = new DesktopMessaging(
     runtime.peerId,
     (contact, request, requestSignal) =>
@@ -62,6 +77,7 @@ export async function createDesktopNetwork(
   return {
     messaging,
     pairing,
+    voice,
     ...(sessions ? { sessions } : {}),
     async start() {
       const report = await runtime.start();
@@ -76,6 +92,7 @@ export async function createDesktopNetwork(
         .filter((peer) => !policy.blocked(peer.id)).length,
     async stop() {
       const pairingStopped = pairing.close();
+      voice.close();
       messaging.close();
       // Revoke local session state immediately; remote copies expire if shutdown
       // prevents a tombstone reaching them. Never keep sockets alive for presence.

@@ -18,6 +18,7 @@ import {
   WindowsLogSessionProvider,
   windowsLogDirectories,
 } from "../../../packages/session/src/windows-logs.js";
+import { VoiceSignaling } from "../../../packages/voice/src/signaling.js";
 import { DesktopMessaging } from "./messaging.js";
 import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
 import { DesktopOverlay } from "./overlay-window.js";
@@ -295,6 +296,14 @@ export async function createDesktop(
       }
       const saving = preferences[action](peerId);
       if (action !== "unblock") {
+        try {
+          network.using((runtime) => {
+            if ("voice" in runtime && runtime.voice instanceof VoiceSignaling)
+              runtime.voice.policyChanged();
+          });
+        } catch {
+          /* Offline voice has already been closed. */
+        }
         try {
           messaging((service) => service.policyChanged(parsePeerId(peerId)));
         } catch {

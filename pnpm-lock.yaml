@@ -59,6 +59,8 @@ importers:
 
   packages/session: {}
 
+  packages/voice: {}
+
 packages:
 
   '@biomejs/biome@2.3.4':

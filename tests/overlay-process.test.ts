@@ -309,7 +309,59 @@ test(
     assert.equal(history[0]?.text, "synthetic encrypted text");
     assert.equal(history[0]?.peerId, infoA.id);
     assert.equal(history[0]?.direction, "incoming");
+    // Real encrypted control transport, synthetic SDP/ICE only: no media device.
+    await assert.rejects(
+      a.command("voice-offer", { peerId: infoB.id, key: infoB.key }),
+      /VOICE_DISABLED/,
+    );
+    await a.command("voice-enable");
+    await assert.rejects(
+      a.command("voice-offer", { peerId: infoB.id, key: infoB.key }),
+      /REMOTE_RPC_REJECTED/,
+    );
+    await b.command("voice-enable");
+    const callId = await a.command("voice-offer", {
+      peerId: infoB.id,
+      key: infoB.key,
+    });
+    assert.equal(
+      ((await b.command("voice-status")) as { phase: string }).phase,
+      "ringing",
+    );
+    assert.equal(
+      ((await b.command("voice-events")) as { op: string }[])[0]?.op,
+      "offer",
+    );
+    await b.command("voice-answer", { callId });
+    assert.equal(
+      ((await a.command("voice-status")) as { phase: string }).phase,
+      "negotiating",
+    );
+    await a.command("voice-ice", { callId });
+    assert.equal(
+      ((await b.command("voice-events")) as { op: string }[])[0]?.op,
+      "ice",
+    );
+    await a.command("voice-hangup", { callId });
+    assert.equal(
+      ((await b.command("voice-status")) as { phase: string }).phase,
+      "idle",
+    );
+    const revokedCall = await a.command("voice-offer", {
+      peerId: infoB.id,
+      key: infoB.key,
+    });
     await b.command("direct-deny", { peerId: infoA.id });
+    assert.equal(
+      ((await b.command("voice-status")) as { phase: string }).phase,
+      "idle",
+    );
+    assert.deepEqual(await b.command("voice-events"), []);
+    await assert.rejects(
+      b.command("voice-answer", { callId: revokedCall }),
+      /VOICE_STATE_MISMATCH/,
+    );
+    await a.command("voice-hangup", { callId: revokedCall }).catch(() => {});
     await assert.rejects(
       a.command("direct-send", { peerId: infoB.id, key: infoB.key }),
       /DELIVERY_UNCONFIRMED/,

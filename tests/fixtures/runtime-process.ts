@@ -8,17 +8,30 @@ import { signRecord } from "../../packages/security/src/records.js";
 import { SessionCoordinator } from "../../packages/session/src/coordinator.js";
 import { MockSessionProvider } from "../../packages/session/src/index.js";
 import { SessionMembership } from "../../packages/session/src/matching.js";
+import { VoiceSignaling } from "../../packages/voice/src/signaling.js";
 
 const directory = await mkdtemp(path.join(tmpdir(), "lobbymesh-runtime-"));
 let messenger: DesktopMessaging;
+let voice: VoiceSignaling;
 const authorized = new Set<string>();
 const runtime = await createOverlayRuntime(directory, {
   ...(process.argv[2] === "public"
     ? {}
     : { bootstrap: [process.argv[2] ?? ""] }),
   directHandler: (peer, request, signal) =>
-    messenger.handle(peer, request, signal),
+    request &&
+    typeof request === "object" &&
+    "type" in request &&
+    request.type === "voice"
+      ? voice.handle(peer, request, signal)
+      : messenger.handle(peer, request, signal),
 });
+voice = new VoiceSignaling(
+  runtime.peerId,
+  (contact, request, signal) =>
+    runtime.overlay.directRequest(contact, request, signal),
+  { authorized: (id) => authorized.has(id), mediaAvailable: () => true },
+);
 messenger = new DesktopMessaging(
   runtime.peerId,
   (contact, request, signal) =>
@@ -66,9 +79,38 @@ process.on(
     text?: string;
     code?: string;
     ticket?: string;
+    callId?: string;
   }) => {
     void (async () => {
       switch (message.op) {
+        case "voice-enable":
+          voice.setConsent(true);
+          return voice.status();
+        case "voice-offer":
+          return voice.offer(
+            { id: message.peerId ?? "", transportKey: message.key },
+            "synthetic SDP offer, no media",
+          );
+        case "voice-answer":
+          await voice.answer(
+            message.callId ?? "",
+            "synthetic SDP answer, no media",
+          );
+          return voice.status();
+        case "voice-ice":
+          await voice.ice(message.callId ?? "", {
+            candidate: "synthetic candidate, no media",
+            sdpMid: "0",
+            sdpMLineIndex: 0,
+          });
+          return true;
+        case "voice-hangup":
+          await voice.hangup(message.callId ?? "");
+          return voice.status();
+        case "voice-status":
+          return voice.status();
+        case "voice-events":
+          return voice.drainEvents();
         case "pairing-code":
           return pairing.create();
         case "pairing-preview":
@@ -86,6 +128,7 @@ process.on(
           return true;
         case "direct-deny":
           authorized.delete(message.peerId ?? "");
+          voice.policyChanged();
           messenger.policyChanged(message.peerId ?? "");
           return true;
         case "direct-history":
@@ -130,6 +173,7 @@ process.on(
         case "contacts":
           return runtime.overlay.authenticatedContacts().map((c) => c.id);
         case "stop":
+          voice.close();
           await pairing.close();
           messenger.close();
           await sessions.stop();

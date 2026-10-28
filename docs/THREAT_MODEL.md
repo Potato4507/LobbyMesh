@@ -1,5 +1,7 @@
 # Development threat boundaries
 
+Voice control is partial: default-denied without trusted media adapter plus local consent, strict bounded identity/call-bound offer/answer/ICE/hangup over authenticated direct transport, explicit answer and abortable negotiation. The controller does not validate browser SDP semantics, bind DTLS media fingerprints or capture audio. Future media integration must preserve identity binding, permission and teardown, prevent address/SDP logging or unapproved capture, and handle glare/group/active-call state. No working voice controls or voice security acceptance are claimed. See evidence/voice-signaling.md.
+
 Untrusted peers can forge room claims, create Sybil keys, spam routing tables, replay records, withhold results, and exhaust resources. App keys prove possession only; they do not establish Roblox account, age or trusted room membership. DHT membership is not authorization. Direct peers can observe network addresses. Public infrastructure availability is external.
 
 Implemented boundaries: versioned authenticated Noise RPC with app-key binding, quotas/deadlines and signed ephemeral records; narrow main-frame IPC; networking initially off; microphone permissions denied/no audio capture. Persistent local contact policy defaults deny independently of session/discovery. Windows desktop secrets use OS protection without plaintext fallback. Existing development loaders/tests remain explicitly separate. Node OpenSSL Ed25519; no custom cryptography.
