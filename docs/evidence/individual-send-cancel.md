@@ -12,3 +12,5 @@ Windows Node24.22.1/Electron45.1.0 observations:
 - Final focused native process reran after adding spacing and the accessible ambiguity hint. Reviewed lobbymesh-send-cancel-test.png at capture size: explicitly synthetic, visible per-row control and hint, no overlap. Unrelated generated screenshots restored from the clean baseline.
 
 Prior source1583e3d Ubuntu40959714858 passed. Historical native transport intermittency remains unresolved. Authorized read-only Pi hostname probe again unavailable; no inventory, install or privilege/network changes. Physical audio/game/LAN/NAT/remote receipt acceptance remains unverified.
+
+Follow-up: runtime7a39fad Ubuntu40960335423 passed and clean unsigned Windows package independently pin-verified; exact summary windows-send-control-package-summary.json. Added native trusted-overlay IPC check: bound stale request returns canceled:false and extra transport field rejects INVALID_MESSAGE_CANCEL, complementing actual main-frame cancellation and foreign-frame denial. This is a test-only follow-up; no packaged runtime change. Both authorized Pi targets unavailable this continuation, with no raw endpoint retained here.

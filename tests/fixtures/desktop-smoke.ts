@@ -1020,6 +1020,18 @@ async function run() {
       assert.ok(overlayWindow);
       const overlayExecute = <T>(code: string): Promise<T> =>
         overlayWindow.webContents.executeJavaScript(code);
+      assert.deepEqual(
+        await overlayExecute(
+          `window.companion.cancelMessage(${JSON.stringify({ peerId: allowed, localId: "0".repeat(32) })})`,
+        ),
+        { canceled: false },
+      );
+      assert.equal(
+        await overlayExecute(
+          `window.companion.cancelMessage(${JSON.stringify({ peerId: allowed, localId: "0".repeat(32), transportKey: "private" })}).then(()=>false,e=>e.message.includes('INVALID_MESSAGE_CANCEL'))`,
+        ),
+        true,
+      );
       const untilOverlay = async (code: string) => {
         for (let n = 0; n < 250; n++) {
           if (await overlayExecute<boolean>(code)) return;

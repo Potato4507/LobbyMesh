@@ -1,4 +1,20 @@
-# Active checkpoint — 2026-10-29, message privacy and cleanup
+# Active checkpoint — 2026-10-29, local send controls
+
+Verified clean runtime/source HEAD7a39fad51e2c5a5234686e2016d2a6100f289f67, pushed on codex/lobbymesh-pi-lab-and-reliability (origin Potato4507/Roblox-app). Source Ubuntu40960335423 passed; prior1583e3d/40959714858 also passed. Subsequent test/docs checkpoint adds overlay validation, not runtime behavior. No initial user edits were present; no reset/main/PR/release/dependency/OS changes.
+
+Implemented fixed local unconfirmed failure reason/stage, immutable history projection, per-row Stop send, exact peer/local ID binding and owned-controller cancellation. Trusted main/overlay priority IPC survives full16-slot ordinary quota; unknown/repeated/settled false and malformed/foreign denied. Draft and cancellation notice retained; no remote erase/nonreceipt/read claim. Lost-ACK UNIT fixture proves accepted peer copies remain after cancellation and another local send continues. Focused10/10/full172/172/typecheck/lint176/build; native desktop main/conversation/protected reopen and final focused hint/spacing check pass. Additional native overlay path check added afterward, tested with unchanged process deadlines. Reviewed explicitly synthetic send-cancel screenshot; restored unrelated generated screenshots. Evidence: delivery-failure-reasons.md and individual-send-cancel.md.
+
+Current artifact dist/LobbyMesh-win32-x64-1793310282201/LobbyMesh.exe, clean7a39fad,656 files/415647018 bytes/56 dependency copies. Copied executable/default network+mic off/protected reopen and pinned manifest pass. SHA2568adf1159b3b179cfbe993fa6ddbc70a8d21c7a2b5a445e871e26fda7925258fd; retained evidence/windows-send-control-package-summary.json. NotSigned. No installer/fresh-machine/packaged pair/physical audio/Roblox/LAN/NAT/release-ready claim. Authorized hostname and historical overlay-address doctor probes unavailable this continuation; no Pi facts/install/privilege/network changes. Historical native hello/queue and text-delivery intermittency remains unresolved despite current green runs.
+
+Next3 actions superseding older commands below:
+
+```powershell
+git status --short --branch; git log -5 --oneline
+pnpm verify:package D:\LobbyMesh\dist\LobbyMesh-win32-x64-1793310282201 --manifest-sha256 8adf1159b3b179cfbe993fa6ddbc70a8d21c7a2b5a445e871e26fda7925258fd
+Get-Content packages/session/src/windows-logs.ts; Get-Content tests/windows-logs.test.ts
+```
+
+Next concrete balanced implementation: review supported session-source process/log recovery and desktop visibility of waiting/stale/ambiguous/unavailable/consent-withdrawal, reproduce a source-backed gap and implement it without adding manual IDs or platform identity/age proof. Use current STATUS/source, not historical checkpoints below. Maintain voice/overlay/network safety and unresolved real-device/release gates.
 
 Continuation source parent1583e3d44a6ac5845f9be7d6170196dc08f498ee, pushed; Ubuntu40959714858 passed. Individual Stop send now exact peer/local ID bound, locally authorized, priority main/overlay IPC; repeated/stale false, malformed/foreign denied. Aborts one controller and labels canceled/unconfirmed without peer erase/nonreceipt claims; draft and caution notice retained. Focused10/10/full172/172/typecheck/lint176/build and native desktop main/conversation/protected reopen pass. Final focused native process reran after spacing/accessible hint; new screenshot explicitly synthetic and reviewed. All unrelated generated screenshots restored. See evidence/individual-send-cancel.md. Next commit runtime changes, package from a clean commit, pin-check and record actual source/CI. Current packaged runtime2c0e517 is historical. Authorized Pi hostname again unavailable; no host install/network/privilege changes. Native intermittency still unresolved despite source CI green.
 
