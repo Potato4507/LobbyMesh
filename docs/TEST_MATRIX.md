@@ -1,3 +1,7 @@
+# 2026-10-29 headless lab continuation
+
+130/130 Windows tests, typecheck/lint152/build pass. New independent ephemeral headless peers use production signed pairing/Noise/text; explicit driver8/8 ACKs, history counts, revoke denial, mic off, cleanup ACK + exit0. SAME_HOST only; optional strict SSH path unverified, no Pi target. CLI/command/quotas and aggregate-only metrics documented in evidence/headless-lab.md. Existing native replica/burst assertions remain strict; latest failed Linux Actions runs diagnosed and retained there, no claim that flakiness is fixed.
+
 # Test matrix
 Voice quality Windows package: package:win and independent verify:package dist/LobbyMesh-win32-x64-1793234611537 pass from clean013ba60,656 files/415587215 bytes. Actual copied executable sandbox/context isolation/default network+mic off/protected reopen confirmed. NotSigned/no installer/packaged-pair/hardware acceptance. See windows-quality-package-summary.json.
 Final optional-stats contention tests: native browser injects stalled getStats ->500ms unknown/no second native job/connected -> release and recover. Native host accepts one optional plus four ordinary commands concurrently without teardown. Full128/128/typecheck/lint146/build and independent-client crash rerun pass after this refinement; measured RTT0ms/jitter0ms/loss0, observed cleanup11131ms. Regular command quota/capture enforcement retained.

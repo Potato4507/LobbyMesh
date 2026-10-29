@@ -16,6 +16,24 @@ sudo bash labs/pi/netlab.sh profile typical
 sudo bash labs/pi/netlab.sh destroy
 ```
 
-To run a test peer inside a namespace, use `ip netns exec lmx-a` or `lmx-b` with a **non-root** process identity and an isolated profile; supply the real code-driven CLI once Codex implements a headless peer harness. The current repository does **not** yet include a verified cross-machine orchestration command. Do not invent a non-existent `pnpm test:pi` or claim it passed.
+To run a test peer inside a namespace, use `ip netns exec lmx-a` or `lmx-b` with a **non-root** process identity. The implemented headless peer keeps independent app/transport credentials only in memory. It imports production runtime, pairing and messaging; it never loads Electron or captures audio. See [headless protocol and evidence](../../docs/evidence/headless-lab.md).
+
+After read-only inventory and any necessary device authorization, start an explicitly bounded private bootstrap on an operator-selected reachable interface:
+
+```bash
+pnpm lab:peer --mode bootstrap --host LAB_INTERFACE_IPV4 --port 49737 --duration-ms 120000
+```
+
+Keep its stdin open until the run ends. `LAB_INTERFACE_IPV4` is a placeholder, never a committed home address. On Windows, with an existing authorized SSH alias/known host and this checkout + pinned dependencies already present on the worker:
+
+```text
+pnpm lab:pair --bootstrap LAB_INTERFACE_IPV4:49737 --ssh-target AUTHORIZED_ALIAS --remote-root /absolute/checkout --count 4
+```
+
+This runs one local and one SSH stdio-controlled peer, authenticates independent signed invitations, approves only ephemeral lab identities, exchanges four acknowledged synthetic messages each way, verifies incoming history and revoked-contact denial, then confirms cleanup. SSH uses BatchMode, strict known-host checking and a five-second connect timeout; it installs nothing. Without SSH options both peers run locally. Counts are limited to 1–8 per direction to stay below production text quotas. No public bootstrap fallback is permitted. Lifetime is 120 seconds by default, bounded to 1–600 seconds for standalone peers; EOF/SIGINT/SIGTERM stop owned resources. `stop` is also an explicit JSONL operation.
+
+JSONL operations are exact `{id,op}` (`status`, `code`, `stop`) or `{id,op,value}` (`preview`, `approve`, `send`, `history`, `revoke`). IDs are positive safe integers; values are bounded to 4096 UTF-8 bytes, total buffered input 8192 bytes, one operation at a time. Control output includes ephemeral public identities/invitations and synthetic messages; **do not retain it as evidence**. The pair runner exports only aggregate metrics, never endpoints/invitations/content/SSH targets. SSH mode reports `REMOTE_UNCLASSIFIED` until actual physical inventory/topology is independently established; it cannot assert distinct computers from an SSH connection alone.
+
+For the virtual lab use the same peers inside client namespaces and an explicitly addressed bootstrap inside transit, under unprivileged identities after approved setup. The runner/SSH path has not been tested on a Pi; ARM native dependency availability, kernel setup, LAN and virtual-NAT acceptance remain unverified. Voice signaling, restart/rekey scenarios and 100+ connection stress remain follow-up work.
 
 The virtual WAN is isolated on a single Linux kernel. It models private subnets, stateful SNAT/inbound filtering and impairments, not arbitrary real carrier-grade NAT, full symmetric NAT or two ISPs. Same home LAN cross-device tests are a separate evidence tier. Do not put the user's personal SSH endpoint, peer private keys or network captures in test artifacts.

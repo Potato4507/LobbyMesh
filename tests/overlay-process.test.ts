@@ -134,12 +134,17 @@ test(
     assert.ok((contactsC as string[]).includes(infoB.id));
     assert.ok(((await a.command("contacts")) as string[]).includes(infoC.id));
     const key = "ab".repeat(32);
+    const replication = await a.command("put", {
+      key,
+      content: "real Noise / synthetic session",
+    });
+    const replicationDiagnostics = await Promise.all(
+      [a, b, c].map((peer) => peer.command("diagnostics")),
+    );
     assert.deepEqual(
-      await a.command("put", {
-        key,
-        content: "real Noise / synthetic session",
-      }),
+      replication,
       { replicas: 2, failures: 0 },
+      JSON.stringify({ replicationDiagnostics }),
     );
     const records = (await c.command("get", { key })) as RecordV1[];
     assert.equal(records.length, 1);
