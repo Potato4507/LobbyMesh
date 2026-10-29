@@ -1,4 +1,26 @@
-# Active checkpoint — 2026-10-29, microphone gain and native setup recovery
+# Active checkpoint — 2026-10-29, conversation safety
+
+`D:\LobbyMesh`, branch `codex/lobbymesh-pi-lab-and-reliability`, origin Potato4507/Roblox-app. Verified source HEAD at recording: `6bfe192ddbe48d0c854026f3245b4b91e5059603`, pushed. Working tree was clean before adding package summary/recovery documentation. The following documentation checkpoint is a descendant; `git log -1` gives its exact tip. No reset/main push/PR/release/OS networking or dependency change.
+
+Implemented immediate Conversations blocking through existing persistent policy; block/revoke bypass full ordinary IPC slots after trusted sender validation. Call/capture teardown, send cancellation and local conversation purge remain backend-owned. Local selection/draft/history invalidate immediately; late polls cannot restore old history. Policy responses merge only allowed/blocked fields and preserve dirty preferences; separate contact pending state. Preference block/remove remain available with dirty edits. Unconfirmed save messages make no persistence claim. App-key blocking does not establish Roblox identity/age or moderation coverage.
+
+Verified: full148/148 Node tests, typecheck/lint/build; native desktop/protected reopen. Native test starts a synthetic call, holds16 sends, confirms ordinary preferences IPC returns REQUEST_QUOTA, blocks from Conversations, then verifies capture/call cleared, sends settled, text/history denied, network still online and unsaved display name retained without persistence until explicit save. Unblock remains unauthorized. Reviewed messaging screenshot; unrelated regenerated screenshots restored. See evidence/conversation-blocking.md. Source6bfe192 Ubuntu40871397902 passed; historical native intermittency remains open.
+
+Prior failure37130e6/Ubuntu40869369544 retained inbound evidence: receiver accepted only3 initial successful transactions while opposite received18; no admission/policy/quota rejection. Two reverse hello stalls exhaust3s lookup budget. Read-only published6.35.0 tarball SHA512 verified against registry metadata, inspected connect.js/server.js/errors.js matched installed bytes exactly; no package extracted/installed or source edited. Registry latest also6.35.0. Similar upstream issue304 remains open; common cause is plausible, not independently established. Do not relax native assertions/deadlines or repeatedly rerun unchanged failures.
+
+Latest Windows artifact: `dist/LobbyMesh-win32-x64-1793275961403/LobbyMesh.exe` from clean6bfe192,656 files/415608978 bytes/56 dependency copies. Actual copied executable sandbox/default network+mic off/protected reopen and independent integrity pass; NotSigned. Exact manifest SHA in evidence/windows-contact-safety-package-summary.json. No installer, fresh-machine, packaged pair, physical audio, actual Roblox, physical LAN/virtual NAT/external or release-ready claim. Pi doctor attempted once this continuation using existing authorized target; LAB_HOST_UNAVAILABLE. No device facts or host changes.
+
+Next three actions from this directory:
+
+```powershell
+git status --short --branch; git log -5 --oneline
+pnpm typecheck; pnpm lint; pnpm exec tsx --test tests/preferences.test.ts tests/desktop-messaging.test.ts tests/rpc-diagnostics.test.ts
+Get-Content docs/evidence/conversation-blocking.md; Get-Content docs/evidence/native-setup-abort.md
+```
+
+Then inspect current CI before choosing transport work. Continue a distinct unblocked product increment, such as explicit input-device handling or local abuse/privacy controls, with main-window consent, no report-upload service and no new identity/age proof claims. Pi privileged lab still requires reachable authorized SSH plus explicit machine-level privilege authorization. Existing creator/hardware/installer/signing/license gates remain incomplete. No intentional test processes remain. Historical checkpoints below are preserved and superseded here.
+
+# Historical checkpoint — microphone gain and native setup recovery
 
 Checkout `D:\LobbyMesh`, branch `codex/lobbymesh-pi-lab-and-reliability`, origin Potato4507/Roblox-app. Current source HEAD at this recording: `9500ff4e323bf625a9fb904fbf9202b1bd439e4a`, pushed; working tree clean before this documentation checkpoint. This header supersedes older entries below. Use `git log -1` for the final documentation tip. No main mutation, rewrite, PR, public release, system install or network change.
 
