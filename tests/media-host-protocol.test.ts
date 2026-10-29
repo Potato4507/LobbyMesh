@@ -10,6 +10,35 @@ import {
 const id = "a".repeat(32);
 test("media commands and replies reject coercion, unknown fields, oversize and invalid consent", () => {
   const command = { id, op: "offer", data: true };
+  assert.equal(
+    parseMediaCommand({ id, op: "input-choices", data: null }).op,
+    "input-choices",
+  );
+  for (const choice of ["system-default", "b".repeat(32)]) {
+    assert.equal(
+      parseMediaCommand({ id, op: "switch-input", data: choice }).data,
+      choice,
+    );
+    assert.equal(validMediaResult("switch-input", null), true);
+  }
+  for (const data of [null, "hardware-id", { deviceId: "private" }, true])
+    assert.throws(() => parseMediaCommand({ id, op: "switch-input", data }));
+  assert.equal(
+    validMediaResult("input-choices", {
+      available: false,
+      choices: [{ id: "system-default", label: "System default" }],
+      selected: "system-default",
+    }),
+    true,
+  );
+  assert.equal(
+    validMediaResult("input-choices", {
+      available: true,
+      choices: [{ id: "hardware-id", label: "Microphone" }],
+      selected: null,
+    }),
+    false,
+  );
   for (const data of [0, 0.25, 1, 2]) {
     assert.equal(parseMediaCommand({ id, op: "input-gain", data }).data, data);
     assert.equal(validMediaResult("input-gain", null), true);

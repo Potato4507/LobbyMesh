@@ -4,6 +4,13 @@ const context = new AudioContext();
 let analyser: AnalyserNode | undefined;
 const owner = installMediaOwner({
   outputVolume: 0,
+  enumerateInputs: async () => [
+    {
+      kind: "audioinput",
+      deviceId: "private-synthetic-device",
+      label: "Synthetic microphone",
+    },
+  ],
   capture: async () => {
     await context.resume();
     const oscillator = context.createOscillator(),

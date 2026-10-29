@@ -3,6 +3,7 @@ import type {
   VoiceAction,
   VoiceView,
 } from "../../../packages/protocol/src/voice.js";
+import { CallDevices } from "./call-devices.js";
 import { CallInput } from "./call-input.js";
 import { CallOutput } from "./call-output.js";
 
@@ -324,6 +325,9 @@ export function VoiceControls({
               : "Microphone on · transmission muted"
             : "Microphone off"}
       </p>
+      {voice?.callId && (connected || voice.phase === "preparing") && (
+        <CallDevices key={`devices-${voice.callId}`} voice={voice} />
+      )}
       {connected && voice && (
         <CallInput key={`input-${voice.callId}`} voice={voice} />
       )}

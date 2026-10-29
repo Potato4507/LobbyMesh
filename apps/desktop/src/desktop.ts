@@ -321,6 +321,23 @@ export async function createDesktop(
     parseStatusRequest(request);
     return voiceView();
   });
+  handle("companion:voice:inputs", async (request) => {
+    if (
+      !request ||
+      typeof request !== "object" ||
+      Array.isArray(request) ||
+      Object.keys(request).join(",") !== "callId" ||
+      !("callId" in request) ||
+      typeof request.callId !== "string" ||
+      !/^[a-f0-9]{32}$/.test(request.callId)
+    )
+      throw new Error("INVALID_INPUT_REQUEST");
+    if (!window.isFocused()) throw new Error("VOICE_WINDOW_NOT_FOCUSED");
+    const service = voice();
+    if (service.status().callId !== request.callId)
+      throw new Error("VOICE_STATE_MISMATCH");
+    return service.inputChoices();
+  });
   handle("companion:voice:action", async (request) => {
     const action = parseVoiceAction(request);
     if (action.action === "consent" && action.enabled === false) {
@@ -351,6 +368,12 @@ export async function createDesktop(
           throw new Error("VOICE_STATE_MISMATCH");
         stopTalking();
         await service.hangup();
+      } else if (action.action === "switch-input") {
+        if (!window.isFocused()) throw new Error("VOICE_WINDOW_NOT_FOCUSED");
+        if (service.status().callId !== action.callId)
+          throw new Error("VOICE_STATE_MISMATCH");
+        stopTalking();
+        await service.switchInput(action.choice, true);
       } else if (action.action === "input-gain") {
         if (service.status().callId !== action.callId)
           throw new Error("VOICE_STATE_MISMATCH");

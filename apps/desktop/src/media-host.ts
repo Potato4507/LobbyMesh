@@ -8,6 +8,7 @@ import {
   type Session,
   session,
 } from "electron";
+import type { InputOptions } from "../../../packages/voice/src/inputs.js";
 import {
   MEDIA_COMMAND,
   MEDIA_REPLY,
@@ -101,7 +102,14 @@ export class DesktopMediaHost {
         clearTimeout(pending.timer);
         const reason = mediaError(result.data);
         pending.reject(new Error(reason));
-        if (reason !== "MEDIA_NOT_CONNECTED") this.close();
+        if (
+          reason !== "MEDIA_NOT_CONNECTED" &&
+          !(
+            pending.op === "switch-input" &&
+            reason === "MEDIA_INPUT_CHOICE_EXPIRED"
+          )
+        )
+          this.close();
         return;
       }
       if (!validMediaResult(pending.op, result.data))
@@ -280,6 +288,12 @@ export class DesktopMediaHost {
   }
   async setInputGain(value: number): Promise<void> {
     await this.command("input-gain", value);
+  }
+  async inputChoices(): Promise<InputOptions> {
+    return (await this.command("input-choices", null)) as InputOptions;
+  }
+  async switchInput(choice: string): Promise<void> {
+    await this.command("switch-input", choice);
   }
   async status(): Promise<{
     phase: string;

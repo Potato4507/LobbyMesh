@@ -2,6 +2,7 @@ import {
   AudioPeer,
   type AudioPeerOptions,
 } from "../../../packages/voice/src/audio-peer.js";
+import { InputRegistry } from "../../../packages/voice/src/inputs.js";
 import {
   type MediaOutput,
   type MediaReply,
@@ -17,6 +18,9 @@ interface MediaBridge {
 export function installMediaOwner(
   options: {
     capture?: AudioPeerOptions["capture"];
+    enumerateInputs?: () => Promise<
+      readonly { kind: string; deviceId: string; label: string }[]
+    >;
     outputVolume?: number;
     onRemoteStream?: (stream: MediaStream) => void;
   } = {},
@@ -33,7 +37,22 @@ export function installMediaOwner(
     outputGain: GainNode | undefined,
     outputAnalyser: AnalyserNode | undefined;
   let output: MediaOutput = { volume: 1, muted: false };
+  const inputs = new InputRegistry(
+    options.enumerateInputs ??
+      (() => navigator.mediaDevices.enumerateDevices()),
+    () =>
+      Array.from(crypto.getRandomValues(new Uint8Array(16)), (value) =>
+        value.toString(16).padStart(2, "0"),
+      ).join(""),
+  );
+  const invalidateInputs = () => inputs.invalidate();
+  navigator.mediaDevices?.addEventListener("devicechange", invalidateInputs);
   const close = () => {
+    inputs.close();
+    navigator.mediaDevices?.removeEventListener(
+      "devicechange",
+      invalidateInputs,
+    );
     clearTimeout(talkLease);
     closed = true;
     if (outputGain) outputGain.gain.value = 0;
@@ -143,6 +162,20 @@ export function installMediaOwner(
             if (!peer) throw new Error("MEDIA_NOT_READY");
             peer.setInputGain(command.data as number);
             break;
+          case "input-choices":
+            if (!peer || peer.status().phase !== "connected")
+              throw new Error("MEDIA_NOT_CONNECTED");
+            data = await inputs.refresh();
+            break;
+          case "switch-input": {
+            if (!peer) throw new Error("MEDIA_NOT_READY");
+            clearTimeout(talkLease);
+            peer.setTalking(false);
+            const raw = inputs.resolve(command.data as string);
+            await peer.switchInput(raw);
+            inputs.select(raw);
+            break;
+          }
           case "metrics":
             if (!peer) throw new Error("MEDIA_NOT_READY");
             data = await peer.metrics();
@@ -153,7 +186,14 @@ export function installMediaOwner(
         const reason = mediaError(
           error instanceof Error ? error.message : null,
         );
-        if (reason !== "MEDIA_NOT_CONNECTED") close();
+        if (
+          reason !== "MEDIA_NOT_CONNECTED" &&
+          !(
+            command.op === "switch-input" &&
+            reason === "MEDIA_INPUT_CHOICE_EXPIRED"
+          )
+        )
+          close();
         bridge.reply({
           id: command.id,
           ok: false,

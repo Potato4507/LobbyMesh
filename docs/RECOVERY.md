@@ -1,4 +1,24 @@
-# Active checkpoint — 2026-10-29, conversation safety
+# Active checkpoint — 2026-10-29, microphone selection
+
+`D:\LobbyMesh`, branch `codex/lobbymesh-pi-lab-and-reliability`, origin Potato4507/Roblox-app. Source parent at recordingeda1e32; the following feature commit contains the owned input-device changes and this note. Use `git log -1` for exact current tip. Previous meter760db2c and PTT-orderingeda1e32 were pushed and passed Ubuntu CI40890243020/40890790590. Remote fetched with no newer changes. No reset/main push/PR/release/dependency or OS networking change.
+
+Explicit connected-call microphone selection implemented through exact focused main IPC; labels and ephemeral tokens only, raw browser IDs stay inside sandboxed media owner. Enumerate only on explicit refresh, max128 records/32 choices/80-character labels,1000ms retained single-flight. Hardware tokens rotate on refresh and revoke on devicechange/close. Stop PTT/main lease and old raw+processed tracks before replacement; same RTP connection/gain retained and fresh PTT required. Expired choices reject without call teardown; capture/replacement failure and late result close safely. See evidence/microphone-device-switching.md and input-device-native-summary.json. Physical devices remain unverified; browser visibility/OS permission may make enumeration unavailable.
+
+Verified Windows Node24.22.1/Electron45.1.0: full158/158; typecheck/lint168/build; native audio/host/authenticated-call/UI/protected-reopen. Native injected switch cancellation,1000ms timeout and device failure stop late streams. Rebuilt final renderer and reran native desktop after styling change; reviewed final voice screenshot; restored unrelated generated PNGs from known clean owned baseline. Working tree was clean before this feature; stage only owned files. Next package must use clean feature commit.
+
+Most recent pre-feature package: dist/LobbyMesh-win32-x64-1793283737665/LobbyMesh.exe, cleaneda1e321a2345a2de83e8c994d641c4933a0094c,656 files/415613934 bytes/56 dependency copies. Actual copied executable/default-off/protected reopen and independent integrity passed; NotSigned. Supersede with a new clean package including device selection and record versioned summary. No installer/fresh-machine/physical audio/game/LAN/NAT/release-ready claim. Authorized Pi doctor most recent attempt LAB_HOST_UNAVAILABLE; no Pi installs/network changes. HyperDHT half-open hello/queue intermittency is unresolved despite three current green source runs; strict tests/deadlines retained.
+
+Next three actions from this directory:
+
+```powershell
+git status --short --branch; git log -5 --oneline
+pnpm package:win
+Get-Content dist/windows-development-latest.json
+```
+
+Then independently verify the exact new package, record its manifest digest and inspect CI at the feature SHA. Continue a distinct unblocked product dependency; global PTT/game, contact safety/identity, real device/LAN/NAT and signing/license/fresh-machine acceptance remain open. No intentional test processes remain.
+
+# Historical checkpoint — conversation safety
 
 `D:\LobbyMesh`, branch `codex/lobbymesh-pi-lab-and-reliability`, origin Potato4507/Roblox-app. Verified source HEAD at recording: `6bfe192ddbe48d0c854026f3245b4b91e5059603`, pushed. Working tree was clean before adding package summary/recovery documentation. The following documentation checkpoint is a descendant; `git log -1` gives its exact tip. No reset/main push/PR/release/OS networking or dependency change.
 

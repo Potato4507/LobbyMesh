@@ -33,7 +33,8 @@ export type VoiceAction =
   | { action: "hangup"; callId: string | null }
   | { action: "talk"; callId: string; pressed: boolean; start: boolean }
   | { action: "output"; callId: string; volume: number; muted: boolean }
-  | { action: "input-gain"; callId: string; gain: number };
+  | { action: "input-gain"; callId: string; gain: number }
+  | { action: "switch-input"; callId: string; choice: string; consent: true };
 export function parseVoiceAction(value: unknown): VoiceAction {
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new Error("INVALID_VOICE_ACTION");
@@ -72,6 +73,13 @@ export function parseVoiceAction(value: unknown): VoiceAction {
       Number.isFinite(action.gain) &&
       action.gain >= 0 &&
       action.gain <= 2) ||
+    (action.action === "switch-input" &&
+      keys === "action,callId,choice,consent" &&
+      callId(action.callId) &&
+      action.consent === true &&
+      typeof action.choice === "string" &&
+      (action.choice === "system-default" ||
+        /^[a-f0-9]{32}$/.test(action.choice))) ||
     (action.action === "talk" &&
       keys === "action,callId,pressed,start" &&
       callId(action.callId) &&

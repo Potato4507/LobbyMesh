@@ -172,6 +172,19 @@ async function run() {
           talking = value;
         },
         async setOutput(_volume: number, _muted: boolean) {},
+        async inputChoices() {
+          return {
+            available: true,
+            choices: [
+              { id: "system-default", label: "System default" },
+              { id: "f".repeat(32), label: "Synthetic microphone" },
+            ],
+            selected: "system-default",
+          };
+        },
+        async switchInput(_choice: string) {
+          talking = false;
+        },
         async setInputGain(value: number) {
           if (local && holdVoiceInput && value === 0)
             await new Promise<void>(() => {});
@@ -518,6 +531,45 @@ async function run() {
       "(() => { const input=document.querySelector('#callInputGain'); for(const value of ['140','90','0','25']) {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true}));}})()",
     );
     await until("window.companion.voice().then(s=>s.inputGain === 0.25)");
+    await execute(
+      "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Refresh microphones').click()",
+    );
+    await until(
+      "document.querySelectorAll('#callMicrophone option').length === 2",
+    );
+    await execute(
+      "(() => {const select=document.querySelector('#callMicrophone'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'f'.repeat(32)); select.dispatchEvent(new Event('change',{bubbles:true}));})()",
+    );
+    await execute(
+      "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Use microphone').click()",
+    );
+    await until(
+      "document.querySelector('#callDevices output')?.textContent.includes('Press Hold to talk again')",
+    );
+    assert.equal(
+      await execute(
+        "window.companion.voice().then(s=>s.phase==='connected' && !s.transmitting && s.inputGain===0.25)",
+      ),
+      true,
+    );
+    assert.equal(
+      await execute(
+        "window.companion.voiceInputs({callId:'0'.repeat(32)}).then(()=>false,()=>true)",
+      ),
+      true,
+    );
+    assert.equal(
+      await execute(
+        "window.companion.voice().then(s=>window.companion.voiceInputs({callId:s.callId,extra:true})).then(()=>false,()=>true)",
+      ),
+      true,
+    );
+    assert.equal(
+      await execute(
+        "window.companion.voiceAction({action:'switch-input',callId:'0'.repeat(32),choice:'system-default',consent:true}).then(()=>false,()=>true)",
+      ),
+      true,
+    );
     assert.equal(
       (await execute<{ transmitting: boolean }>("window.companion.voice()"))
         .transmitting,
@@ -550,6 +602,21 @@ async function run() {
       "document.querySelector('#callInputLevel') === null && document.querySelector('#voiceState')?.textContent === 'Connected'",
     );
     inputActivityMode = "measured";
+    await execute(
+      "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Use microphone').click()",
+    );
+    await until(
+      "window.companion.voice().then(s=>s.phase==='connected' && !s.transmitting)",
+    );
+    await delay(600);
+    assert.equal(
+      await execute("window.companion.voice().then(s=>s.transmitting)"),
+      false,
+    );
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    await execute("document.querySelector('#pushToTalk').focus()");
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.transmitting)");
     await delay(900);
     assert.equal(
       (await execute<{ transmitting: boolean }>("window.companion.voice()"))
@@ -671,6 +738,12 @@ async function run() {
     await delay(60);
     await execute(
       "(() => { const label=document.createElement('p'); label.className='eyebrow'; label.textContent='SYNTHETIC VOICE · NO MICROPHONE OR NETWORK'; document.querySelector('#voicePanel').prepend(label); document.querySelector('#voicePanel').scrollIntoView(); })()",
+    );
+    await execute(
+      "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Refresh microphones').click()",
+    );
+    await until(
+      "document.querySelectorAll('#callMicrophone option').length === 2",
     );
     await captureDesktop("docs/evidence/lobbymesh-voice-test.png");
     await execute("document.querySelector('#pushToTalk').focus()");
@@ -1364,6 +1437,7 @@ async function run() {
           "call-output-volume-mute-and-unknown-level",
           "call-input-gain-coalesced-reset-and-stale-id-denied",
           "input-activity-meter-peak-and-unknown-without-call-failure",
+          "explicit-input-device-selection-current-call-and-fresh-ptt",
           "input-zero-stall-stops-capture",
           "local-call-quality-measured-and-unavailable-without-call-failure",
           "voice-focus-loss-page-change-and-stalled-mute-teardown",

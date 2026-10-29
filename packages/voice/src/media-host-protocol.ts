@@ -1,4 +1,5 @@
 import { validInputActivity } from "./input-activity.js";
+import { validInputChoice, validInputOptions } from "./inputs.js";
 import { validMediaQuality } from "./quality.js";
 export const MEDIA_COMMAND = "companion:media:command";
 export const MEDIA_REPLY = "companion:media:reply";
@@ -15,6 +16,7 @@ export function mediaError(value: unknown): string {
       "MEDIA_CONNECTION_FAILED",
       "MEDIA_NOT_CONNECTED",
       "MEDIA_OUTPUT_FAILED",
+      "MEDIA_INPUT_CHOICE_EXPIRED",
     ].includes(value)
     ? value
     : "MEDIA_COMMAND_FAILED";
@@ -26,6 +28,8 @@ export type MediaOperation =
   | "talk"
   | "output"
   | "input-gain"
+  | "input-choices"
+  | "switch-input"
   | "status"
   | "metrics"
   | "quality";
@@ -76,6 +80,8 @@ export function parseMediaCommand(value: unknown): MediaCommand {
       "talk",
       "output",
       "input-gain",
+      "input-choices",
+      "switch-input",
       "status",
       "metrics",
       "quality",
@@ -83,22 +89,26 @@ export function parseMediaCommand(value: unknown): MediaCommand {
   )
     throw new Error("INVALID_MEDIA_COMMAND");
   if (
-    command.op === "offer"
-      ? command.data !== true
-      : command.op === "talk"
-        ? typeof command.data !== "boolean"
-        : command.op === "input-gain"
-          ? typeof command.data !== "number" ||
-            !Number.isFinite(command.data) ||
-            command.data < 0 ||
-            command.data > 2
-          : command.op === "output"
-            ? !validMediaOutput(command.data)
-            : ["status", "metrics", "quality"].includes(command.op)
-              ? command.data !== null
-              : typeof command.data !== "string" ||
-                !command.data.length ||
-                new TextEncoder().encode(command.data).length > 12_288
+    command.op === "switch-input"
+      ? !validInputChoice(command.data)
+      : command.op === "offer"
+        ? command.data !== true
+        : command.op === "talk"
+          ? typeof command.data !== "boolean"
+          : command.op === "input-gain"
+            ? typeof command.data !== "number" ||
+              !Number.isFinite(command.data) ||
+              command.data < 0 ||
+              command.data > 2
+            : command.op === "output"
+              ? !validMediaOutput(command.data)
+              : ["status", "metrics", "quality", "input-choices"].includes(
+                    command.op,
+                  )
+                ? command.data !== null
+                : typeof command.data !== "string" ||
+                  !command.data.length ||
+                  new TextEncoder().encode(command.data).length > 12_288
   )
     throw new Error("INVALID_MEDIA_COMMAND");
   return { ...command };
@@ -121,6 +131,7 @@ export function parseMediaReply(value: unknown): MediaReply {
   return { ...reply };
 }
 export function validMediaResult(op: MediaOperation, data: unknown): boolean {
+  if (op === "input-choices") return validInputOptions(data);
   if (op === "quality") return validMediaQuality(data);
   if (op === "offer" || op === "answer")
     return (
@@ -132,7 +143,8 @@ export function validMediaResult(op: MediaOperation, data: unknown): boolean {
     op === "talk" ||
     op === "accept-answer" ||
     op === "output" ||
-    op === "input-gain"
+    op === "input-gain" ||
+    op === "switch-input"
   )
     return data === null;
   if (!data || typeof data !== "object" || Array.isArray(data)) return false;

@@ -11,6 +11,7 @@ async function run() {
     sources: OscillatorNode[] = [],
     tracks: MediaStreamTrack[] = [];
   let captures = 0;
+  let replacingOutgoing: MediaStreamTrack | undefined;
   const analysers: AnalyserNode[] = [];
   const sinks: HTMLAudioElement[] = [];
   const rms = () => {
@@ -28,6 +29,25 @@ async function run() {
       "AUDIO_ONLY_CONSTRAINTS",
     );
     captures++;
+    if (
+      constraints.audio &&
+      typeof constraints.audio === "object" &&
+      constraints.audio.deviceId
+    ) {
+      check(
+        JSON.stringify(constraints.audio.deviceId) ===
+          JSON.stringify({ exact: "synthetic-second" }),
+        "WRONG_EXACT_DEVICE",
+      );
+      check(
+        tracks[0]?.readyState === "ended",
+        "OLD_SOURCE_LIVE_DURING_SWITCH_CAPTURE",
+      );
+      check(
+        replacingOutgoing?.readyState === "ended",
+        "OLD_PROCESSED_LIVE_DURING_SWITCH_CAPTURE",
+      );
+    }
     const source = context.createOscillator(),
       destination = context.createMediaStreamDestination();
     source.frequency.value = 440;
@@ -262,6 +282,29 @@ async function run() {
     await delay(400);
     const releasedRms = rms();
     check(releasedRms < 0.00001, "AUDIO_AFTER_PTT_RELEASE");
+    const previousOutgoing = connection.getSenders()[0]?.track;
+    replacingOutgoing = previousOutgoing ?? undefined;
+    left.setInputGain(0.25);
+    left.setTalking(true);
+    await left.switchInput("synthetic-second");
+    check(
+      tracks[0]?.readyState === "ended" &&
+        previousOutgoing?.readyState === "ended",
+      "SWITCH_OLD_TRACKS_NOT_STOPPED",
+    );
+    check(
+      left.status().phase === "connected" &&
+        left.status().capturing &&
+        !left.status().transmitting,
+      "SWITCH_REARMED_OR_DROPPED_CALL",
+    );
+    await delay(400);
+    check(rms() < 0.00001, "SWITCH_AUDIO_WITHOUT_FRESH_PRESS");
+    left.setTalking(true);
+    await delay(400);
+    const switchedRms = rms();
+    check(switchedRms > 0.05 && switchedRms < 0.3, "SWITCH_GAIN_NOT_PRESERVED");
+    left.setTalking(false);
     const nativeStats = connection.getStats.bind(connection);
     const measuredReport = await nativeStats();
     let statsJobs = 0;
@@ -331,6 +374,8 @@ async function run() {
       check(caller.status().transmitting, "INTERRUPTION_CALL_NOT_TALKING");
       const source = tracks[offset];
       check(source, "INTERRUPTION_SOURCE_MISSING");
+      const processed = (caller as unknown as { processed: MediaStream })
+        .processed;
       if (interrupt === "source-muted") source.dispatchEvent(new Event("mute"));
       else if (interrupt === "source-ended")
         source.dispatchEvent(new Event("ended"));
@@ -360,8 +405,6 @@ async function run() {
           source.onended === null,
         "INTERRUPTION_REARMED_CAPTURE",
       );
-      const processed = (caller as unknown as { processed: MediaStream })
-        .processed;
       check(
         processed
           .getTracks()
@@ -375,6 +418,66 @@ async function run() {
         check(
           error instanceof Error && error.message === "MEDIA_CLOSED",
           "INTERRUPTION_WRONG_REJECTION",
+        );
+      }
+      recipient.close();
+    }
+    for (const mode of ["cancel", "timeout", "device-failure"] as const) {
+      let switching = false;
+      let finish: (stream: MediaStream) => void = () => {};
+      const caller = create(
+          () => true,
+          (constraints) => {
+            if (!switching) return capture(constraints);
+            if (mode === "device-failure")
+              return Promise.reject(
+                new DOMException(
+                  "synthetic device removal",
+                  "NotReadableError",
+                ),
+              );
+            return new Promise<MediaStream>((resolve) => {
+              finish = resolve;
+            });
+          },
+          1000,
+        ),
+        recipient = create(() => true);
+      const offer = await caller.offer(true);
+      const answer = await recipient.answer(offer, true);
+      await caller.acceptAnswer(answer);
+      const deadline = performance.now() + 7000;
+      while (
+        caller.status().phase !== "connected" &&
+        performance.now() < deadline
+      )
+        await delay(25);
+      check(
+        caller.status().phase === "connected",
+        "SWITCH_FAULT_NOT_CONNECTED",
+      );
+      caller.setTalking(true);
+      switching = true;
+      const pending = caller.switchInput(undefined);
+      const failed = pending.then(
+        () => {
+          throw new Error("SWITCH_FAULT_ACCEPTED");
+        },
+        () => {},
+      );
+      if (mode === "cancel") caller.close();
+      await failed;
+      check(
+        !caller.status().capturing && !caller.status().transmitting,
+        "SWITCH_FAULT_CAPTURE_ACTIVE",
+      );
+      if (mode !== "device-failure") {
+        const lateStream = await capture({ audio: {}, video: false });
+        finish(lateStream);
+        await delay(0);
+        check(
+          lateStream.getTracks().every((track) => track.readyState === "ended"),
+          "LATE_SWITCH_CAPTURE_LEAK",
         );
       }
       recipient.close();
@@ -483,6 +586,13 @@ async function run() {
         "initial-muted",
       ],
       releasedRms,
+      inputSwitch: {
+        oldTracksStopped: true,
+        mutedUntilFreshPress: true,
+        gainPreserved: true,
+        switchedRms,
+        faultCleanup: ["cancel", "timeout", "device-failure"],
+      },
       microphone: false,
       audibleOutput: false,
       crossNat: false,

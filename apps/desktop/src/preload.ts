@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld(
     voice: () => ipcRenderer.invoke("companion:voice"),
     voiceAction: (request: unknown) =>
       ipcRenderer.invoke("companion:voice:action", request),
+    voiceInputs: (request: unknown) =>
+      ipcRenderer.invoke("companion:voice:inputs", request),
     overlay: () => ipcRenderer.invoke("companion:overlay"),
     overlayVoice: () => ipcRenderer.invoke("companion:overlay:voice"),
     endOverlayCall: (request: unknown) =>

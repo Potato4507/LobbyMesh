@@ -64,6 +64,24 @@ async function run() {
     )
       await delay(25);
     assert.equal((await left.status()).phase, "connected");
+    const inputOptions = await left.inputChoices();
+    assert.equal(inputOptions.available, true);
+    assert.equal(inputOptions.choices.length, 2);
+    assert.ok(
+      !JSON.stringify(inputOptions).includes("private-synthetic-device"),
+    );
+    const oldChoice = inputOptions.choices[1]?.id;
+    assert.ok(oldChoice);
+    await left.inputChoices();
+    await assert.rejects(
+      left.switchInput(oldChoice),
+      /MEDIA_INPUT_CHOICE_EXPIRED/,
+    );
+    assert.equal((await left.status()).phase, "connected");
+    await left.setTalking(true);
+    await left.switchInput("system-default");
+    assert.equal((await left.status()).phase, "connected");
+    assert.equal((await left.status()).transmitting, false);
     await delay(300);
     const muted = await Promise.all(
       windows.map((window) =>
@@ -307,6 +325,9 @@ async function run() {
         receivedPackets: metrics.receivedPackets,
         quality,
         foreignReadyRejected: true,
+        inputChoices:
+          "opaque-rotating-tokens-stale-rejected-without-call-failure",
+        inputSwitch: "same-call-muted-until-fresh-press",
         microphone: false,
         audibleOutput: false,
       }),

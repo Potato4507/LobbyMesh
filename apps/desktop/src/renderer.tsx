@@ -33,6 +33,9 @@ declare global {
       network(enabled: boolean): Promise<NetworkStatus>;
       voice(): Promise<VoiceView>;
       voiceAction(request: VoiceAction): Promise<VoiceView>;
+      voiceInputs(request: {
+        callId: string;
+      }): Promise<import("../../../packages/voice/src/inputs.js").InputOptions>;
       overlay(): Promise<OverlayStatus>;
       overlayVoice(): Promise<OverlayVoiceView>;
       endOverlayCall(request: { callId: string }): Promise<OverlayVoiceView>;

@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 explicit microphone selection: full158/158/typecheck/lint168/build and native audio/host/authenticated-call/UI/protected reopen pass. Opaque rotating choices, exact main IPC, stale rejection without teardown, same-call replacement, gain preservation, fresh PTT, old-track stop-before-capture and cancellation/timeout/device-failure late cleanup covered. Synthetic SAME_PROCESS only; physical enumeration/device/hotplug remains unverified. See evidence/microphone-device-switching.md.
+
 2026-10-29 PTT status ordering: reproduce stale reply overriding newer release (true vs false); fix retains command revision for activation and release with subsequent polls held, stale input activity discarded. Focused19/19/full153/153/typecheck/lint/build/native call/UI/protected reopen pass; evidence/ptt-status-ordering.md. Actual native capture controls unchanged.
 
 2026-10-29 input activity: full152/152/typecheck/lint/build and native audio/host/call/UI/protected reopen/independent crash pass. Tests cover bounded/no-muted sampling, exact paired scalars, malformed/throwing/nonfinite activity, cache expiry/replacement, measured gain/peak/unknown and unchanged PTT/capture. Synthetic SAME_PROCESS/SAME_HOST only; see evidence/microphone-input-activity.md.

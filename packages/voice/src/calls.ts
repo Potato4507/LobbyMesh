@@ -6,6 +6,11 @@ import {
   validInputActivity,
 } from "./input-activity.js";
 import {
+  type InputOptions,
+  validInputChoice,
+  validInputOptions,
+} from "./inputs.js";
+import {
   type MediaQuality,
   unknownMediaQuality,
   validMediaQuality,
@@ -19,6 +24,8 @@ export interface CallMedia {
   setTalking(value: boolean): Promise<void>;
   setOutput(volume: number, muted: boolean): Promise<void>;
   setInputGain(value: number): Promise<void>;
+  inputChoices(): Promise<InputOptions>;
+  switchInput(choice: string): Promise<void>;
   quality?(): Promise<MediaQuality>;
   status(): Promise<{
     phase: string;
@@ -49,6 +56,8 @@ interface OwnedMedia {
   outputPending: boolean;
   inputGain: number;
   inputPending: boolean;
+  inputSwitching: boolean;
+  inputOptionsPending: boolean;
   inputActivity: InputActivity;
   inputActivityAt: number;
   outputLevel: number | null;
@@ -184,7 +193,7 @@ export class VoiceCalls {
       available: control.available && this.enabled,
       phase: this.failure
         ? "failed"
-        : this.owner && !this.owner.callId
+        : this.owner && (!this.owner.callId || this.owner.inputSwitching)
           ? "preparing"
           : this.owner?.mediaPhase === "reconnecting"
             ? "reconnecting"
@@ -251,6 +260,8 @@ export class VoiceCalls {
       outputPending: false,
       inputGain: 1,
       inputPending: false,
+      inputSwitching: false,
+      inputOptionsPending: false,
       inputActivity: unknownInputActivity(),
       inputActivityAt: 0,
       outputLevel: null,
@@ -502,6 +513,7 @@ export class VoiceCalls {
       !owner.callId ||
       this.signaling.status().phase !== "connected" ||
       (value === true && owner.mediaPhase !== "connected") ||
+      (value === true && owner.inputSwitching) ||
       typeof value !== "boolean"
     )
       throw new Error("VOICE_NOT_CONNECTED");
@@ -556,6 +568,7 @@ export class VoiceCalls {
     if (!Number.isFinite(value) || value < 0 || value > 2)
       throw new Error("INVALID_CALL_INPUT_GAIN");
     const owner = this.owner;
+    if (owner?.inputSwitching) throw new Error("INPUT_CHANGE_PENDING");
     if (!owner || this.signaling.status().phase !== "connected")
       throw new Error("VOICE_NOT_CONNECTED");
     if (owner.inputPending) throw new Error("INPUT_UPDATE_PENDING");
@@ -578,5 +591,58 @@ export class VoiceCalls {
     if (this.owner) this.release(this.owner);
     this.signaling.close();
     if (this.owner) throw new Error("MEDIA_TEARDOWN_FAILED");
+  }
+  async inputChoices(): Promise<InputOptions> {
+    const owner = this.owner;
+    if (
+      !owner ||
+      owner.inputSwitching ||
+      this.signaling.status().phase !== "connected"
+    )
+      throw new Error("VOICE_NOT_CONNECTED");
+    if (owner.inputOptionsPending) throw new Error("INPUT_LIST_PENDING");
+    owner.inputOptionsPending = true;
+    try {
+      const value = await this.media(owner, () => owner.media.inputChoices());
+      if (!validInputOptions(value)) {
+        this.stopWithError(owner, "MEDIA_INPUT_OPTIONS_INVALID");
+        throw new Error("MEDIA_INPUT_OPTIONS_INVALID");
+      }
+      return { ...value, choices: value.choices.map((v) => ({ ...v })) };
+    } finally {
+      owner.inputOptionsPending = false;
+    }
+  }
+  async switchInput(choice: string, consent: boolean): Promise<void> {
+    if (consent !== true || !validInputChoice(choice))
+      throw new Error("INVALID_INPUT_CHANGE");
+    const owner = this.owner;
+    if (!owner || this.signaling.status().phase !== "connected")
+      throw new Error("VOICE_NOT_CONNECTED");
+    if (owner.inputSwitching || owner.inputPending)
+      throw new Error("INPUT_CHANGE_PENDING");
+    owner.inputSwitching = true;
+    owner.talkRevision++;
+    owner.talkDesired = false;
+    owner.inputActivity = unknownInputActivity();
+    owner.inputActivityAt = 0;
+    try {
+      await this.media(owner, () => owner.media.setTalking(false));
+      owner.transmitting = false;
+      await this.media(owner, () => owner.media.switchInput(choice));
+      owner.mediaPhase = "connected";
+      owner.capturing = true;
+    } catch (error) {
+      if (
+        !(
+          error instanceof Error &&
+          error.message === "MEDIA_INPUT_CHOICE_EXPIRED"
+        )
+      )
+        this.stopWithError(owner, "MEDIA_INPUT_SWITCH_FAILED");
+      throw error;
+    } finally {
+      owner.inputSwitching = false;
+    }
   }
 }

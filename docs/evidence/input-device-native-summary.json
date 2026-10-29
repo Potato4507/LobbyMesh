@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-29",
+  "tier": "SAME_PROCESS",
+  "electron": "45.1.0",
+  "node": "24.22.1",
+  "unit": { "passed": 158, "failed": 0 },
+  "audio": {
+    "result": "synthetic-audio-passed",
+    "oldRawAndProcessedTracksEndedBeforeNewCapture": true,
+    "sameConnection": true,
+    "mutedUntilFreshPress": true,
+    "quarterGainDecodedRms": 0.17761474555532303,
+    "faultCleanup": ["cancel", "timeout", "device-failure"],
+    "lateCaptureStopped": true
+  },
+  "mediaHost": {
+    "result": "media-host-passed",
+    "opaqueRotatingTokens": true,
+    "staleChoiceRejectedWithoutCallFailure": true,
+    "systemDefaultSwitch": true
+  },
+  "desktop": {
+    "result": "passed",
+    "explicitRefreshAndSelection": true,
+    "currentCallAndExactRequest": true,
+    "heldRenewalCannotRearm": true,
+    "protectedCredentialReopen": "passed",
+    "reviewedScreenshot": "lobbymesh-voice-test.png"
+  },
+  "authenticatedNativeCall": "passed",
+  "limits": [
+    "synthetic-sources",
+    "no-physical-enumeration-acceptance",
+    "no-physical-audio",
+    "no-actual-Roblox",
+    "no-physical-LAN-or-NAT"
+  ]
+}

@@ -41,6 +41,16 @@ function fixture(
       },
       async setOutput(_volume: number, _muted: boolean) {},
       async setInputGain(_value: number) {},
+      async inputChoices() {
+        return {
+          available: true,
+          choices: [{ id: "system-default", label: "System default" }],
+          selected: "system-default",
+        };
+      },
+      async switchInput(_choice: string) {
+        value.talking = false;
+      },
       async status() {
         return {
           phase: value.phase,
@@ -124,6 +134,101 @@ test("call coordinator never creates incoming media before local answer and clos
   assert.ok(media.every((value) => value.closed));
   assert.equal(left.status().phase, "idle");
   assert.equal(right.status().phase, "idle");
+});
+test("input switching requires consent, serializes changes, retains gain, stays muted and ignores stale choices", async (t) => {
+  const { left, right, media } = fixture(t);
+  await assert.rejects(left.inputChoices(), /VOICE_NOT_CONNECTED/);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  await delay(10);
+  const owner = media[0];
+  assert.ok(owner);
+  await left.setInputGain(0.25);
+  await left.setTalking(true);
+  await assert.rejects(
+    left.switchInput("system-default", false),
+    /INVALID_INPUT_CHANGE/,
+  );
+  assert.equal(owner.talking, true);
+  let finish: () => void = () => {};
+  owner.switchInput = () =>
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+  const pending = left.switchInput("system-default", true);
+  await delay(0);
+  assert.equal(owner.talking, false);
+  assert.equal(left.status().phase, "preparing");
+  await assert.rejects(left.setTalking(true), /VOICE_NOT_CONNECTED/);
+  await assert.rejects(left.setInputGain(1), /INPUT_CHANGE_PENDING/);
+  await assert.rejects(
+    left.switchInput("system-default", true),
+    /INPUT_CHANGE_PENDING/,
+  );
+  finish();
+  await pending;
+  assert.equal(left.status().callId, id);
+  assert.equal(left.status().inputGain, 0.25);
+  assert.equal(left.status().transmitting, false);
+  owner.switchInput = async () => {
+    throw new Error("MEDIA_INPUT_CHOICE_EXPIRED");
+  };
+  await assert.rejects(left.switchInput("e".repeat(32), true), /EXPIRED/);
+  assert.equal(owner.closed, false);
+  assert.equal(left.status().phase, "connected");
+  await left.setTalking(true);
+  assert.equal(owner.talking, true);
+  owner.switchInput = async () => {
+    throw new Error("capture unavailable");
+  };
+  await assert.rejects(left.switchInput("system-default", true));
+  assert.equal(owner.closed, true);
+  assert.equal(owner.talking, false);
+});
+test("input enumeration stays single-flight and canceled switching cannot change a replacement call", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  await delay(10);
+  const owner = media[0];
+  assert.ok(owner);
+  const options = {
+    available: true,
+    choices: [{ id: "system-default", label: "System default" }],
+    selected: "system-default",
+  };
+  let resolveList: (v: typeof options) => void = () => {};
+  owner.inputChoices = () =>
+    new Promise((resolve) => {
+      resolveList = resolve;
+    });
+  const list = left.inputChoices();
+  await assert.rejects(left.inputChoices(), /INPUT_LIST_PENDING/);
+  resolveList(options);
+  await list;
+  let finish: () => void = () => {};
+  owner.switchInput = () =>
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+  const pending = left.switchInput("system-default", true);
+  const rejected = assert.rejects(pending);
+  await delay(0);
+  await left.hangup();
+  await rejected;
+  const next = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(next, true);
+  await delay(10);
+  finish();
+  await delay(0);
+  assert.equal(left.status().callId, next);
+  assert.equal(left.status().phase, "connected");
+  assert.equal(left.status().inputGain, 1);
+  assert.equal(left.status().transmitting, false);
 });
 test("transient media loss mutes talking and recovers the same call without automatic transmission", async (t) => {
   const { left, right, media } = fixture(t);
@@ -318,6 +423,12 @@ test("canceled or timed out capture cannot transmit a late offer or overwrite a 
         setTalking: async () => {},
         setOutput: async () => {},
         setInputGain: async () => {},
+        inputChoices: async () => ({
+          available: false,
+          choices: [{ id: "system-default", label: "System default" }],
+          selected: "system-default",
+        }),
+        switchInput: async () => {},
         status: async () => ({
           phase: "negotiating",
           capturing: true,

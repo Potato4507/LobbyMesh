@@ -36,6 +36,8 @@ test("voice UI actions require exact local consent, bounded IDs and no endpoint 
     { action: "consent", enabled: true },
     { action: "call", peerId, consent: true },
     { action: "answer", callId, consent: true },
+    { action: "switch-input", callId, choice: "system-default", consent: true },
+    { action: "switch-input", callId, choice: "c".repeat(32), consent: true },
     { action: "hangup", callId: null },
     { action: "hangup", callId },
     { action: "talk", callId, pressed: false, start: false },
@@ -58,6 +60,20 @@ test("voice UI actions require exact local consent, bounded IDs and no endpoint 
     { action: "talk", callId, pressed: 1 },
     { action: "hangup", callId: undefined },
     { action: "hangup", callId, extra: true },
+    { action: "switch-input", callId, choice: "hardware-id", consent: true },
+    {
+      action: "switch-input",
+      callId,
+      choice: "system-default",
+      consent: false,
+    },
+    {
+      action: "switch-input",
+      callId,
+      choice: "system-default",
+      consent: true,
+      deviceId: "private",
+    },
   ])
     assert.throws(() => parseVoiceAction(action), /INVALID_VOICE_ACTION/);
 });

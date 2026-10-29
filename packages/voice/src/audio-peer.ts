@@ -161,7 +161,11 @@ export class AudioPeer {
       this.lifetime.signal.removeEventListener("abort", abort);
     }
   }
-  private async capture(answering = false): Promise<void> {
+  private async capture(
+    answering = false,
+    deviceId?: string,
+    gainValue = 1,
+  ): Promise<void> {
     this.check();
     if (this.stream) return;
     this.phase = "capturing";
@@ -173,6 +177,7 @@ export class AudioPeer {
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,
+        ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
       },
       video: false,
     });
@@ -207,7 +212,7 @@ export class AudioPeer {
     const gain = context.createGain(),
       destination = context.createMediaStreamDestination();
     this.inputGain = gain;
-    gain.gain.value = 1;
+    gain.gain.value = gainValue;
     context.createMediaStreamSource(stream).connect(gain);
     const analyser = context.createAnalyser();
     analyser.fftSize = 512;
@@ -350,6 +355,19 @@ export class AudioPeer {
     });
   }
   // Push-to-talk ownership stays in the trusted host; opening a call never talks.
+  switchInput(deviceId: string | undefined): Promise<void> {
+    return this.operation(async () => {
+      if (this.connection.connectionState !== "connected")
+        throw new Error("MEDIA_NOT_CONNECTED");
+      this.talking = false;
+      const gain = this.inputGain?.gain.value ?? 1;
+      this.disposeInput();
+      await this.capture(true, deviceId, gain);
+      if (this.connection.connectionState !== "connected")
+        throw new Error("MEDIA_NOT_CONNECTED");
+      this.phase = "connected";
+    });
+  }
   setInputGain(value: number): void {
     this.check();
     if (!Number.isFinite(value) || value < 0 || value > 2)
@@ -359,7 +377,14 @@ export class AudioPeer {
   }
   setTalking(value: boolean): void {
     this.check();
-    if (!this.stream) throw new Error("MEDIA_NOT_READY");
+    if (value === true && this.busy) throw new Error("MEDIA_NOT_CONNECTED");
+    if (!this.stream) {
+      if (value !== true) {
+        this.talking = false;
+        return;
+      }
+      throw new Error("MEDIA_NOT_READY");
+    }
     if (value === true && this.connection.connectionState !== "connected")
       throw new Error("MEDIA_NOT_CONNECTED");
     this.talking = value === true;
@@ -448,21 +473,34 @@ export class AudioPeer {
     this.talking = false;
     this.lifetime.abort();
     clearTimeout(this.disconnectTimer);
-    for (const stream of [this.stream, this.processed, this.remote])
+    this.disposeInput();
+    for (const stream of [this.remote])
       for (const track of stream?.getTracks() ?? []) {
         track.enabled = false;
         track.onended = null;
         track.onmute = null;
         track.stop();
       }
+    this.connection.ontrack = null;
+    this.connection.onconnectionstatechange = null;
+    this.connection.close();
+  }
+  private disposeInput(): void {
+    for (const stream of [this.stream, this.processed])
+      for (const track of stream?.getTracks() ?? []) {
+        track.enabled = false;
+        track.onended = null;
+        track.onmute = null;
+        track.stop();
+      }
+    this.stream = undefined;
+    this.processed = undefined;
     if (this.inputContext) {
       this.inputContext.onstatechange = null;
       void this.inputContext.close().catch(() => {});
     }
     this.inputGain = undefined;
     this.inputAnalyser = undefined;
-    this.connection.ontrack = null;
-    this.connection.onconnectionstatechange = null;
-    this.connection.close();
+    this.inputContext = undefined;
   }
 }
