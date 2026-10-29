@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, utimes, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { app, BrowserWindow, powerMonitor } from "electron";
@@ -42,16 +42,18 @@ async function run() {
   const logsPath = path.join(directory, "synthetic-player-logs");
   await mkdir(logsPath, { recursive: true });
   const logPrefix = `${new Date().toISOString()},1,abcd,6,Info `;
-  await writeFile(
-    path.join(logsPath, "0.1_Player_ABCD_last.log"),
-    [
-      "[FLog::Output] ! Joining game '12345678-abcd-1234-abcd-123456789abc' place 123 at 127.0.0.1",
-      "[FLog::GameJoinLoadTime] Report game_join_loadtime: universeid:456, userid:999",
-      "[FLog::Network] Replicator created: serverId: 127.0.0.1|1",
-    ]
-      .map((entry) => `${logPrefix}${entry}\n`)
-      .join(""),
-  );
+  const fixtureLog = [
+    "[FLog::Output] ! Joining game '12345678-abcd-1234-abcd-123456789abc' place 123 at 127.0.0.1",
+    "[FLog::GameJoinLoadTime] Report game_join_loadtime: universeid:456, userid:999",
+    "[FLog::Network] Replicator created: serverId: 127.0.0.1|1",
+  ]
+    .map((entry) => `${logPrefix}${entry}\n`)
+    .join("");
+  if (process.argv[3] !== "session-status-only")
+    await writeFile(
+      path.join(logsPath, "0.1_Player_ABCD_last.log"),
+      fixtureLog,
+    );
   const seed = await PreferenceStore.open(preferencesPath);
   await seed.allow(allowed);
   await seed.close();
@@ -284,6 +286,20 @@ async function run() {
       peerCount: () => 1,
     };
   };
+  let fixturePlayers: { startedAt: number }[] = [],
+    activityFailure = false;
+  const logProvider = new WindowsLogSessionProvider(
+    [logsPath],
+    process.argv[3] === "session-status-only"
+      ? {
+          activity: async () => {
+            if (activityFailure)
+              throw new Error("private synthetic activity failure");
+            return fixturePlayers;
+          },
+        }
+      : {},
+  );
   try {
     desktop = await createDesktop(
       preferencesPath,
@@ -291,7 +307,7 @@ async function run() {
       false,
       {
         networkFactory,
-        logProvider: new WindowsLogSessionProvider([logsPath]),
+        logProvider,
       },
     );
     console.log("desktop stage: loaded");
@@ -336,6 +352,114 @@ async function run() {
         (await contents.capturePage()).toPNG(),
       );
       if (!visible) window.hide();
+    }
+    if (process.argv[3] === "session-status-only") {
+      desktop.window.show();
+      desktop.window.focus();
+      await navigate("overview");
+      await execute(
+        "window.companion.updatePreferences({sessionConsent:true})",
+      );
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Waiting for Roblox'",
+      );
+      assert.equal(logProvider.status().reason, "player-not-running");
+      const startedAt = Date.parse(logPrefix.split(",")[0] ?? "") - 1000;
+      fixturePlayers = [{ startedAt }];
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Waiting for player logs'",
+      );
+      assert.equal(logProvider.status().reason, "player-log-pending");
+      const file = path.join(logsPath, "0.1_Player_ABCD_last.log");
+      await writeFile(file, "");
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Waiting for session details' && document.querySelector('#sessionSourceNotice')?.textContent.includes('No complete local session')",
+      );
+      await writeFile(file, `${fixtureLog.split("\n")[0]}\n`);
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Session details incomplete' && document.querySelector('#sessionSourceNotice')?.textContent.includes('Matching stays paused')",
+      );
+      await writeFile(file, fixtureLog);
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Local session detected' && document.querySelector('#sessionSourceNotice')?.textContent.includes('unverified evidence')",
+      );
+      await utimes(file, new Date(startedAt - 1), new Date(startedAt - 1));
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Waiting for fresh game logs'",
+      );
+      await utimes(file, new Date(), new Date());
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Local session detected'",
+      );
+      fixturePlayers = [{ startedAt }, { startedAt: startedAt + 1 }];
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Session source ambiguous' && document.querySelector('#sessionSourceNotice')?.textContent.includes('More than one Roblox client')",
+      );
+      await execute(
+        "(() => {const label=document.createElement('p');label.className='eyebrow';label.textContent='SYNTHETIC SESSION TEST · NO LIVE ROBLOX';document.querySelector('.status-grid').before(label);document.querySelector('.status-grid').scrollIntoView({block:'center'});})()",
+      );
+      await captureDesktop("docs/evidence/lobbymesh-session-status-test.png");
+      activityFailure = true;
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Session detection unavailable' && document.querySelector('#sessionSourceNotice')?.textContent.includes('Windows player activity is unavailable')",
+      );
+      activityFailure = false;
+      fixturePlayers = [{ startedAt }];
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Local session detected'",
+      );
+      assert.equal(
+        (await logProvider.current())?.verification,
+        "self-asserted",
+      );
+      await execute(
+        "window.companion.updatePreferences({sessionConsent:false})",
+      );
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Detection off'",
+      );
+      assert.equal(await logProvider.current(), null);
+      const status = await execute<{
+        network: string;
+        microphone: string;
+        matching: { state: string };
+      }>("window.companion.status()");
+      assert.equal(status.network, "offline");
+      assert.equal(status.microphone, "off");
+      assert.equal(status.matching.state, "offline");
+      assert.equal(starts, 0);
+      assert.ok(!JSON.stringify(status).includes("12345678-abcd"));
+      console.log(
+        JSON.stringify({
+          result: "session-status-passed",
+          states: [
+            "player-not-running",
+            "player-log-pending",
+            "log-without-session-markers",
+            "incomplete",
+            "detected",
+            "stale",
+            "ambiguous",
+            "unavailable",
+            "disabled",
+          ],
+          recovered: true,
+          verification: "self-asserted",
+          network: "offline",
+          microphone: "off",
+          actualRoblox: false,
+        }),
+      );
+      return;
     }
     if (process.argv[3] === "conversation-clear-only") {
       desktop.window.show();

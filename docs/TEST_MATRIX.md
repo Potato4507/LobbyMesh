@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 session visibility: parser/presentation12/12/full175/175/typecheck/lint179/build and native desktop main/conversation/session-status/protected reopen pass. Fixed status/details, no-player vs pending-log, empty/incomplete/detected/stale/ambiguous/unavailable/recovery/disabled, no network/microphone grant, no raw session IDs in status. Final focused process after wording/spacing passes; reviewed synthetic screenshot. Live read-only aggregate1 player/1 eligible log/0 expected markers/no session is a negative source observation, not actual-game acceptance. See evidence/session-source-visibility.md.
+
 2026-10-29 scanner opt-out: first held open reproduced2 vs1 opens after withdrawal; fix yields one, closes handle, supports new-generation re-enable. Directory-open race closes without enumeration. Focused11/11/full174/174/typecheck/lint177/build and native desktop main/conversation/protected reopen pass. Existing bounded parsing/trust tests retained; see evidence/session-scan-optout.md.
 
 2026-10-29 individual Stop send: focused10/10/full172/172/typecheck/lint176/build; native main/conversation/protected reopen pass. Peer/local binding, exact schema, repeated/stale/unauthorized cancel, one-of-two pending, accepted peer content retained, late handshake suppression. Native priority cancel under16 slots/refill/clear, foreign sender denial, draft and cautious status/notice verified. Final focused native process after spacing/hint change passed and screenshot reviewed. See evidence/individual-send-cancel.md.

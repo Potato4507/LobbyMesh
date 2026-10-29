@@ -25,6 +25,8 @@ export interface DetectionStatus {
     | "multiple-player-logs"
     | "process-query-failed"
     | "log-read-failed"
+    | "player-not-running"
+    | "player-log-pending"
     | null;
 }
 const MAX_READ = 4 * 1024 * 1024;
@@ -138,7 +140,8 @@ export function windowsLogDirectories(
 }
 
 // Read-only, bounded polling tolerates append/rotation without depending on fs.watch notifications.
-// Freshness is conservative: silent logs expire instead of silently retaining a departed session.
+// Without process activity, quiet logs expire conservatively. A known player
+// lifetime permits quiet evidence until that player exits or the source changes.
 export class WindowsLogSessionProvider implements SessionProvider {
   private parser = new PlayerLogParser();
   private handlers = new Set<(value: SessionIdentity | null) => void>();
@@ -264,7 +267,7 @@ export class WindowsLogSessionProvider implements SessionProvider {
           this.publish(
             players.length ? "ambiguous" : "waiting",
             null,
-            players.length ? "multiple-player-processes" : null,
+            players.length ? "multiple-player-processes" : "player-not-running",
           );
           return;
         }
@@ -336,7 +339,11 @@ export class WindowsLogSessionProvider implements SessionProvider {
         this.publish(
           candidates.length > 1 ? "ambiguous" : sawOld ? "stale" : "waiting",
           null,
-          candidates.length > 1 ? "multiple-player-logs" : null,
+          candidates.length > 1
+            ? "multiple-player-logs"
+            : !sawOld && this.processStartedAt !== undefined
+              ? "player-log-pending"
+              : null,
         );
         return;
       }

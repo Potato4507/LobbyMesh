@@ -120,6 +120,10 @@ button:focus-visible {
   font-size: 12px;
   margin-top: 8px;
 }
+#sessionSourceNotice {
+  display: block;
+  margin: 0 0 16px;
+}
 .check {
   display: flex;
   align-items: flex-start;

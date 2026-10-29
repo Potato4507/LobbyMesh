@@ -22,18 +22,26 @@ try {
   const executable = createRequire(import.meta.url)("electron"),
     environment = { ...process.env };
   delete environment.ELECTRON_RUN_AS_NODE;
-  for (const mode of process.argv[2] === "--conversation-clear-only"
-    ? ["conversation-clear-only"]
+  for (const mode of [
+    "--conversation-clear-only",
+    "--session-status-only",
+  ].includes(process.argv[2])
+    ? [process.argv[2].slice(2)]
     : process.platform === "win32"
-      ? ["", "conversation-clear-only", "credentials-only"]
-      : ["", "conversation-clear-only"])
+      ? [
+          "",
+          "conversation-clear-only",
+          "session-status-only",
+          "credentials-only",
+        ]
+      : ["", "conversation-clear-only", "session-status-only"])
     await new Promise((resolve, reject) => {
       const child = spawn(
         executable,
         [
           entry,
-          mode === "conversation-clear-only"
-            ? path.join(directory, "conversation-clear")
+          ["conversation-clear-only", "session-status-only"].includes(mode)
+            ? path.join(directory, mode)
             : directory,
           ...(mode ? [mode] : []),
         ],
@@ -65,11 +73,13 @@ try {
         if (
           code === 0 &&
           output.includes(
-            mode === "conversation-clear-only"
-              ? '"result":"conversation-clear-passed"'
-              : mode
-                ? '"result":"credential-reload-passed"'
-                : '"result":"passed"',
+            mode === "session-status-only"
+              ? '"result":"session-status-passed"'
+              : mode === "conversation-clear-only"
+                ? '"result":"conversation-clear-passed"'
+                : mode
+                  ? '"result":"credential-reload-passed"'
+                  : '"result":"passed"',
           )
         )
           resolve();

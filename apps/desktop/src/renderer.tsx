@@ -16,6 +16,7 @@ import { Messages } from "./messages.js";
 import type { ContactView, MessageView } from "./messaging.js";
 import { OverlaySettings } from "./overlay-settings.js";
 import { PairContacts } from "./pair-contacts.js";
+import { sessionPresentation } from "./session-status.js";
 import type { DesktopSessionStatus } from "./sessions.js";
 
 declare global {
@@ -178,19 +179,7 @@ function App() {
     }
   }
   const state = connection?.state;
-  const detectionLabel = !detection
-    ? "Checking session…"
-    : {
-        disabled: "Detection off",
-        unsupported: "Unsupported on this device",
-        waiting: "Waiting for Roblox",
-        detected: "Local session detected",
-        incomplete: "Session details incomplete",
-        scanning: "Reading player session…",
-        stale: "Waiting for fresh game logs",
-        ambiguous: "Session source ambiguous",
-        unavailable: "Game logs unavailable",
-      }[detection.state];
+  const sessionView = sessionPresentation(detection);
   const peers = connection?.peers ?? 0;
   const matchingLabel =
     !matching || matching.state === "offline"
@@ -347,7 +336,9 @@ function App() {
           </div>
           <div>
             <span className="status-label">Roblox session</span>
-            <strong id="sessionStatus">{detectionLabel}</strong>
+            <strong id="sessionStatus" aria-describedby="sessionSourceNotice">
+              {sessionView.label}
+            </strong>
           </div>
           <div>
             <span className="status-label">Microphone</span>
@@ -360,22 +351,9 @@ function App() {
             </strong>
           </div>
         </section>
-        {detection?.reason && (
-          <output className="hint" id="sessionSourceNotice">
-            {
-              {
-                "multiple-player-processes":
-                  "More than one Roblox client is running. Close unused clients so LobbyMesh can select one local session.",
-                "multiple-player-logs":
-                  "Multiple player logs match this run. LobbyMesh cannot select a session confidently yet.",
-                "process-query-failed":
-                  "Windows player activity is unavailable. Session detection will retry automatically.",
-                "log-read-failed":
-                  "Player logs could not be read. Session detection will retry automatically.",
-              }[detection.reason]
-            }
-          </output>
-        )}
+        <output className="hint" id="sessionSourceNotice" aria-live="polite">
+          {sessionView.detail}
+        </output>
         <div id="view-overview" hidden={view !== "overview"}>
           <section className="panel">
             <h2>Peer discovery</h2>
