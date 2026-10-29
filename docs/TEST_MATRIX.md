@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 scanner opt-out: first held open reproduced2 vs1 opens after withdrawal; fix yields one, closes handle, supports new-generation re-enable. Directory-open race closes without enumeration. Focused11/11/full174/174/typecheck/lint177/build and native desktop main/conversation/protected reopen pass. Existing bounded parsing/trust tests retained; see evidence/session-scan-optout.md.
+
 2026-10-29 individual Stop send: focused10/10/full172/172/typecheck/lint176/build; native main/conversation/protected reopen pass. Peer/local binding, exact schema, repeated/stale/unauthorized cancel, one-of-two pending, accepted peer content retained, late handshake suppression. Native priority cancel under16 slots/refill/clear, foreign sender denial, draft and cautious status/notice verified. Final focused native process after spacing/hint change passed and screenshot reviewed. See evidence/individual-send-cancel.md.
 
 2026-10-29 delivery reasons: focused7/7/full169/169/typecheck/lint176/build and native desktop main/isolated conversation/protected reopen pass. Exact-code projection, unknown/raw-error suppression, local fact precedence, stage, invalid ACK, peer rejection, negotiation timeout, copied state, local withdrawal, fixed renderer label/draft retention. See evidence/delivery-failure-reasons.md; existing retries/assertions unchanged.

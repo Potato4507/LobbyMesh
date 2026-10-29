@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {
+import fs, {
   appendFile,
   mkdir,
   mkdtemp,
@@ -7,6 +7,7 @@ import {
   utimes,
   writeFile,
 } from "node:fs/promises";
+import { syncBuiltinESMExports } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -31,6 +32,72 @@ const joined = () =>
     "[FLog::GameJoinLoadTime] Report game_join_loadtime: universeid:456, userid:999",
   ) +
   line("[FLog::Network] Replicator created: serverId: 127.0.0.1|1");
+
+test(
+  "consent withdrawal stops candidate opens after the current filesystem operation and closes its handle",
+  { timeout: 5000 },
+  async (t) => {
+    const directory = await mkdtemp(
+      path.join(tmpdir(), "lobbymesh-log-optout-"),
+    );
+    t.after(() => rm(directory, { recursive: true, force: true }));
+    await writeFile(path.join(directory, "0.1_Player_AAAA_last.log"), joined());
+    await writeFile(path.join(directory, "0.1_Player_BBBB_last.log"), joined());
+    const provider = new WindowsLogSessionProvider([directory], {
+      now: () => now,
+      pollMs: 10000,
+    });
+    const originalOpen = fs.open;
+    let opens = 0,
+      finish: () => void = () => {},
+      opened: () => void = () => {};
+    let heldHandle: Awaited<ReturnType<typeof fs.open>> | undefined;
+    const held = new Promise<void>((resolve) => {
+      opened = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const mocked = t.mock.method(
+      fs,
+      "open",
+      async (...args: Parameters<typeof fs.open>) => {
+        const handle = await originalOpen(...args);
+        if (String(args[0]).startsWith(directory)) {
+          opens++;
+          if (opens === 1) {
+            heldHandle = handle;
+            opened();
+            await gate;
+          }
+        }
+        return handle;
+      },
+    );
+    syncBuiltinESMExports();
+    try {
+      const enabling = provider.setEnabled(true);
+      await held;
+      const stopping = provider.stop();
+      assert.equal(provider.status().state, "disabled");
+      assert.equal(await provider.current(), null);
+      finish();
+      await Promise.all([enabling, stopping]);
+      assert.equal(opens, 1);
+      assert.ok(heldHandle);
+      await assert.rejects(heldHandle.stat(), /closed|EBADF/);
+      await provider.setEnabled(true);
+      assert.equal(provider.status().state, "ambiguous");
+      assert.equal(provider.status().reason, "multiple-player-logs");
+    } finally {
+      finish();
+      mocked.mock.restore();
+      syncBuiltinESMExports();
+      await provider.stop();
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
 test("player log requires explicit complete engine evidence and never promotes local logs to verified identity", () => {
   const parser = new PlayerLogParser();
   parser.line(
@@ -74,6 +141,67 @@ test("player log requires explicit complete engine evidence and never promotes l
   );
   assert.equal(parser.session(), null);
 });
+
+test(
+  "consent withdrawal while a directory open is pending closes it before enumeration",
+  { timeout: 5000 },
+  async (t) => {
+    const directory = await mkdtemp(
+      path.join(tmpdir(), "lobbymesh-log-dir-optout-"),
+    );
+    t.after(() => rm(directory, { recursive: true, force: true }));
+    const provider = new WindowsLogSessionProvider([directory], {
+      pollMs: 10000,
+    });
+    const original = fs.opendir;
+    let finish: () => void = () => {},
+      opened: () => void = () => {},
+      iterations = 0;
+    let heldDir: Awaited<ReturnType<typeof fs.opendir>> | undefined;
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const ready = new Promise<void>((resolve) => {
+      opened = resolve;
+    });
+    const mocked = t.mock.method(
+      fs,
+      "opendir",
+      async (...args: Parameters<typeof fs.opendir>) => {
+        const handle = await original(...args);
+        if (String(args[0]) === directory) {
+          heldDir = handle;
+          const iterator = handle[Symbol.asyncIterator].bind(handle);
+          handle[Symbol.asyncIterator] = () => {
+            iterations++;
+            return iterator();
+          };
+          opened();
+          await gate;
+        }
+        return handle;
+      },
+    );
+    syncBuiltinESMExports();
+    try {
+      const enabling = provider.setEnabled(true);
+      await ready;
+      const stopping = provider.stop();
+      finish();
+      await Promise.all([enabling, stopping]);
+      assert.equal(iterations, 0);
+      assert.ok(heldDir);
+      await assert.rejects(heldDir.read(), /closed|ERR_DIR_CLOSED/);
+      assert.equal(provider.status().state, "disabled");
+      assert.equal(await provider.current(), null);
+    } finally {
+      finish();
+      mocked.mock.restore();
+      syncBuiltinESMExports();
+      await provider.stop();
+    }
+  },
+);
 test("stale, future, malformed, oversized and missing-universe log evidence cannot produce a session", () => {
   for (const time of [now - 120_001, now + 5_001]) {
     const parser = new PlayerLogParser();

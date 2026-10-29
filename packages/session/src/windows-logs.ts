@@ -287,6 +287,7 @@ export class WindowsLogSessionProvider implements SessionProvider {
       let count = 0,
         sawOld = false;
       for (const directory of this.directories) {
+        if (!valid()) return;
         let entries: Awaited<ReturnType<typeof opendir>>;
         try {
           entries = await opendir(directory);
@@ -294,7 +295,12 @@ export class WindowsLogSessionProvider implements SessionProvider {
           if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
           throw error;
         }
+        if (!valid()) {
+          await entries.close();
+          return;
+        }
         for await (const entry of entries) {
+          if (!valid()) return;
           if (++count > 2048) throw new Error("LOG_DIRECTORY_QUOTA");
           if (
             !entry.isFile() ||
@@ -304,7 +310,9 @@ export class WindowsLogSessionProvider implements SessionProvider {
           const file = path.join(directory, entry.name);
           const handle = await open(file, "r");
           try {
+            if (!valid()) return;
             const stat = await handle.stat();
+            if (!valid()) return;
             if (!stat.isFile()) continue;
             if (
               this.processStartedAt === undefined
@@ -336,6 +344,7 @@ export class WindowsLogSessionProvider implements SessionProvider {
       if (!candidate) return;
       const handle = await open(candidate.file, "r");
       try {
+        if (!valid()) return;
         const stat = await handle.stat(),
           identity = `${stat.dev}:${stat.ino}:${stat.birthtimeMs}`;
         if (!valid()) return;
