@@ -74,6 +74,7 @@ export class AudioPeer {
         return;
       }
       this.remote = new MediaStream([event.track]);
+      event.track.onended = () => this.fail("MEDIA_REMOTE_TRACK_ENDED");
       try {
         this.options.onRemoteStream?.(this.remote);
       } catch {
@@ -186,6 +187,10 @@ export class AudioPeer {
     const track = tracks[0];
     track.enabled = false;
     track.onended = () => this.fail("MEDIA_DEVICE_ENDED");
+    // Source interruption must not silently resume an earlier held PTT intent.
+    // End this media owner; a new call needs fresh explicit user consent.
+    track.onmute = () => this.fail("MEDIA_DEVICE_MUTED");
+    if (track.muted) throw new Error("MEDIA_DEVICE_UNAVAILABLE");
     const transceiver = answering
       ? this.connection
           .getTransceivers()
@@ -264,6 +269,7 @@ export class AudioPeer {
                   "MEDIA_TIMEOUT",
                   "MEDIA_CLOSED",
                   "MEDIA_PERMISSION_DENIED",
+                  "MEDIA_DEVICE_UNAVAILABLE",
                   "MEDIA_INVALID_DESCRIPTION",
                   "MEDIA_OPUS_UNAVAILABLE",
                 ].includes(error.message)
@@ -397,6 +403,7 @@ export class AudioPeer {
       for (const track of stream?.getTracks() ?? []) {
         track.enabled = false;
         track.onended = null;
+        track.onmute = null;
         track.stop();
       }
     this.connection.ontrack = null;

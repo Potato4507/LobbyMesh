@@ -220,6 +220,93 @@ async function run() {
       tracks.slice(0, 2).every((track) => track.readyState === "ended"),
       "TRACKS_NOT_STOPPED",
     );
+    // Inject source/remote lifecycle events on native synthetic tracks. This
+    // tests fail-closed behavior, not physical device removal or OS mute.
+    for (const interrupt of [
+      "source-muted",
+      "source-ended",
+      "remote-ended",
+    ] as const) {
+      const offset = tracks.length;
+      const caller = create(() => true),
+        recipient = create(() => true);
+      const offer = await caller.offer(true);
+      const answer = await recipient.answer(offer, true);
+      await caller.acceptAnswer(answer);
+      const deadline = performance.now() + 7000;
+      while (
+        (caller.status().phase !== "connected" ||
+          recipient.status().phase !== "connected") &&
+        performance.now() < deadline
+      )
+        await delay(25);
+      check(
+        caller.status().phase === "connected",
+        "INTERRUPTION_CALL_NOT_CONNECTED",
+      );
+      caller.setTalking(true);
+      check(caller.status().transmitting, "INTERRUPTION_CALL_NOT_TALKING");
+      const source = tracks[offset];
+      check(source, "INTERRUPTION_SOURCE_MISSING");
+      if (interrupt === "source-muted") source.dispatchEvent(new Event("mute"));
+      else if (interrupt === "source-ended")
+        source.dispatchEvent(new Event("ended"));
+      else {
+        const remote = (caller as unknown as { remote: MediaStream }).remote;
+        const track = remote.getAudioTracks()[0];
+        check(track, "INTERRUPTION_REMOTE_MISSING");
+        track.dispatchEvent(new Event("ended"));
+      }
+      check(
+        caller.status().phase === "failed" &&
+          !caller.status().capturing &&
+          !caller.status().transmitting &&
+          source.readyState === "ended" &&
+          !source.enabled,
+        "INTERRUPTION_CAPTURE_REMAINED_ACTIVE",
+      );
+      source.dispatchEvent(new Event("unmute"));
+      check(
+        !caller.status().transmitting &&
+          source.onmute === null &&
+          source.onended === null,
+        "INTERRUPTION_REARMED_CAPTURE",
+      );
+      try {
+        caller.setTalking(true);
+        throw new Error("INTERRUPTION_ACCEPTED_OLD_PTT");
+      } catch (error) {
+        check(
+          error instanceof Error && error.message === "MEDIA_CLOSED",
+          "INTERRUPTION_WRONG_REJECTION",
+        );
+      }
+      recipient.close();
+    }
+    const mutedCapture = create(
+      () => true,
+      async (constraints) => {
+        const stream = await capture(constraints);
+        const track = stream.getAudioTracks()[0];
+        check(track, "INITIAL_MUTED_TRACK_MISSING");
+        Object.defineProperty(track, "muted", { value: true });
+        return stream;
+      },
+    );
+    await mutedCapture.offer(true).then(
+      () => {
+        throw new Error("INITIAL_MUTED_CAPTURE_ACCEPTED");
+      },
+      (error: Error) =>
+        check(
+          error.message === "MEDIA_DEVICE_UNAVAILABLE",
+          "INITIAL_MUTED_CAPTURE_REASON",
+        ),
+    );
+    check(
+      !mutedCapture.status().capturing && tracks.at(-1)?.readyState === "ended",
+      "INITIAL_MUTED_CAPTURE_LEAK",
+    );
     let resolveCapture: (stream: MediaStream) => void = () => {};
     const late = create(
       () => true,
@@ -281,6 +368,12 @@ async function run() {
       talkingRms,
       quality,
       statsStallRecovered: true,
+      syntheticTrackInterruptions: [
+        "source-muted",
+        "source-ended",
+        "remote-ended",
+        "initial-muted",
+      ],
       releasedRms,
       microphone: false,
       audibleOutput: false,
