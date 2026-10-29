@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 delivery reasons: focused7/7/full169/169/typecheck/lint176/build and native desktop main/isolated conversation/protected reopen pass. Exact-code projection, unknown/raw-error suppression, local fact precedence, stage, invalid ACK, peer rejection, negotiation timeout, copied state, local withdrawal, fixed renderer label/draft retention. See evidence/delivery-failure-reasons.md; existing retries/assertions unchanged.
+
 2026-10-29 idle expiry: focused13/13/full167/167/typecheck/lint173/build and native desktop main/isolated clear/protected reopen pass. Mocked timer tests examine both content caches without reads/traffic after acceptance, verify replay/hint expiry, earlier deadlines and close, plus block replay suppression and late inbound completion. UNIT clock advancement, not physical soak. See evidence/idle-content-expiry.md.
 
 2026-10-29 conversation clear: reproduced duplicate restoring cleared content; direct/desktop8/8/full162/162/typecheck/lint171/build and native desktop main/isolated clear/protected reopen pass. New bounded process tests pre-clear reply suppression, replay ACK without restoration, pending-send cancellation and priority clear under full16-slot ordinary quota with network retained. Each process deadline stays30s; see evidence/conversation-clear-replay.md.

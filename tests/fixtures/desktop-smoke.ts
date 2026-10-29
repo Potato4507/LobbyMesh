@@ -90,6 +90,7 @@ async function run() {
   let messaging: DesktopMessaging | undefined,
     receiver: DirectMessenger | undefined,
     holdSends = false;
+  let textFailure: string | null = null;
   let remoteVoice: VoiceCalls | undefined,
     localMediaStarts = 0,
     holdVoiceMute = false,
@@ -134,6 +135,8 @@ async function run() {
               { once: true },
             );
           });
+        if (textFailure && (request as { type?: string }).type === "text")
+          throw new Error(textFailure);
         return remote.handle(
           { id: self, publicKey: "synthetic app", transportKey },
           request,
@@ -442,6 +445,36 @@ async function run() {
       );
 
       holdSends = false;
+      for (const [code, label] of [
+        [
+          "REMOTE_RPC_REJECTED",
+          "Peer app rejected the request · delivery unconfirmed",
+        ],
+        ["private synthetic error details", "Delivery unconfirmed"],
+      ]) {
+        textFailure = code ?? null;
+        await draft("failure fixture");
+        await execute(
+          "document.querySelector('#messagesPanel form').requestSubmit()",
+        );
+        await until(
+          `document.querySelector('[data-status=unconfirmed] .message-status')?.textContent === ${JSON.stringify(label)}`,
+        );
+        assert.equal(
+          await execute("document.querySelector('#messageDraft').value"),
+          "failure fixture",
+        );
+        assert.ok(
+          !(await execute<boolean>(
+            "document.querySelector('#messageHistory').textContent.includes('private synthetic error details')",
+          )),
+        );
+        await execute("document.querySelector('#clearMessages').click()");
+        await until(
+          "document.querySelectorAll('#messageHistory article').length === 0",
+        );
+      }
+      textFailure = null;
       console.log(
         JSON.stringify({
           result: "conversation-clear-passed",
@@ -450,6 +483,7 @@ async function run() {
           pendingSendCanceled: true,
           clearUnderFullQuota: true,
           networkStayedOnline: true,
+          deliveryReasons: "bounded-unconfirmed-and-draft-retained",
           microphone: false,
         }),
       );

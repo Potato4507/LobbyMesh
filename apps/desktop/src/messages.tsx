@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
+import { unconfirmedLabel } from "../../../packages/protocol/src/delivery.js";
 import type { ContactView, MessageView } from "./messaging.js";
 import { VoiceControls } from "./voice-controls.js";
 
@@ -334,7 +335,7 @@ export function Messages({
                     : message.status === "sending"
                       ? "Sending…"
                       : message.status === "unconfirmed"
-                        ? "Delivery unconfirmed"
+                        ? unconfirmedLabel(message.failure)
                         : "Received"}
                 </span>
               </article>

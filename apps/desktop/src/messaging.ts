@@ -4,6 +4,10 @@ import type {
   RpcHandler,
 } from "../../../packages/app-dht/src/rpc.js";
 import {
+  type DeliveryFailure,
+  deliveryFailure,
+} from "../../../packages/protocol/src/delivery.js";
+import {
   type DirectContact,
   DirectMessenger,
   type ReceivedText,
@@ -25,6 +29,7 @@ export interface MessageView {
   text: string;
   at: number;
   status: "received" | "sending" | "acknowledged" | "unconfirmed";
+  failure: DeliveryFailure | null;
 }
 export interface ContactView {
   peerId: string;
@@ -124,6 +129,7 @@ export class DesktopMessaging {
       text: value.text,
       at: message.receivedAt,
       status: "received",
+      failure: null,
     });
   }
   readonly handle: RpcHandler = async (
@@ -198,6 +204,7 @@ export class DesktopMessaging {
     this.prune();
     return (this.conversations.get(peerId) ?? []).map((message) => ({
       ...message,
+      failure: message.failure ? { ...message.failure } : null,
     }));
   }
   async send(
@@ -219,9 +226,11 @@ export class DesktopMessaging {
       text,
       at: this.now(),
       status: "sending",
+      failure: null,
     };
     this.append(peerId, message);
     this.pending.set(localId, { peerId, controller });
+    let stage: DeliveryFailure["stage"] = "connection";
     try {
       if (this.negotiated.get(peerId) !== contact.transportKey) {
         await this.messenger.negotiate(contact, controller.signal);
@@ -229,6 +238,7 @@ export class DesktopMessaging {
         this.permit(peerId);
         this.negotiated.set(peerId, contact.transportKey);
       }
+      stage = "delivery";
       const result = await this.messenger.sendText(
         contact,
         text,
@@ -237,8 +247,16 @@ export class DesktopMessaging {
       message.status = "acknowledged";
       message.messageId = result.id;
       return result;
-    } catch {
+    } catch (error) {
       message.status = "unconfirmed";
+      message.failure = deliveryFailure(
+        error,
+        stage,
+        controller.signal.aborted,
+        controller.signal.reason === "permission-changed" ||
+          (error instanceof Error &&
+            error.message === "CONTACT_NOT_AUTHORIZED"),
+      );
       throw new Error("DELIVERY_UNCONFIRMED");
     } finally {
       this.pending.delete(localId);
@@ -258,7 +276,7 @@ export class DesktopMessaging {
   policyChanged(peerId: string): void {
     if (this.policy.authorized(peerId) && !this.policy.blocked(peerId)) return;
     for (const value of this.pending.values())
-      if (value.peerId === peerId) value.controller.abort();
+      if (value.peerId === peerId) value.controller.abort("permission-changed");
     this.incomingContacts.delete(peerId);
     this.negotiated.delete(peerId);
     if (this.policy.blocked(peerId)) {

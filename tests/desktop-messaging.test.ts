@@ -198,9 +198,74 @@ test("pending/unconfirmed delivery is explicit; revocation aborts pending work a
   assert.deepEqual(service.contacts(), []);
   permits.allowed.add(b);
   assert.equal(service.history(b)[0]?.status, "unconfirmed");
+  assert.equal(service.history(b)[0]?.failure?.reason, "permission-changed");
   service.clear(b);
   assert.deepEqual(service.history(b), []);
   service.close();
+});
+
+test("desktop failure projection preserves unconfirmed delivery and copies only bounded reasons", async () => {
+  for (const kind of [
+    "connect-timeout",
+    "peer-rejection",
+    "invalid-ack",
+    "unknown",
+  ] as const) {
+    const permits = policy();
+    const privateError = "private endpoint and untrusted payload";
+    const service = new DesktopMessaging(
+      a,
+      async (contact, request) => {
+        const value = request as TextEnvelope;
+        if (kind === "connect-timeout") throw new Error("DIRECT_TIMEOUT");
+        if (value.type !== "text")
+          return {
+            namespace: DIRECT_NAMESPACE,
+            version: 1,
+            type: "pong",
+            peerId: contact.id,
+            features: ["text-v1"],
+          };
+        if (kind === "peer-rejection") throw new Error("REMOTE_RPC_REJECTED");
+        if (kind === "unknown") throw new Error(privateError);
+        return {
+          namespace: DIRECT_NAMESPACE,
+          version: 1,
+          type: "ack",
+          id: "wrong",
+        };
+      },
+      permits.value,
+      () => [{ id: b, transportKey: key }],
+    );
+    try {
+      await assert.rejects(
+        service.send(b, "visible fixture"),
+        /DELIVERY_UNCONFIRMED/,
+      );
+      const history = service.history(b),
+        failure = history[0]?.failure;
+      assert.ok(failure);
+      assert.equal(history[0]?.status, "unconfirmed");
+      assert.equal(history[0]?.messageId, null);
+      assert.deepEqual(failure, {
+        reason:
+          kind === "connect-timeout"
+            ? "timeout"
+            : kind === "peer-rejection"
+              ? "peer-rejected"
+              : kind === "invalid-ack"
+                ? "invalid-response"
+                : "unknown",
+        stage: kind === "connect-timeout" ? "connection" : "delivery",
+      });
+      assert.ok(!JSON.stringify(history).includes(privateError));
+      failure.reason = "canceled";
+      assert.notEqual(service.history(b)[0]?.failure?.reason, "canceled");
+    } finally {
+      service.close();
+    }
+  }
 });
 test("conversation/history bounds reject before accepting invisible incoming messages", async () => {
   let now = 1000;
