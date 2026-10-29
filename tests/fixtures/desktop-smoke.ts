@@ -1052,9 +1052,87 @@ async function run() {
         "window.companion.updatePreferences({unexpected: true}).then(() => false, () => true)",
       ),
     );
+    // A safety action must work while unrelated preference edits are dirty,
+    // during a call, and with all ordinary IPC slots occupied by sends.
     await execute(
-      "Array.from(document.querySelectorAll('button')).find(b => b.textContent === 'Block').click()",
+      "(() => {const input=document.querySelector('#displayName');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Unsaved safety draft');input.dispatchEvent(new Event('input',{bubbles:true}));})()",
     );
+    await navigate("messages");
+    await until(
+      "document.querySelector('#blockConversationContact') && !document.querySelector('#blockConversationContact').disabled",
+    );
+    desktop.window.show();
+    desktop.window.focus();
+    contents.focus();
+    await until("document.hasFocus()");
+    await execute(
+      "window.companion.voiceAction({action:'consent',enabled:true})",
+    );
+    const safetyCall = await execute<{ callId: string }>(
+      `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true})`,
+    );
+    assert.ok(remoteVoice);
+    await remoteVoice.answer(safetyCall.callId, true);
+    await until("window.companion.voice().then(s=>s.phase==='connected')");
+    await draft("discard this blocked contact draft");
+    holdSends = true;
+    await execute(
+      `(() => {window.safetyPending = Array.from({length:16},()=>window.companion.sendText(${JSON.stringify(allowed)},'held safety fixture').catch(()=>null));return true;})()`,
+    );
+    await delay(30);
+    assert.equal(
+      await execute(
+        "window.companion.preferences().then(()=>false,error=>error.message.includes('REQUEST_QUOTA'))",
+      ),
+      true,
+      "all ordinary IPC slots must be occupied before safety action",
+    );
+    await execute(
+      "document.querySelector('#blockConversationContact').click()",
+    );
+    await execute("Promise.all(window.safetyPending)");
+    holdSends = false;
+    await until(
+      "document.querySelector('#messageNotice')?.textContent.includes('Contact blocked on this device')",
+    );
+    await until(
+      "window.companion.voice().then(s=>s.capturing===false && s.callId===null)",
+    );
+    assert.equal(policy?.authorized(allowed), false);
+    assert.equal(
+      (await execute<{ network: string }>("window.companion.status()")).network,
+      "online",
+    );
+    assert.ok(
+      await execute(
+        `window.companion.messages(${JSON.stringify(allowed)}).then(()=>false,()=>true)`,
+      ),
+    );
+    assert.ok(
+      await execute(
+        `window.companion.sendText(${JSON.stringify(allowed)},'blocked negative').then(()=>false,()=>true)`,
+      ),
+    );
+    await navigate("preferences");
+    assert.equal(
+      await execute("document.querySelector('#displayName').value"),
+      "Unsaved safety draft",
+    );
+    assert.equal(
+      (await execute<{ displayName: string }>("window.companion.preferences()"))
+        .displayName,
+      "Local smoke test",
+    );
+    await execute(
+      "(() => {const input=document.querySelector('#displayName');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Local smoke test');input.dispatchEvent(new Event('input',{bubbles:true}));})()",
+    );
+    await execute(
+      "document.querySelector('#view-preferences form button[type=submit]').click()",
+    );
+    await until(
+      "Array.from(document.querySelectorAll('button')).some(b => b.textContent === 'Unblock' && !b.disabled)",
+    );
+    console.log("desktop safety: blocked under load; draft retained and saved");
     await until(
       "Array.from(document.querySelectorAll('button')).some(b => b.textContent === 'Unblock')",
     );
@@ -1264,6 +1342,7 @@ async function run() {
           "voice-focus-loss-page-change-and-stalled-mute-teardown",
           "voice-overlay-ipc-denied",
           "explicit-contact-preview-approval-and-revocation",
+          "conversation-block-under-load-stops-call-purges-text-and-preserves-unsaved-preferences",
           "desktop-navigation-focus-and-retained-drafts",
           "consent-controlled-log-session-matching",
           ...(process.platform === "win32"

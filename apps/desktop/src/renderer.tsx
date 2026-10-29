@@ -97,6 +97,8 @@ function App() {
   const [networkNotice, setNetworkNotice] = useState("");
   const [pending, setPending] = useState(false),
     [dirty, setDirty] = useState(false);
+  const [contactPending, setContactPending] = useState(false);
+  const contactJobs = useRef(0);
   useEffect(() => {
     let active = true;
     void (async () => {
@@ -236,14 +238,34 @@ function App() {
     }
   }
   async function contact(action: string, peerId: string) {
-    setPending(true);
+    contactJobs.current++;
+    setContactPending(true);
     try {
-      setPreferences(await window.companion.contact(action, peerId));
-      setNotice("Contact preference saved.");
+      const saved = await window.companion.contact(action, peerId);
+      // Contact changes must never overwrite unsaved name/presence/layout edits.
+      setPreferences((previous) =>
+        previous
+          ? {
+              ...previous,
+              allowedPeers: [...saved.allowedPeers],
+              blockedPeers: [...saved.blockedPeers],
+            }
+          : saved,
+      );
+      setNotice(
+        action === "block"
+          ? "Contact blocked on this device."
+          : "Contact preference saved.",
+      );
+      return true;
     } catch {
-      setNotice("Could not save the contact change. Please try again.");
+      setNotice(
+        "Could not confirm the contact change. Review permissions before restarting.",
+      );
+      return false;
     } finally {
-      setPending(false);
+      contactJobs.current--;
+      setContactPending(contactJobs.current > 0);
     }
   }
   return (
@@ -525,7 +547,7 @@ function App() {
                   <button
                     type="button"
                     className="secondary"
-                    disabled={pending || dirty}
+                    disabled={contactPending}
                     onClick={() => {
                       void contact("revoke", id);
                     }}
@@ -535,7 +557,7 @@ function App() {
                   <button
                     type="button"
                     className="secondary"
-                    disabled={pending || dirty}
+                    disabled={contactPending}
                     onClick={() => {
                       void contact("block", id);
                     }}
@@ -553,7 +575,7 @@ function App() {
                 <button
                   type="button"
                   className="secondary"
-                  disabled={pending || dirty}
+                  disabled={pending || dirty || contactPending}
                   onClick={() => {
                     void contact("unblock", id);
                   }}
@@ -570,6 +592,8 @@ function App() {
         </div>
         <div id="view-messages" hidden={view !== "messages"}>
           <Messages
+            onBlockContact={(peerId) => contact("block", peerId)}
+            contactPending={contactPending}
             onMicrophone={setMicrophone}
             active={view === "messages"}
             connection={connection}

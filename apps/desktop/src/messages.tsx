@@ -9,12 +9,16 @@ export function Messages({
   onAddContact,
   active = true,
   onMicrophone,
+  onBlockContact,
+  contactPending = false,
 }: {
   connection: NetworkStatus | null;
   compact?: boolean;
   onAddContact?: () => void;
   active?: boolean;
   onMicrophone?: (value: "off" | "capturing" | "unknown") => void;
+  onBlockContact?: (peerId: string) => Promise<boolean>;
+  contactPending?: boolean;
 }) {
   const [available, setAvailable] = useState(false),
     [contacts, setContacts] = useState<ContactView[]>([]);
@@ -24,6 +28,7 @@ export function Messages({
     [sending, setSending] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
   const [pollError, setPollError] = useState(false);
+  const [blocking, setBlocking] = useState(false);
   const current = useRef(selected);
   current.current = selected;
   const log = useRef<HTMLDivElement>(null),
@@ -44,7 +49,7 @@ export function Messages({
       busy = true;
       try {
         const summary = await window.companion.messaging();
-        if (!active) return;
+        if (!active || current.current !== selected) return;
         setPollError(false);
         setAvailable(summary.available);
         setContacts(summary.contacts);
@@ -59,7 +64,7 @@ export function Messages({
           setHistory([]);
         } else if (next) {
           const messages = await window.companion.messages(next);
-          if (active) setHistory(messages);
+          if (active && current.current === next) setHistory(messages);
         } else setHistory([]);
       } catch {
         if (active) {
@@ -138,6 +143,37 @@ export function Messages({
       setNotice("Could not clear the conversation.");
     }
   }
+  async function blockSelected() {
+    const peerId = current.current;
+    if (!peerId || !onBlockContact || blocking || contactPending) return;
+    setBlocking(true);
+    current.current = "";
+    setSelected("");
+    setContacts((previous) =>
+      previous.filter((contact) => contact.peerId !== peerId),
+    );
+    setHistory([]);
+    setDrafts((previous) => {
+      const next = { ...previous };
+      delete next[peerId];
+      return next;
+    });
+    setNotice("Blocking selected app contact…");
+    try {
+      const saved = await onBlockContact(peerId);
+      setNotice(
+        saved
+          ? "Contact blocked on this device. Its local conversation was cleared. Manage blocks in Preferences."
+          : "Block could not be confirmed. Disconnect in Overview to stop communication, then review contact permissions.",
+      );
+    } catch {
+      setNotice(
+        "Block could not be confirmed. Disconnect in Overview to stop communication, then review contact permissions.",
+      );
+    } finally {
+      setBlocking(false);
+    }
+  }
   return (
     <section id="messagesPanel" className="panel">
       <h2>Messages</h2>
@@ -197,6 +233,25 @@ export function Messages({
               </option>
             ))}
           </select>
+          {!compact && onBlockContact && (
+            <div className="message-actions">
+              <button
+                id="blockConversationContact"
+                type="button"
+                className="secondary"
+                disabled={!selected || contactPending || blocking}
+                onClick={() => {
+                  void blockSelected();
+                }}
+              >
+                Block selected contact
+              </button>
+              <span className="hint">
+                Stops this app contact's messages and calls, and clears its
+                local conversation. Other contacts stay connected.
+              </span>
+            </div>
+          )}
           <div
             id="messageHistory"
             ref={log}

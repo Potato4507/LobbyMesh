@@ -269,6 +269,11 @@ export async function createDesktop(
         name === "companion:overlay:voice:end" ||
         (name === "companion:overlay:mode" && request === false) ||
         (name === "companion:network" && request === false) ||
+        (name === "companion:contact" &&
+          !!request &&
+          typeof request === "object" &&
+          "action" in request &&
+          (request.action === "block" || request.action === "revoke")) ||
         (name === "companion:voice:action" &&
           !!request &&
           typeof request === "object" &&
