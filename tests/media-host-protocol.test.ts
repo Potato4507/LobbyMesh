@@ -10,6 +10,28 @@ import {
 const id = "a".repeat(32);
 test("media commands and replies reject coercion, unknown fields, oversize and invalid consent", () => {
   const command = { id, op: "offer", data: true };
+  assert.deepEqual(parseMediaCommand({ id, op: "quality", data: null }), {
+    id,
+    op: "quality",
+    data: null,
+  });
+  assert.equal(
+    validMediaResult("quality", {
+      roundTripMs: 12,
+      jitterMs: null,
+      packetsLost: 0,
+    }),
+    true,
+  );
+  assert.equal(
+    validMediaResult("quality", {
+      roundTripMs: 12,
+      jitterMs: null,
+      packetsLost: 0,
+      address: "private",
+    }),
+    false,
+  );
   assert.deepEqual(parseMediaCommand(command), command);
   assert.deepEqual(
     parseMediaCommand({ id, op: "output", data: { volume: 0.25, muted: true } })

@@ -1,5 +1,10 @@
 // Browser-only media owner primitive. Main-process permission/identity IPC is a
 // separate boundary; only the dedicated media owner loads this primitive.
+import {
+  type MediaQuality,
+  readMediaQuality,
+  unknownMediaQuality,
+} from "./quality.js";
 export interface AudioPeerOptions {
   permitted: () => boolean;
   capture?: (constraints: MediaStreamConstraints) => Promise<MediaStream>;
@@ -43,6 +48,7 @@ export class AudioPeer {
     | "failed" = "idle";
   private busy = false;
   private talking = false;
+  private qualityPending = false;
   private disconnectTimer: ReturnType<typeof setTimeout> | undefined;
   constructor(private readonly options: AudioPeerOptions) {
     if (
@@ -121,7 +127,10 @@ export class AudioPeer {
       /* State is authoritative. */
     }
   }
-  private async bounded<T>(work: Promise<T>): Promise<T> {
+  private async bounded<T>(
+    work: Promise<T>,
+    timeoutMs = this.options.timeoutMs ?? 5000,
+  ): Promise<T> {
     let rejectWait: (error: Error) => void = () => {};
     const canceled = new Promise<never>((_resolve, reject) => {
       rejectWait = reject;
@@ -129,7 +138,7 @@ export class AudioPeer {
     const abort = () => rejectWait(new Error("MEDIA_CLOSED"));
     const timer = setTimeout(
       () => rejectWait(new Error("MEDIA_TIMEOUT")),
-      this.options.timeoutMs ?? 5000,
+      timeoutMs,
     );
     this.lifetime.signal.addEventListener("abort", abort, { once: true });
     try {
@@ -322,6 +331,35 @@ export class AudioPeer {
           ?.getAudioTracks()
           .some((track) => track.readyState === "live") === true,
     };
+  }
+  async quality(): Promise<MediaQuality> {
+    this.check();
+    if (this.qualityPending) return unknownMediaQuality();
+    this.qualityPending = true;
+    try {
+      const work = Promise.resolve()
+        .then(() => {
+          this.check();
+          return this.connection.getStats();
+        })
+        .then((report) => {
+          this.check();
+          return readMediaQuality(report);
+        })
+        .catch(() => unknownMediaQuality())
+        .finally(() => {
+          this.qualityPending = false;
+        });
+      return await this.bounded(
+        work,
+        Math.min(500, this.options.timeoutMs ?? 5000),
+      );
+    } catch {
+      // A timed-out native job keeps its slot until it actually settles.
+      // getStats is not abortable; requests cannot accumulate native jobs.
+      // Optional diagnostics never turn a healthy media call into a failure.
+      return unknownMediaQuality();
+    }
   }
   async metrics(): Promise<{
     receivedPackets: number;

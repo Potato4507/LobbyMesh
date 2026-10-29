@@ -128,6 +128,13 @@ async function run() {
     await delay(600);
     const talking = await right.metrics();
     const talkingRms = rms();
+    const quality = await right.quality();
+    check(
+      quality.roundTripMs !== null &&
+        quality.jitterMs !== null &&
+        quality.packetsLost !== null,
+      `NATIVE_QUALITY_UNAVAILABLE ${JSON.stringify(quality)}`,
+    );
     check(
       talking.receivedPackets > muted.receivedPackets &&
         talking.receivedBytes > muted.receivedBytes &&
@@ -173,6 +180,34 @@ async function run() {
     await delay(400);
     const releasedRms = rms();
     check(releasedRms < 0.00001, "AUDIO_AFTER_PTT_RELEASE");
+    const nativeStats = connection.getStats.bind(connection);
+    const measuredReport = await nativeStats();
+    let statsJobs = 0;
+    let releaseStats: (value: RTCStatsReport) => void = () => {};
+    connection.getStats = () => {
+      statsJobs++;
+      return new Promise((resolve) => {
+        releaseStats = resolve;
+      });
+    };
+    try {
+      const pendingQuality = left.quality();
+      await delay(550);
+      check(
+        Object.values(await pendingQuality).every((value) => value === null),
+        "STALLED_STATS_NOT_UNKNOWN",
+      );
+      await left.quality();
+      check(
+        statsJobs === 1 && left.status().phase === "connected",
+        "STATS_STALL_ACCUMULATED_OR_ENDED_CALL",
+      );
+    } finally {
+      connection.getStats = nativeStats;
+      releaseStats(measuredReport);
+    }
+    await delay(0);
+    check((await left.quality()).roundTripMs !== null, "STATS_DID_NOT_RECOVER");
     permitted = false;
     check(
       left.status().phase === "closed" &&
@@ -244,6 +279,8 @@ async function run() {
       receivedEnergy: talking.receivedEnergy,
       mutedRms,
       talkingRms,
+      quality,
+      statsStallRecovered: true,
       releasedRms,
       microphone: false,
       audibleOutput: false,

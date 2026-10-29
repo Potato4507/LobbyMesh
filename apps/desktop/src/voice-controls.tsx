@@ -324,6 +324,34 @@ export function VoiceControls({
             : "Microphone off"}
       </p>
       {connected && voice && <CallOutput key={voice.callId} voice={voice} />}
+      {connected && voice && (
+        <div id="callQuality" className="hint">
+          <span>
+            Network RTT:{" "}
+            {voice.quality.roundTripMs === null
+              ? "Unavailable"
+              : `${voice.quality.roundTripMs.toFixed(1)} ms`}
+          </span>
+          {" · "}
+          <span>
+            Inbound jitter:{" "}
+            {voice.quality.jitterMs === null
+              ? "Unavailable"
+              : `${voice.quality.jitterMs.toFixed(1)} ms`}
+          </span>
+          {" · "}
+          <span>
+            Lost packets:{" "}
+            {voice.quality.packetsLost === null
+              ? "Unavailable"
+              : voice.quality.packetsLost}
+          </span>
+          <p>
+            Loss is cumulative for this inbound audio stream. RTT measures the
+            network path, not mouth-to-ear latency.
+          </p>
+        </div>
+      )}
       {permissionDenied && (
         <p className="notice">
           Windows microphone access is blocked. Enable access in Windows privacy

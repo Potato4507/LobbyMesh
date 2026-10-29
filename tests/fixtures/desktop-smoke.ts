@@ -93,7 +93,8 @@ async function run() {
   let remoteVoice: VoiceCalls | undefined,
     localMediaStarts = 0,
     holdVoiceMute = false;
-  let failVoiceClose = false;
+  let failVoiceClose = false,
+    failVoiceQuality = true;
   let mediaConnectionState: ((phase: string) => void) | undefined;
   const networkFactory: DesktopNetworkFactory = async (
     _signal,
@@ -169,6 +170,10 @@ async function run() {
           talking = value;
         },
         async setOutput(_volume: number, _muted: boolean) {},
+        async quality() {
+          if (failVoiceQuality) throw new Error("synthetic stats unavailable");
+          return { roundTripMs: 18.25, jitterMs: 2.75, packetsLost: 3 };
+        },
         async status() {
           return { phase, capturing: !closed, transmitting: talking };
         },
@@ -468,6 +473,21 @@ async function run() {
     assert.ok(outbound);
     await remoteVoice.answer(outbound, true);
     await until("document.querySelector('#pushToTalk') !== null");
+    await until(
+      "document.querySelector('#callQuality')?.textContent.includes('Unavailable')",
+    );
+    failVoiceQuality = false;
+    await until(
+      "document.querySelector('#callQuality')?.textContent.includes('18.3 ms') && document.querySelector('#callQuality')?.textContent.includes('2.8 ms')",
+    );
+    failVoiceQuality = true;
+    await until(
+      "document.querySelector('#callQuality')?.textContent.includes('Unavailable')",
+    );
+    assert.equal(
+      (await execute<{ phase: string }>("window.companion.voice()")).phase,
+      "connected",
+    );
     await execute(
       "(() => { const input=document.querySelector('#callVolume'); for(const value of [...Array.from({length:40},(_,i)=>String(i+30)),'25']) { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true})); } })()",
     );
@@ -1102,6 +1122,7 @@ async function run() {
           "authorized-messaging-ui",
           "explicit-voice-consent-call-answer-decline-and-ptt",
           "call-output-volume-mute-and-unknown-level",
+          "local-call-quality-measured-and-unavailable-without-call-failure",
           "voice-focus-loss-page-change-and-stalled-mute-teardown",
           "voice-overlay-ipc-denied",
           "explicit-contact-preview-approval-and-revocation",

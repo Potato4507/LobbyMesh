@@ -170,6 +170,11 @@ try {
   const offering = await a.command("call", { peerId: infoB.peerId });
   const ringing = await b.command("snapshot");
   assert.equal(ringing.voice.phase, "ringing");
+  assert.deepEqual(ringing.voice.quality, {
+    roundTripMs: null,
+    jitterMs: null,
+    packetsLost: null,
+  });
   assert.equal((await b.command("samples")).hosts, 0);
   await b.command("answer", { callId: offering.callId });
   await until(
@@ -184,6 +189,17 @@ try {
   const forward = await b.command("samples");
   assert.equal(forward.hosts, 1);
   assert.ok(forward.rms[0] > 0.01);
+  await until(
+    async () => (await b.command("snapshot")).voice.quality.jitterMs !== null,
+    "native call quality",
+  );
+  const quality = (await b.command("snapshot")).voice.quality;
+  assert.equal(typeof quality.roundTripMs, "number");
+  assert.equal(typeof quality.packetsLost, "number");
+  assert.equal(
+    Object.keys(quality).sort().join(","),
+    "jitterMs,packetsLost,roundTripMs",
+  );
   await b.command("output", { volume: 0.25, muted: false });
   await delay(200);
   const quiet = await b.command("samples");
@@ -314,6 +330,7 @@ try {
       crossNat: false,
       crashCleanupMs,
       crashTrace,
+      quality,
     }),
   );
 } finally {

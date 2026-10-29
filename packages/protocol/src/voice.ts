@@ -1,3 +1,8 @@
+export interface VoiceQuality {
+  roundTripMs: number | null;
+  jitterMs: number | null;
+  packetsLost: number | null;
+}
 export interface VoiceView {
   supported: boolean;
   enabled: boolean;
@@ -10,6 +15,7 @@ export interface VoiceView {
   outputVolume: number;
   outputMuted: boolean;
   outputLevel: number | null;
+  quality: VoiceQuality;
   microphonePermission:
     | "not-determined"
     | "granted"

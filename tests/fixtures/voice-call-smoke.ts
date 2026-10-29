@@ -117,6 +117,16 @@ async function run() {
       ),
     );
     assert.equal(reverse.filter((value) => value > 0.01).length, 1);
+    const qualityDeadline = performance.now() + 4000;
+    while (
+      right.voice.status().quality.jitterMs === null &&
+      performance.now() < qualityDeadline
+    )
+      await delay(25);
+    const quality = right.voice.status().quality;
+    assert.notEqual(quality.jitterMs, null);
+    assert.notEqual(quality.roundTripMs, null);
+    assert.notEqual(quality.packetsLost, null);
     await left.voice.hangup();
     assert.equal(BrowserWindow.getAllWindows().length, 0);
     assert.equal(right.voice.status().phase, "idle");
@@ -139,6 +149,7 @@ async function run() {
         forward,
         silence,
         reverse,
+        quality,
         outlivedNegotiation: true,
         microphone: false,
         audibleOutput: false,

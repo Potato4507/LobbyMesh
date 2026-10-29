@@ -1,3 +1,4 @@
+import { validMediaQuality } from "./quality.js";
 export const MEDIA_COMMAND = "companion:media:command";
 export const MEDIA_REPLY = "companion:media:reply";
 export function mediaError(value: unknown): string {
@@ -24,7 +25,8 @@ export type MediaOperation =
   | "talk"
   | "output"
   | "status"
-  | "metrics";
+  | "metrics"
+  | "quality";
 export interface MediaCommand {
   id: string;
   op: MediaOperation;
@@ -73,6 +75,7 @@ export function parseMediaCommand(value: unknown): MediaCommand {
       "output",
       "status",
       "metrics",
+      "quality",
     ].includes(command.op)
   )
     throw new Error("INVALID_MEDIA_COMMAND");
@@ -83,7 +86,7 @@ export function parseMediaCommand(value: unknown): MediaCommand {
         ? typeof command.data !== "boolean"
         : command.op === "output"
           ? !validMediaOutput(command.data)
-          : ["status", "metrics"].includes(command.op)
+          : ["status", "metrics", "quality"].includes(command.op)
             ? command.data !== null
             : typeof command.data !== "string" ||
               !command.data.length ||
@@ -110,6 +113,7 @@ export function parseMediaReply(value: unknown): MediaReply {
   return { ...reply };
 }
 export function validMediaResult(op: MediaOperation, data: unknown): boolean {
+  if (op === "quality") return validMediaQuality(data);
   if (op === "offer" || op === "answer")
     return (
       typeof data === "string" &&

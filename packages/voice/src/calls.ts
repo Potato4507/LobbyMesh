@@ -1,5 +1,10 @@
 import type { RpcHandler } from "../../app-dht/src/rpc.js";
 import type { DirectContact } from "../../protocol/src/direct.js";
+import {
+  type MediaQuality,
+  unknownMediaQuality,
+  validMediaQuality,
+} from "./quality.js";
 import { VoiceSignaling } from "./signaling.js";
 
 export interface CallMedia {
@@ -8,6 +13,7 @@ export interface CallMedia {
   acceptAnswer(sdp: string): Promise<void>;
   setTalking(value: boolean): Promise<void>;
   setOutput(volume: number, muted: boolean): Promise<void>;
+  quality?(): Promise<MediaQuality>;
   status(): Promise<{
     phase: string;
     capturing: boolean;
@@ -35,6 +41,11 @@ interface OwnedMedia {
   outputPending: boolean;
   outputLevel: number | null;
   mediaPhase: string;
+  quality: MediaQuality;
+  qualityAt: number;
+  qualityRequested: number | undefined;
+  qualityPending: boolean;
+  qualityEpoch: number;
 }
 
 // Main-process call lifecycle. Remote SDP can only enter through authenticated
@@ -140,6 +151,7 @@ export class VoiceCalls {
     this.signaling.policyChanged();
   }
   status(): {
+    quality: MediaQuality;
     available: boolean;
     phase: string;
     peerId: string | null;
@@ -177,6 +189,12 @@ export class VoiceCalls {
       outputVolume: this.owner?.outputVolume ?? 1,
       outputMuted: this.owner?.outputMuted ?? false,
       outputLevel: this.owner?.outputLevel ?? null,
+      quality:
+        this.owner?.mediaPhase === "connected" &&
+        !this.owner.controller.signal.aborted &&
+        performance.now() - this.owner.qualityAt <= 2500
+          ? { ...this.owner.quality }
+          : unknownMediaQuality(),
     };
   }
   private create(peerId: string): OwnedMedia {
@@ -207,6 +225,11 @@ export class VoiceCalls {
       outputPending: false,
       outputLevel: null,
       mediaPhase: "preparing",
+      quality: unknownMediaQuality(),
+      qualityAt: 0,
+      qualityRequested: undefined,
+      qualityPending: false,
+      qualityEpoch: 0,
     };
     this.owner = owner;
     this.failure = null;
@@ -305,6 +328,7 @@ export class VoiceCalls {
           owner.polling = false;
           if (this.owner !== owner) return;
           owner.capturing = status.capturing;
+          if (owner.mediaPhase !== status.phase) owner.qualityEpoch++;
           owner.mediaPhase = status.phase;
           owner.transmitting = status.transmitting;
           owner.outputLevel =
@@ -326,6 +350,7 @@ export class VoiceCalls {
               return;
             }
           }
+          this.pollQuality(owner);
           this.poll(owner);
         },
         () => {
@@ -335,6 +360,45 @@ export class VoiceCalls {
       );
     }, this.options.pollMs ?? 100);
     this.timer.unref();
+  }
+  private pollQuality(owner: OwnedMedia): void {
+    if (owner.mediaPhase !== "connected") {
+      owner.quality = unknownMediaQuality();
+      owner.qualityAt = 0;
+      return;
+    }
+    const started = performance.now(),
+      epoch = owner.qualityEpoch;
+    if (
+      !owner.media.quality ||
+      owner.qualityPending ||
+      (owner.qualityRequested !== undefined &&
+        started - owner.qualityRequested < 1000)
+    )
+      return;
+    const sample = owner.media.quality.bind(owner.media);
+    owner.qualityRequested = started;
+    owner.qualityPending = true;
+    void this.media(owner, sample)
+      .then((quality) => {
+        if (
+          this.owner !== owner ||
+          owner.controller.signal.aborted ||
+          owner.qualityEpoch !== epoch
+        )
+          return;
+        owner.quality =
+          performance.now() - started <= 500 && validMediaQuality(quality)
+            ? { ...quality }
+            : unknownMediaQuality();
+        owner.qualityAt = performance.now();
+      })
+      .catch(() => {
+        if (this.owner === owner) owner.quality = unknownMediaQuality();
+      })
+      .finally(() => {
+        owner.qualityPending = false;
+      });
   }
   async dial(contact: DirectContact, consent: boolean): Promise<string> {
     if (

@@ -8,6 +8,7 @@ import {
   mediaError,
   parseMediaCommand,
 } from "../../../packages/voice/src/media-host-protocol.js";
+import { unknownMediaQuality } from "../../../packages/voice/src/quality.js";
 
 interface MediaBridge {
   listen(callback: (command: unknown) => void): void;
@@ -25,6 +26,7 @@ export function installMediaOwner(
   let peer: AudioPeer | undefined,
     closed = false,
     active = 0;
+  let qualityActive = false;
   const sinks: HTMLAudioElement[] = [];
   let talkLease: ReturnType<typeof setTimeout> | undefined;
   let outputContext: AudioContext | undefined,
@@ -76,7 +78,13 @@ export function installMediaOwner(
   bridge.listen((value) => {
     void (async () => {
       const command = parseMediaCommand(value);
-      if (++active > 4) {
+      const diagnostic = command.op === "quality";
+      if (diagnostic && (qualityActive || active >= 4)) {
+        bridge.reply({ id: command.id, ok: true, data: unknownMediaQuality() });
+        return;
+      }
+      if (diagnostic) qualityActive = true;
+      else if (++active > 4) {
         active--;
         close();
         bridge.reply({ id: command.id, ok: false, data: null });
@@ -119,6 +127,10 @@ export function installMediaOwner(
               outputLevel: outputLevel(),
             };
             break;
+          case "quality":
+            if (!peer) throw new Error("MEDIA_NOT_READY");
+            data = await peer.quality();
+            break;
           case "output":
             if (!peer) throw new Error("MEDIA_NOT_READY");
             output = { ...(command.data as MediaOutput) };
@@ -142,7 +154,8 @@ export function installMediaOwner(
           data: reason,
         });
       } finally {
-        active--;
+        if (diagnostic) qualityActive = false;
+        else active--;
       }
     })().catch(close);
   });

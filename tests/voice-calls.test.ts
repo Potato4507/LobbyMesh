@@ -172,6 +172,96 @@ test("a talking request racing a media interruption does not destroy the recover
   await left.setTalking(true);
   assert.equal(owner.talking, true);
 });
+test("quality is sampled once in flight, copied, and failures do not end healthy media", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  const owner = media[0];
+  assert.ok(owner);
+  let samples = 0;
+  owner.quality = async () => {
+    samples++;
+    return { roundTripMs: 10, jitterMs: 2, packetsLost: 0 };
+  };
+  await delay(30);
+  assert.equal(samples, 1);
+  const copy = left.status().quality;
+  assert.equal(copy.roundTripMs, 10);
+  copy.roundTripMs = 999;
+  assert.equal(left.status().quality.roundTripMs, 10);
+  await left.hangup();
+  const next = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(next, true);
+  const failed = media[2];
+  assert.ok(failed);
+  failed.quality = async () => {
+    throw new Error("stats unavailable");
+  };
+  await delay(20);
+  assert.equal(left.status().phase, "connected");
+  assert.equal(left.status().quality.roundTripMs, null);
+  assert.equal(failed.closed, false);
+});
+test("stalled quality stays single-flight, expires cached data and discards slow completion", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  const owner = media[0];
+  assert.ok(owner);
+  let samples = 0;
+  let finish: (q: {
+    roundTripMs: number;
+    jitterMs: number;
+    packetsLost: number;
+  }) => void = () => {};
+  const measured = { roundTripMs: 10, jitterMs: 2, packetsLost: 0 };
+  owner.quality = async () => {
+    if (++samples === 1) return measured;
+    return new Promise((resolve) => {
+      finish = resolve;
+    });
+  };
+  await delay(20);
+  assert.equal(left.status().quality.roundTripMs, 10);
+  await delay(2700);
+  assert.equal(samples, 2);
+  assert.equal(left.status().quality.roundTripMs, null);
+  finish(measured);
+  await delay(20);
+  assert.equal(left.status().quality.roundTripMs, null);
+  assert.equal(left.status().phase, "connected");
+  assert.equal(owner.closed, false);
+});
+test("late quality from an ended call cannot populate its replacement", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  const owner = media[0];
+  assert.ok(owner);
+  let finish: (q: {
+    roundTripMs: number;
+    jitterMs: number;
+    packetsLost: number;
+  }) => void = () => {};
+  owner.quality = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  await delay(10);
+  await left.hangup();
+  const next = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(next, true);
+  finish({ roundTripMs: 10, jitterMs: 2, packetsLost: 0 });
+  await delay(10);
+  assert.equal(left.status().callId, next);
+  assert.equal(left.status().quality.roundTripMs, null);
+});
 test("local connected media outlives negotiation, expires once, and denial stops capture immediately", async (t) => {
   const { left, right, media, deny } = fixture(t, {
     negotiationTimeoutMs: 40,

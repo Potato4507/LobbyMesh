@@ -18,6 +18,10 @@ import {
   parseMediaReply,
   validMediaResult,
 } from "../../../packages/voice/src/media-host-protocol.js";
+import {
+  type MediaQuality,
+  unknownMediaQuality,
+} from "../../../packages/voice/src/quality.js";
 import { allowMediaPermission } from "./media-permission.js";
 
 // Electron retains partition sessions for the process lifetime. Reuse a bounded
@@ -233,7 +237,12 @@ export class DesktopMediaHost {
       throw error;
     }
     this.check();
-    if (this.pending.size >= 4) {
+    const qualityPending = [...this.pending.values()].filter(
+      (value) => value.op === "quality",
+    ).length;
+    if (op === "quality" && (qualityPending > 0 || this.pending.size >= 4))
+      return unknownMediaQuality();
+    if (op !== "quality" && this.pending.size - qualityPending >= 4) {
       this.close();
       throw new Error("MEDIA_HOST_QUOTA");
     }
@@ -281,6 +290,9 @@ export class DesktopMediaHost {
       transmitting: boolean;
       outputLevel: number | null;
     };
+  }
+  async quality(): Promise<MediaQuality> {
+    return (await this.command("quality", null)) as MediaQuality;
   }
   async metrics(): Promise<{
     receivedPackets: number;

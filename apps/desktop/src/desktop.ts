@@ -24,6 +24,7 @@ import {
   windowsLogDirectories,
 } from "../../../packages/session/src/windows-logs.js";
 import { VoiceCalls } from "../../../packages/voice/src/calls.js";
+import { unknownMediaQuality } from "../../../packages/voice/src/quality.js";
 import { DesktopMediaHost } from "./media-host.js";
 import { DesktopMessaging } from "./messaging.js";
 import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
@@ -218,6 +219,7 @@ export async function createDesktop(
         outputVolume: 1,
         outputMuted: false,
         outputLevel: null,
+        quality: unknownMediaQuality(),
         microphonePermission,
       };
     }

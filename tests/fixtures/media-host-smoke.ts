@@ -85,6 +85,19 @@ async function run() {
       `HOST_TALKING_RMS ${JSON.stringify(talking)}`,
     );
     const metrics = await right.metrics();
+    const quality = await right.quality();
+    assert.notEqual(quality.roundTripMs, null);
+    assert.notEqual(quality.jitterMs, null);
+    assert.notEqual(quality.packetsLost, null);
+    // One optional diagnostic must not consume any of four ordinary slots.
+    await Promise.all([
+      right.quality(),
+      right.status(),
+      right.setTalking(false),
+      right.setOutput(1, false),
+      right.metrics(),
+    ]);
+    assert.equal((await right.status()).phase, "connected");
     await left.setTalking(true);
     const renewOutputTest = setInterval(() => {
       void left.setTalking(true).catch(() => {});
@@ -259,6 +272,7 @@ async function run() {
         quarterOutput,
         mutedOutput,
         receivedPackets: metrics.receivedPackets,
+        quality,
         foreignReadyRejected: true,
         microphone: false,
         audibleOutput: false,
