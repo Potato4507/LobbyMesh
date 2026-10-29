@@ -13,6 +13,7 @@ export interface CallMedia {
   acceptAnswer(sdp: string): Promise<void>;
   setTalking(value: boolean): Promise<void>;
   setOutput(volume: number, muted: boolean): Promise<void>;
+  setInputGain(value: number): Promise<void>;
   quality?(): Promise<MediaQuality>;
   status(): Promise<{
     phase: string;
@@ -39,6 +40,8 @@ interface OwnedMedia {
   outputVolume: number;
   outputMuted: boolean;
   outputPending: boolean;
+  inputGain: number;
+  inputPending: boolean;
   outputLevel: number | null;
   mediaPhase: string;
   quality: MediaQuality;
@@ -160,6 +163,7 @@ export class VoiceCalls {
     transmitting: boolean | null;
     error: string | null;
     outputVolume: number;
+    inputGain: number;
     outputMuted: boolean;
     outputLevel: number | null;
   } {
@@ -187,6 +191,7 @@ export class VoiceCalls {
           : (this.owner?.transmitting ?? false),
       error: this.failure,
       outputVolume: this.owner?.outputVolume ?? 1,
+      inputGain: this.owner?.inputGain ?? 1,
       outputMuted: this.owner?.outputMuted ?? false,
       outputLevel: this.owner?.outputLevel ?? null,
       quality:
@@ -223,6 +228,8 @@ export class VoiceCalls {
       outputVolume: 1,
       outputMuted: false,
       outputPending: false,
+      inputGain: 1,
+      inputPending: false,
       outputLevel: null,
       mediaPhase: "preparing",
       quality: unknownMediaQuality(),
@@ -501,6 +508,24 @@ export class VoiceCalls {
       throw error;
     } finally {
       owner.outputPending = false;
+    }
+  }
+  async setInputGain(value: number): Promise<void> {
+    if (!Number.isFinite(value) || value < 0 || value > 2)
+      throw new Error("INVALID_CALL_INPUT_GAIN");
+    const owner = this.owner;
+    if (!owner || this.signaling.status().phase !== "connected")
+      throw new Error("VOICE_NOT_CONNECTED");
+    if (owner.inputPending) throw new Error("INPUT_UPDATE_PENDING");
+    owner.inputPending = true;
+    try {
+      await this.media(owner, () => owner.media.setInputGain(value));
+      owner.inputGain = value;
+    } catch (error) {
+      this.stopWithError(owner, "MEDIA_INPUT_FAILED");
+      throw error;
+    } finally {
+      owner.inputPending = false;
     }
   }
   close(): void {

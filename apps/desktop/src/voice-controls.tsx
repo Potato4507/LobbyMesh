@@ -3,6 +3,7 @@ import type {
   VoiceAction,
   VoiceView,
 } from "../../../packages/protocol/src/voice.js";
+import { CallInput } from "./call-input.js";
 import { CallOutput } from "./call-output.js";
 
 export function VoiceControls({
@@ -323,6 +324,9 @@ export function VoiceControls({
               : "Microphone on · transmission muted"
             : "Microphone off"}
       </p>
+      {connected && voice && (
+        <CallInput key={`input-${voice.callId}`} voice={voice} />
+      )}
       {connected && voice && <CallOutput key={voice.callId} voice={voice} />}
       {connected && voice && (
         <div id="callQuality" className="hint">

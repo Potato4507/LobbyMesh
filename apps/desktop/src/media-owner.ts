@@ -137,6 +137,10 @@ export function installMediaOwner(
             if (outputGain)
               outputGain.gain.value = output.muted ? 0 : output.volume;
             break;
+          case "input-gain":
+            if (!peer) throw new Error("MEDIA_NOT_READY");
+            peer.setInputGain(command.data as number);
+            break;
           case "metrics":
             if (!peer) throw new Error("MEDIA_NOT_READY");
             data = await peer.metrics();

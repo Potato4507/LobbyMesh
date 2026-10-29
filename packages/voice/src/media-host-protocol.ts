@@ -24,13 +24,14 @@ export type MediaOperation =
   | "accept-answer"
   | "talk"
   | "output"
+  | "input-gain"
   | "status"
   | "metrics"
   | "quality";
 export interface MediaCommand {
   id: string;
   op: MediaOperation;
-  data: string | boolean | null | MediaOutput;
+  data: string | number | boolean | null | MediaOutput;
 }
 export interface MediaOutput {
   volume: number;
@@ -73,6 +74,7 @@ export function parseMediaCommand(value: unknown): MediaCommand {
       "accept-answer",
       "talk",
       "output",
+      "input-gain",
       "status",
       "metrics",
       "quality",
@@ -84,13 +86,18 @@ export function parseMediaCommand(value: unknown): MediaCommand {
       ? command.data !== true
       : command.op === "talk"
         ? typeof command.data !== "boolean"
-        : command.op === "output"
-          ? !validMediaOutput(command.data)
-          : ["status", "metrics", "quality"].includes(command.op)
-            ? command.data !== null
-            : typeof command.data !== "string" ||
-              !command.data.length ||
-              new TextEncoder().encode(command.data).length > 12_288
+        : command.op === "input-gain"
+          ? typeof command.data !== "number" ||
+            !Number.isFinite(command.data) ||
+            command.data < 0 ||
+            command.data > 2
+          : command.op === "output"
+            ? !validMediaOutput(command.data)
+            : ["status", "metrics", "quality"].includes(command.op)
+              ? command.data !== null
+              : typeof command.data !== "string" ||
+                !command.data.length ||
+                new TextEncoder().encode(command.data).length > 12_288
   )
     throw new Error("INVALID_MEDIA_COMMAND");
   return { ...command };
@@ -120,7 +127,12 @@ export function validMediaResult(op: MediaOperation, data: unknown): boolean {
       data.length > 0 &&
       new TextEncoder().encode(data).length <= 12_288
     );
-  if (op === "talk" || op === "accept-answer" || op === "output")
+  if (
+    op === "talk" ||
+    op === "accept-answer" ||
+    op === "output" ||
+    op === "input-gain"
+  )
     return data === null;
   if (!data || typeof data !== "object" || Array.isArray(data)) return false;
   if (op === "status") {

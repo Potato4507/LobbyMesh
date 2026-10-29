@@ -92,7 +92,8 @@ async function run() {
     holdSends = false;
   let remoteVoice: VoiceCalls | undefined,
     localMediaStarts = 0,
-    holdVoiceMute = false;
+    holdVoiceMute = false,
+    holdVoiceInput = false;
   let failVoiceClose = false,
     failVoiceQuality = true;
   let mediaConnectionState: ((phase: string) => void) | undefined;
@@ -170,6 +171,10 @@ async function run() {
           talking = value;
         },
         async setOutput(_volume: number, _muted: boolean) {},
+        async setInputGain(value: number) {
+          if (local && holdVoiceInput && value === 0)
+            await new Promise<void>(() => {});
+        },
         async quality() {
           if (failVoiceQuality) throw new Error("synthetic stats unavailable");
           return { roundTripMs: 18.25, jitterMs: 2.75, packetsLost: 3 };
@@ -492,6 +497,21 @@ async function run() {
       "(() => { const input=document.querySelector('#callVolume'); for(const value of [...Array.from({length:40},(_,i)=>String(i+30)),'25']) { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true})); } })()",
     );
     await until("window.companion.voice().then(s=>s.outputVolume === 0.25)");
+    await execute(
+      "(() => { const input=document.querySelector('#callInputGain'); for(const value of ['140','90','0','25']) {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true}));}})()",
+    );
+    await until("window.companion.voice().then(s=>s.inputGain === 0.25)");
+    assert.equal(
+      (await execute<{ transmitting: boolean }>("window.companion.voice()"))
+        .transmitting,
+      false,
+    );
+    assert.equal(
+      await execute(
+        "window.companion.voice().then(s=>window.companion.voiceAction({action:'input-gain',callId:'0'.repeat(32),gain:0})).then(()=>false,()=>true)",
+      ),
+      true,
+    );
     await execute("document.querySelector('#muteIncoming').click()");
     await until("window.companion.voice().then(s=>s.outputMuted)");
     assert.equal(
@@ -607,6 +627,11 @@ async function run() {
     await execute("document.querySelector('#answerCall').click()");
     await until("document.querySelector('#pushToTalk') !== null");
     assert.equal(localMediaStarts, beforeIncoming + 1);
+    assert.equal(
+      (await execute<{ inputGain: number }>("window.companion.voice()"))
+        .inputGain,
+      1,
+    );
     const originalVoiceBounds = desktop.window.getBounds();
     desktop.window.setContentSize(720, 600);
     await delay(60);
@@ -629,6 +654,23 @@ async function run() {
     contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
     await until("window.companion.voice().then(s=>s.phase==='idle')");
     holdVoiceMute = false;
+    await remoteVoice.hangup();
+    const gainCall = await execute<{ callId: string }>(
+      `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true})`,
+    );
+    await remoteVoice.answer(gainCall.callId, true);
+    await until("window.companion.voice().then(s=>s.phase==='connected')");
+    holdVoiceInput = true;
+    assert.equal(
+      await execute(
+        "window.companion.voice().then(s=>window.companion.voiceAction({action:'input-gain',callId:s.callId,gain:0})).then(()=>false,()=>true)",
+      ),
+      true,
+    );
+    await until(
+      "window.companion.voice().then(s=>s.capturing===false && s.callId===null)",
+    );
+    holdVoiceInput = false;
     await execute("document.querySelector('#voicePanel .eyebrow').remove()");
     await execute("document.querySelector('#voiceConsent').click()");
     await until("window.companion.voice().then(s=>!s.enabled)");
@@ -824,6 +866,11 @@ async function run() {
       assert.ok(
         await overlayExecute(
           "window.companion.voiceAction({action:'consent',enabled:true}).then(()=>false,()=>true)",
+        ),
+      );
+      assert.ok(
+        await overlayExecute(
+          "window.companion.voiceAction({action:'input-gain',callId:'a'.repeat(32),gain:0}).then(()=>false,()=>true)",
         ),
       );
       assert.ok(
@@ -1211,6 +1258,8 @@ async function run() {
           "authorized-messaging-ui",
           "explicit-voice-consent-call-answer-decline-and-ptt",
           "call-output-volume-mute-and-unknown-level",
+          "call-input-gain-coalesced-reset-and-stale-id-denied",
+          "input-zero-stall-stops-capture",
           "local-call-quality-measured-and-unavailable-without-call-failure",
           "voice-focus-loss-page-change-and-stalled-mute-teardown",
           "voice-overlay-ipc-denied",

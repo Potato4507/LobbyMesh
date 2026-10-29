@@ -88,6 +88,7 @@ async function run() {
       peerId?: string;
       callId?: string;
       volume?: number;
+      gain?: number;
       muted?: boolean;
     }) => {
       void (async () => {
@@ -180,6 +181,10 @@ async function run() {
           case "output":
             return execute(
               `window.companion.voice().then(s=>window.companion.voiceAction({action:'output',callId:s.callId,volume:${JSON.stringify(message.volume)},muted:${JSON.stringify(message.muted)}}))`,
+            );
+          case "input-gain":
+            return execute(
+              `window.companion.voice().then(s=>window.companion.voiceAction({action:'input-gain',callId:s.callId,gain:${JSON.stringify(message.gain)}}))`,
             );
           case "hangup":
             await release();

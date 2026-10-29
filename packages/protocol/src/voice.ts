@@ -13,6 +13,7 @@ export interface VoiceView {
   transmitting: boolean | null;
   error: string | null;
   outputVolume: number;
+  inputGain: number;
   outputMuted: boolean;
   outputLevel: number | null;
   quality: VoiceQuality;
@@ -29,7 +30,8 @@ export type VoiceAction =
   | { action: "answer"; callId: string; consent: true }
   | { action: "hangup"; callId: string | null }
   | { action: "talk"; callId: string; pressed: boolean; start: boolean }
-  | { action: "output"; callId: string; volume: number; muted: boolean };
+  | { action: "output"; callId: string; volume: number; muted: boolean }
+  | { action: "input-gain"; callId: string; gain: number };
 export function parseVoiceAction(value: unknown): VoiceAction {
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new Error("INVALID_VOICE_ACTION");
@@ -61,6 +63,13 @@ export function parseVoiceAction(value: unknown): VoiceAction {
       action.volume >= 0 &&
       action.volume <= 1 &&
       typeof action.muted === "boolean") ||
+    (action.action === "input-gain" &&
+      keys === "action,callId,gain" &&
+      callId(action.callId) &&
+      typeof action.gain === "number" &&
+      Number.isFinite(action.gain) &&
+      action.gain >= 0 &&
+      action.gain <= 2) ||
     (action.action === "talk" &&
       keys === "action,callId,pressed,start" &&
       callId(action.callId) &&

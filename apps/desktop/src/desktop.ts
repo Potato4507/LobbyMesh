@@ -223,6 +223,7 @@ export async function createDesktop(
         transmitting,
         error,
         outputVolume: 1,
+        inputGain: 1,
         outputMuted: false,
         outputLevel: null,
         quality: unknownMediaQuality(),
@@ -279,6 +280,9 @@ export async function createDesktop(
             (request.action === "talk" &&
               "pressed" in request &&
               request.pressed === false) ||
+            (request.action === "input-gain" &&
+              "gain" in request &&
+              request.gain === 0) ||
             (request.action === "output" &&
               "muted" in request &&
               request.muted === true)));
@@ -340,6 +344,25 @@ export async function createDesktop(
           throw new Error("VOICE_STATE_MISMATCH");
         stopTalking();
         await service.hangup();
+      } else if (action.action === "input-gain") {
+        if (service.status().callId !== action.callId)
+          throw new Error("VOICE_STATE_MISMATCH");
+        const watchdog =
+          action.gain === 0
+            ? setTimeout(() => {
+                if (service.status().callId === action.callId)
+                  void service.hangup().catch(() => {});
+              }, 200)
+            : undefined;
+        try {
+          await service.setInputGain(action.gain);
+        } catch (error) {
+          if (action.gain === 0 && service.status().callId === action.callId)
+            await service.hangup().catch(() => {});
+          throw error;
+        } finally {
+          clearTimeout(watchdog);
+        }
       } else if (action.action === "output") {
         if (service.status().callId !== action.callId)
           throw new Error("VOICE_STATE_MISMATCH");

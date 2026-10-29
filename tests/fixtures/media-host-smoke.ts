@@ -104,7 +104,9 @@ async function run() {
     }, 200);
     let fullOutput = 0,
       quarterOutput = 0,
-      mutedOutput = 0;
+      mutedOutput = 0,
+      quarterInput = 0,
+      zeroInput = 0;
     try {
       const outputRms = async () =>
         Math.max(
@@ -143,6 +145,21 @@ async function run() {
       await right.setOutput(1, false);
       await delay(180);
       assert.ok((await outputRms()) > 0.1, "unmute restores output");
+      await left.setInputGain(0.25);
+      await delay(250);
+      quarterInput = await outputRms();
+      assert.ok(
+        quarterInput / fullOutput > 0.18 && quarterInput / fullOutput < 0.32,
+        "native input gain scales encoded audio",
+      );
+      await left.setInputGain(0);
+      await delay(250);
+      zeroInput = await outputRms();
+      assert.ok(zeroInput < 0.00001, "zero input gain silences encoded audio");
+      assert.equal((await left.status()).capturing, true);
+      await left.setInputGain(1);
+      await delay(200);
+      assert.ok((await outputRms()) > 0.1, "input unity restores audio");
     } finally {
       clearInterval(renewOutputTest);
     }
@@ -271,6 +288,8 @@ async function run() {
         fullOutput,
         quarterOutput,
         mutedOutput,
+        quarterInput,
+        zeroInput,
         receivedPackets: metrics.receivedPackets,
         quality,
         foreignReadyRejected: true,

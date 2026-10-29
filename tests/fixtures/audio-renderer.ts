@@ -124,6 +124,12 @@ async function run() {
     const muted = await right.metrics();
     const mutedRms = rms();
     check(mutedRms < 0.00001, "MUTED_AUDIO_LEAK");
+    left.setInputGain(2);
+    check(
+      !left.status().transmitting && tracks.every((track) => !track.enabled),
+      "GAIN_ACTIVATED_PTT",
+    );
+    left.setInputGain(1);
     left.setTalking(true);
     await delay(600);
     const talking = await right.metrics();
@@ -141,6 +147,38 @@ async function run() {
         talkingRms > 0.01,
       `NO_SYNTHETIC_RTP_AUDIO ${JSON.stringify({ muted, talking, mutedRms, talkingRms, context: context.state })}`,
     );
+    left.setInputGain(0.25);
+    await delay(400);
+    const quarterInputRms = rms();
+    check(
+      quarterInputRms / talkingRms > 0.18 &&
+        quarterInputRms / talkingRms < 0.32,
+      "INPUT_GAIN_NOT_QUARTER_AUDIO",
+    );
+    left.setInputGain(0);
+    await delay(400);
+    const zeroInputRms = rms();
+    check(
+      zeroInputRms < 0.00001 &&
+        left.status().capturing &&
+        left.status().transmitting,
+      "ZERO_GAIN_MUST_SILENCE_WITHOUT_CLAIMING_MIC_OFF",
+    );
+    for (const value of [NaN, Infinity, -1, 2.01]) {
+      try {
+        left.setInputGain(value);
+        throw new Error("INVALID_GAIN_ACCEPTED");
+      } catch (error) {
+        check(
+          error instanceof Error &&
+            error.message === "MEDIA_INVALID_INPUT_GAIN",
+          "INVALID_GAIN_REASON",
+        );
+      }
+    }
+    left.setInputGain(1);
+    await delay(400);
+    check(rms() > 0.1, "INPUT_GAIN_RESTORE_FAILED");
     // Inject only the browser state event; the native RTP connection stays live.
     // Actual process-loss detection is exercised separately by the crash harness.
     const connection = (left as unknown as { connection: RTCPeerConnection })
@@ -226,6 +264,7 @@ async function run() {
       "source-muted",
       "source-ended",
       "remote-ended",
+      "input-suspended",
     ] as const) {
       const offset = tracks.length;
       const caller = create(() => true),
@@ -251,7 +290,12 @@ async function run() {
       if (interrupt === "source-muted") source.dispatchEvent(new Event("mute"));
       else if (interrupt === "source-ended")
         source.dispatchEvent(new Event("ended"));
-      else {
+      else if (interrupt === "input-suspended") {
+        const input = (caller as unknown as { inputContext: AudioContext })
+          .inputContext;
+        await input.suspend().catch(() => {});
+        await delay(0);
+      } else {
         const remote = (caller as unknown as { remote: MediaStream }).remote;
         const track = remote.getAudioTracks()[0];
         check(track, "INTERRUPTION_REMOTE_MISSING");
@@ -271,6 +315,14 @@ async function run() {
           source.onmute === null &&
           source.onended === null,
         "INTERRUPTION_REARMED_CAPTURE",
+      );
+      const processed = (caller as unknown as { processed: MediaStream })
+        .processed;
+      check(
+        processed
+          .getTracks()
+          .every((track) => track.readyState === "ended" && !track.enabled),
+        "PROCESSED_INPUT_LEAK",
       );
       try {
         caller.setTalking(true);
@@ -366,12 +418,15 @@ async function run() {
       receivedEnergy: talking.receivedEnergy,
       mutedRms,
       talkingRms,
+      quarterInputRms,
+      zeroInputRms,
       quality,
       statsStallRecovered: true,
       syntheticTrackInterruptions: [
         "source-muted",
         "source-ended",
         "remote-ended",
+        "input-suspended",
         "initial-muted",
       ],
       releasedRms,

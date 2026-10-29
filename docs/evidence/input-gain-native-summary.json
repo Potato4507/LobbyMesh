@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-29",
+  "proofTiers": ["SAME_PROCESS", "SAME_HOST"],
+  "browser": {
+    "result": "synthetic-audio-passed",
+    "syntheticSources": 13,
+    "receivedPackets": 46,
+    "receivedBytes": 2749,
+    "receivedEnergy": 0,
+    "mutedRms": 0.000002336051101031902,
+    "talkingRms": 0.7039086260472097,
+    "quarterInputRms": 0.17787165618735648,
+    "zeroInputRms": 0,
+    "quality": {
+      "roundTripMs": 0,
+      "jitterMs": 0,
+      "packetsLost": 0
+    },
+    "statsStallRecovered": true,
+    "syntheticTrackInterruptions": [
+      "source-muted",
+      "source-ended",
+      "remote-ended",
+      "input-suspended",
+      "initial-muted"
+    ],
+    "releasedRms": 0,
+    "microphone": false,
+    "audibleOutput": false,
+    "crossNat": false,
+    "electron": "45.1.0",
+    "sandbox": true,
+    "permissionRequests": 1
+  },
+  "independentClients": {
+    "result": "independent-voice-passed",
+    "electronMainProcesses": 2,
+    "clientLaunches": 3,
+    "restartedIdentityPreserved": true,
+    "voiceConsentReset": true,
+    "revokedContactPersisted": true,
+    "distinctProfiles": true,
+    "distinctAppIdentities": true,
+    "protectedCredentials": true,
+    "mutualSignedPairing": true,
+    "forward": 0.7049328568394507,
+    "silence": 0,
+    "reverse": 0.7091645275866577,
+    "quarterOutput": 0.17606087078225466,
+    "quarterInput": 0.17674523621104637,
+    "zeroInput": 0,
+    "mutedOutput": 0,
+    "recipientNoCaptureBeforeAnswer": true,
+    "microphone": false,
+    "audibleOutput": false,
+    "crossNat": false,
+    "crashCleanupMs": null,
+    "crashTrace": [],
+    "quality": {
+      "roundTripMs": 0,
+      "jitterMs": 0,
+      "packetsLost": 0
+    }
+  },
+  "crash": {
+    "result": "independent-voice-passed",
+    "electronMainProcesses": 2,
+    "clientLaunches": 3,
+    "restartedIdentityPreserved": true,
+    "voiceConsentReset": true,
+    "revokedContactPersisted": true,
+    "distinctProfiles": true,
+    "distinctAppIdentities": true,
+    "protectedCredentials": true,
+    "mutualSignedPairing": true,
+    "forward": 0.7024828650662728,
+    "silence": 0,
+    "reverse": 0.7094424631515469,
+    "quarterOutput": 0.17649143948479226,
+    "mutedOutput": 0,
+    "recipientNoCaptureBeforeAnswer": true,
+    "microphone": false,
+    "audibleOutput": false,
+    "crossNat": false,
+    "crashCleanupMs": 11294,
+    "crashTrace": [
+      {
+        "elapsedMs": 33,
+        "phase": "connected",
+        "capturing": true,
+        "hosts": 1
+      },
+      {
+        "elapsedMs": 6308,
+        "phase": "reconnecting",
+        "capturing": true,
+        "hosts": 1
+      },
+      {
+        "elapsedMs": 11294,
+        "phase": "failed",
+        "capturing": false,
+        "hosts": 0
+      }
+    ],
+    "quality": {
+      "roundTripMs": 0,
+      "jitterMs": 0,
+      "packetsLost": 0
+    }
+  },
+  "limits": [
+    "synthetic-oscillator-input-only",
+    "no-hardware-microphone",
+    "no-audible-output",
+    "no-actual-Roblox",
+    "no-LAN-or-NAT-proof"
+  ]
+}

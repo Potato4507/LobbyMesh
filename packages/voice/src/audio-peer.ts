@@ -37,6 +37,9 @@ export class AudioPeer {
   private readonly connection: RTCPeerConnection;
   private readonly lifetime = new AbortController();
   private stream: MediaStream | undefined;
+  private processed: MediaStream | undefined;
+  private inputContext: AudioContext | undefined;
+  private inputGain: GainNode | undefined;
   private remote: MediaStream | undefined;
   private phase:
     | "idle"
@@ -95,8 +98,9 @@ export class AudioPeer {
       else if (this.connection.connectionState === "disconnected") {
         this.phase = "reconnecting";
         this.talking = false;
-        for (const track of this.stream?.getAudioTracks() ?? [])
-          track.enabled = false;
+        for (const stream of [this.stream, this.processed])
+          for (const track of stream?.getAudioTracks() ?? [])
+            track.enabled = false;
         this.disconnectTimer = setTimeout(
           () => this.fail("MEDIA_DISCONNECTED"),
           5000,
@@ -191,6 +195,23 @@ export class AudioPeer {
     // End this media owner; a new call needs fresh explicit user consent.
     track.onmute = () => this.fail("MEDIA_DEVICE_MUTED");
     if (track.muted) throw new Error("MEDIA_DEVICE_UNAVAILABLE");
+    const context = new AudioContext();
+    this.inputContext = context;
+    const gain = context.createGain(),
+      destination = context.createMediaStreamDestination();
+    this.inputGain = gain;
+    gain.gain.value = 1;
+    context.createMediaStreamSource(stream).connect(gain);
+    gain.connect(destination);
+    this.processed = destination.stream;
+    const outgoing = destination.stream.getAudioTracks()[0];
+    if (!outgoing) throw new Error("MEDIA_CAPTURE_FAILED");
+    outgoing.enabled = false;
+    await this.bounded(context.resume());
+    context.onstatechange = () => {
+      if (!this.lifetime.signal.aborted && context.state !== "running")
+        this.fail("MEDIA_INPUT_INTERRUPTED");
+    };
     const transceiver = answering
       ? this.connection
           .getTransceivers()
@@ -198,15 +219,15 @@ export class AudioPeer {
             (value) =>
               value.mid !== null && value.receiver.track.kind === "audio",
           )
-      : this.connection.addTransceiver(track, {
+      : this.connection.addTransceiver(outgoing, {
           direction: "sendrecv",
-          streams: [stream],
+          streams: [destination.stream],
         });
     if (!transceiver) throw new Error("MEDIA_INVALID_DESCRIPTION");
     if (answering) {
       transceiver.direction = "sendrecv";
-      await this.bounded(transceiver.sender.replaceTrack(track));
-      transceiver.sender.setStreams(stream);
+      await this.bounded(transceiver.sender.replaceTrack(outgoing));
+      transceiver.sender.setStreams(destination.stream);
     }
     const opus =
       RTCRtpSender.getCapabilities("audio")?.codecs.filter(
@@ -318,14 +339,22 @@ export class AudioPeer {
     });
   }
   // Push-to-talk ownership stays in the trusted host; opening a call never talks.
+  setInputGain(value: number): void {
+    this.check();
+    if (!Number.isFinite(value) || value < 0 || value > 2)
+      throw new Error("MEDIA_INVALID_INPUT_GAIN");
+    if (!this.inputGain) throw new Error("MEDIA_NOT_READY");
+    this.inputGain.gain.value = value;
+  }
   setTalking(value: boolean): void {
     this.check();
     if (!this.stream) throw new Error("MEDIA_NOT_READY");
     if (value === true && this.connection.connectionState !== "connected")
       throw new Error("MEDIA_NOT_CONNECTED");
     this.talking = value === true;
-    for (const track of this.stream.getAudioTracks())
-      track.enabled = this.talking;
+    for (const stream of [this.stream, this.processed])
+      for (const track of stream?.getAudioTracks() ?? [])
+        track.enabled = this.talking;
   }
   status(): { phase: string; transmitting: boolean; capturing: boolean } {
     if (!this.allowed()) this.close();
@@ -399,13 +428,18 @@ export class AudioPeer {
     this.talking = false;
     this.lifetime.abort();
     clearTimeout(this.disconnectTimer);
-    for (const stream of [this.stream, this.remote])
+    for (const stream of [this.stream, this.processed, this.remote])
       for (const track of stream?.getTracks() ?? []) {
         track.enabled = false;
         track.onended = null;
         track.onmute = null;
         track.stop();
       }
+    if (this.inputContext) {
+      this.inputContext.onstatechange = null;
+      void this.inputContext.close().catch(() => {});
+    }
+    this.inputGain = undefined;
     this.connection.ontrack = null;
     this.connection.onconnectionstatechange = null;
     this.connection.close();

@@ -222,7 +222,7 @@ export class DesktopMediaHost {
   }
   private async command(
     op: MediaOperation,
-    data: string | boolean | null | MediaOutput,
+    data: string | number | boolean | null | MediaOutput,
   ): Promise<unknown> {
     this.check();
     const command = parseMediaCommand({
@@ -277,6 +277,9 @@ export class DesktopMediaHost {
   }
   async setOutput(volume: number, muted: boolean): Promise<void> {
     await this.command("output", { volume, muted });
+  }
+  async setInputGain(value: number): Promise<void> {
+    await this.command("input-gain", value);
   }
   async status(): Promise<{
     phase: string;

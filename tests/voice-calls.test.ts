@@ -40,6 +40,7 @@ function fixture(
         value.talking = talk;
       },
       async setOutput(_volume: number, _muted: boolean) {},
+      async setInputGain(_value: number) {},
       async status() {
         return {
           phase: value.phase,
@@ -316,6 +317,7 @@ test("canceled or timed out capture cannot transmit a late offer or overwrite a 
         acceptAnswer: async () => {},
         setTalking: async () => {},
         setOutput: async () => {},
+        setInputGain: async () => {},
         status: async () => ({
           phase: "negotiating",
           capturing: true,
@@ -431,4 +433,72 @@ test("call output is bounded, serialized and independent of microphone/PTT", asy
   await left.hangup();
   assert.equal(left.status().outputVolume, 1);
   assert.equal(left.status().outputMuted, false);
+});
+
+test("call input gain is bounded, single-flight, acknowledged and resets without changing PTT", async (t) => {
+  const { left, right, media } = fixture(t);
+  await assert.rejects(left.setInputGain(0), /VOICE_NOT_CONNECTED/);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  await delay(10);
+  const local = media[0];
+  assert.ok(local);
+  let finish: () => void = () => {};
+  local.setInputGain = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  const input = left.setInputGain(0.25);
+  await assert.rejects(left.setInputGain(0), /INPUT_UPDATE_PENDING/);
+  assert.equal(left.status().inputGain, 1);
+  assert.equal(left.status().transmitting, false);
+  finish();
+  await input;
+  assert.equal(left.status().inputGain, 0.25);
+  assert.equal(left.status().capturing, true);
+  assert.equal(left.status().transmitting, false);
+  assert.equal(left.status().outputVolume, 1);
+  for (const value of [NaN, Infinity, -1, 2.01])
+    await assert.rejects(left.setInputGain(value), /INVALID_CALL_INPUT_GAIN/);
+  await left.hangup();
+  assert.equal(left.status().inputGain, 1);
+});
+
+test("late input-gain completion cannot overwrite a replacement call, and unconfirmed updates stop media", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  await delay(10);
+  const local = media[0];
+  assert.ok(local);
+  let finish: () => void = () => {};
+  local.setInputGain = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  const pending = assert.rejects(
+    left.setInputGain(0.25),
+    /VOICE_CALL_CANCELED/,
+  );
+  await left.hangup();
+  await pending;
+  const replacement = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(replacement, true);
+  await delay(10);
+  finish();
+  await delay(0);
+  assert.equal(left.status().inputGain, 1);
+  const current = media[2];
+  assert.ok(current);
+  current.setInputGain = async () => {
+    throw new Error("native update failed");
+  };
+  await assert.rejects(left.setInputGain(0), /native update failed/);
+  assert.equal(left.status().error, "MEDIA_INPUT_FAILED");
+  assert.equal(left.status().capturing, false);
+  assert.equal(current.closed, true);
 });
