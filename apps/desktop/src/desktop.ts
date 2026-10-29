@@ -10,6 +10,10 @@ import {
 import { NetworkLifecycle } from "../../../packages/app-dht/src/lifecycle.js";
 import { parseStatusRequest } from "../../../packages/protocol/src/index.js";
 import {
+  type OverlayVoiceView,
+  parseOverlayEndCall,
+} from "../../../packages/protocol/src/overlay.js";
+import {
   parsePeerId,
   parsePreferencePatch,
 } from "../../../packages/protocol/src/preferences.js";
@@ -126,6 +130,8 @@ export async function createDesktop(
         "companion:status",
         "companion:overlay",
         "companion:overlay:mode",
+        "companion:overlay:voice",
+        "companion:overlay:voice:end",
         "companion:messaging",
         "companion:messages",
         "companion:messages:send",
@@ -258,6 +264,8 @@ export async function createDesktop(
         name === "companion:status" ||
         name === "companion:voice" ||
         name === "companion:overlay" ||
+        name === "companion:overlay:voice" ||
+        name === "companion:overlay:voice:end" ||
         (name === "companion:overlay:mode" && request === false) ||
         (name === "companion:network" && request === false) ||
         (name === "companion:voice:action" &&
@@ -384,6 +392,23 @@ export async function createDesktop(
   handle("companion:overlay", (request) => {
     parseStatusRequest(request);
     return overlay.status();
+  });
+  const overlayVoiceView = (): OverlayVoiceView => {
+    const { phase, callId, capturing, transmitting } = voiceView();
+    return { phase, callId, capturing, transmitting };
+  };
+  handle("companion:overlay:voice", (request) => {
+    parseStatusRequest(request);
+    return overlayVoiceView();
+  });
+  handle("companion:overlay:voice:end", async (request) => {
+    const { callId } = parseOverlayEndCall(request);
+    const service = voice();
+    if (service.status().callId !== callId)
+      throw new Error("VOICE_STATE_MISMATCH");
+    stopTalking();
+    await service.hangup();
+    return overlayVoiceView();
   });
   handle("companion:overlay:mode", (request) => {
     if (typeof request !== "boolean") throw new Error("INVALID_OVERLAY_MODE");

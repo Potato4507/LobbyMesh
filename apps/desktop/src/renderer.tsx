@@ -1,7 +1,10 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
-import type { OverlayStatus } from "../../../packages/protocol/src/overlay.js";
+import type {
+  OverlayStatus,
+  OverlayVoiceView,
+} from "../../../packages/protocol/src/overlay.js";
 import type { ContactPreview } from "../../../packages/protocol/src/pairing.js";
 import type { Preferences } from "../../../packages/protocol/src/preferences.js";
 import type {
@@ -31,6 +34,8 @@ declare global {
       voice(): Promise<VoiceView>;
       voiceAction(request: VoiceAction): Promise<VoiceView>;
       overlay(): Promise<OverlayStatus>;
+      overlayVoice(): Promise<OverlayVoiceView>;
+      endOverlayCall(request: { callId: string }): Promise<OverlayVoiceView>;
       overlayMode(interactive: boolean): Promise<OverlayStatus>;
       messaging(): Promise<{ available: boolean; contacts: ContactView[] }>;
       messages(peerId: string): Promise<MessageView[]>;

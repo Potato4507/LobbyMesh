@@ -690,6 +690,30 @@ async function run() {
       await untilOverlay(
         "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone off'",
       );
+      await execute("document.querySelector('[data-widget=voice]').click()");
+      await until(
+        "window.companion.preferences().then(p => p.overlay.widgets.includes('voice'))",
+      );
+      for (let index = 2; index >= 0; index--) {
+        await execute("document.querySelector('[data-move-up=voice]').click()");
+        await until(
+          `window.companion.preferences().then(p => p.overlay.widgets.indexOf('voice') === ${index})`,
+        );
+      }
+      await untilOverlay(
+        "document.querySelector('[data-overlay-widget=voice]') !== null",
+      );
+      assert.deepEqual(
+        await overlayExecute(
+          "window.companion.overlayVoice().then(s => Object.keys(s).sort())",
+        ),
+        ["callId", "capturing", "phase", "transmitting"],
+      );
+      assert.ok(
+        await overlayExecute(
+          "window.companion.voice().then(()=>false,()=>true)",
+        ),
+      );
       desktop.window.show();
       desktop.window.focus();
       await until("document.hasFocus()");
@@ -703,6 +727,34 @@ async function run() {
       await untilOverlay(
         "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone on'",
       );
+      await untilOverlay(
+        "document.querySelector('#overlayCallPhase')?.textContent === 'Connected'",
+      );
+      for (const request of [
+        null,
+        { callId: null },
+        { callId: "00".repeat(16) },
+        { callId: overlayVoice.callId, consent: true },
+      ]) {
+        assert.ok(
+          await overlayExecute(
+            `window.companion.endOverlayCall(${JSON.stringify(request)}).then(()=>false,()=>true)`,
+          ),
+        );
+      }
+      assert.equal(
+        (await execute<{ capturing: boolean }>("window.companion.voice()"))
+          .capturing,
+        true,
+      );
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('#overlayEndCall') === null",
+        ),
+        true,
+      );
+      await execute("window.companion.overlayMode(true)");
+      await untilOverlay("document.querySelector('#overlayEndCall') !== null");
       await overlayExecute(
         "(() => { const label=document.createElement('p'); label.id='voiceFixture'; label.className='eyebrow'; label.textContent='SYNTHETIC VOICE · NO MICROPHONE OR NETWORK'; document.querySelector('main').prepend(label); })()",
       );
@@ -715,9 +767,7 @@ async function run() {
       overlayWindow.hide();
       await overlayExecute("document.querySelector('#voiceFixture').remove()");
       failVoiceClose = true;
-      await execute(
-        `window.companion.voiceAction({action:'hangup',callId:${JSON.stringify(overlayVoice.callId)}})`,
-      );
+      await overlayExecute("document.querySelector('#overlayEndCall').click()");
       await untilOverlay(
         "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone state unknown'",
       );
@@ -728,6 +778,34 @@ async function run() {
       await untilOverlay(
         "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone off'",
       );
+      // The injected failed local teardown may prevent remote hangup delivery.
+      // Explicitly end the owned remote fixture before starting a new call.
+      await assert.rejects(remoteVoice.hangup(), /VOICE_DISABLED/);
+      assert.equal(remoteVoice.status().callId, null);
+      await execute(
+        "window.companion.voiceAction({action:'consent',enabled:true})",
+      );
+      const replacementCall = await execute<{ callId: string }>(
+        `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true})`,
+      );
+      await remoteVoice.answer(replacementCall.callId, true);
+      await untilOverlay(
+        "document.querySelector('#overlayCallPhase')?.textContent === 'Connected'",
+      );
+      assert.ok(
+        await overlayExecute(
+          `window.companion.endOverlayCall({callId:${JSON.stringify(overlayVoice.callId)}}).then(()=>false,()=>true)`,
+        ),
+      );
+      assert.equal(
+        (await execute<{ callId: string }>("window.companion.voice()")).callId,
+        replacementCall.callId,
+      );
+      await overlayExecute("document.querySelector('#overlayEndCall').click()");
+      await untilOverlay(
+        "window.companion.overlayVoice().then(s => s.callId === null && s.capturing === false && s.transmitting === false)",
+      );
+      await execute("window.companion.overlayMode(false)");
       desktop.window.hide();
       assert.deepEqual(
         await overlayExecute("[typeof require, typeof process]"),
@@ -964,6 +1042,16 @@ async function run() {
       },
     });
     await foreign.loadFile(path.resolve("dist/index.html"));
+    for (const expression of [
+      "window.companion.overlayVoice()",
+      "window.companion.endOverlayCall({callId:'ab'.repeat(16)})",
+    ]) {
+      assert.ok(
+        await foreign.webContents.executeJavaScript(
+          `${expression}.then(()=>false,()=>true)`,
+        ),
+      );
+    }
     assert.ok(
       await foreign.webContents.executeJavaScript(
         "window.companion.voiceAction({action:'consent',enabled:true}).then(()=>false,()=>true)",
@@ -1025,6 +1113,7 @@ async function run() {
     if (process.platform === "win32") {
       assert.equal(desktop.overlay.getWindow()?.isFocusable(), false);
       assert.deepEqual(desktop.overlay.status().preferences.widgets, [
+        "voice",
         "chat",
         "session",
       ]);
@@ -1132,6 +1221,7 @@ async function run() {
             ? [
                 "native-overlay-widgets-and-authorized-chat",
                 "overlay-capture-on-unknown-and-confirmed-off",
+                "overlay-current-call-redaction-stale-id-denial-and-end-only-control",
                 "overlay-input-modes-and-ipc-restrictions",
               ]
             : []),

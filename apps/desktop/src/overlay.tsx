@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type {
   OverlayStatus,
+  OverlayVoiceView,
   OverlayWidget,
 } from "../../../packages/protocol/src/overlay.js";
 import { Messages } from "./messages.js";
@@ -11,23 +12,36 @@ function Overlay() {
   const [status, setStatus] = useState<Status | null>(null),
     [overlay, setOverlay] = useState<OverlayStatus | null>(null);
   const [failed, setFailed] = useState(false);
+  const [voice, setVoice] = useState<OverlayVoiceView | null>(null);
+  const [ending, setEnding] = useState(false),
+    [callError, setCallError] = useState("");
+  const voiceRevision = useRef(0),
+    endPending = useRef(false);
   useEffect(() => {
     let active = true,
       busy = false;
     const poll = () => {
       if (busy) return;
       busy = true;
-      void Promise.all([window.companion.status(), window.companion.overlay()])
-        .then(([current, view]) => {
+      const revision = voiceRevision.current;
+      void Promise.all([
+        window.companion.status(),
+        window.companion.overlay(),
+        window.companion.overlayVoice(),
+      ])
+        .then(([current, view, call]) => {
           if (active) {
             setStatus(current);
             setOverlay(view);
             setFailed(false);
+            if (revision === voiceRevision.current && !endPending.current)
+              setVoice(call);
           }
         })
         .catch(() => {
           if (active) {
             setStatus(null);
+            setVoice(null);
             setFailed(true);
           }
         })
@@ -42,6 +56,24 @@ function Overlay() {
       clearInterval(timer);
     };
   }, []);
+  async function endCall() {
+    if (!voice?.callId || endPending.current) return;
+    const callId = voice.callId;
+    voiceRevision.current++;
+    endPending.current = true;
+    setEnding(true);
+    setCallError("");
+    try {
+      setVoice(await window.companion.endOverlayCall({ callId }));
+    } catch {
+      setVoice(null);
+      setCallError("Could not confirm call ended. Check the main window.");
+    } finally {
+      voiceRevision.current++;
+      endPending.current = false;
+      setEnding(false);
+    }
+  }
   const widgets: Record<OverlayWidget, () => React.ReactNode> = {
     network: () => (
       <section className="panel" data-overlay-widget="network">
@@ -81,6 +113,58 @@ function Overlay() {
       <div data-overlay-widget="chat">
         <Messages connection={status?.connection ?? null} compact />
       </div>
+    ),
+    voice: () => (
+      <section className="panel" data-overlay-widget="voice">
+        <h2>Current call</h2>
+        <strong id="overlayCallPhase">
+          {voice
+            ? ({
+                disabled: "Voice off",
+                idle: "No active call",
+                offering: "Calling",
+                ringing: "Incoming call",
+                negotiating: "Connecting",
+                preparing: "Preparing call",
+                connected: "Connected",
+                reconnecting: "Reconnecting",
+                failed: "Call needs attention",
+              }[voice.phase] ?? "Call status unavailable")
+            : "Call status unavailable"}
+        </strong>
+        <p id="overlayCallCapture">
+          {voice?.capturing === true
+            ? "Microphone on"
+            : voice?.capturing === false
+              ? "Microphone off"
+              : "Microphone state unknown"}{" "}
+          ·{" "}
+          {voice?.transmitting === true
+            ? "Transmitting"
+            : voice?.transmitting === false
+              ? "Not transmitting"
+              : "Transmission unknown"}
+        </p>
+        {voice?.callId &&
+          (overlay?.interactive ? (
+            <button
+              id="overlayEndCall"
+              type="button"
+              disabled={ending}
+              onClick={() => {
+                void endCall();
+              }}
+            >
+              {ending ? "Ending call…" : "End call"}
+            </button>
+          ) : (
+            <small>Interact with overlay to end call.</small>
+          ))}
+        <p>
+          <small>Start, answer and hold to talk in the main window.</small>
+        </p>
+        {callError && <p role="alert">{callError}</p>}
+      </section>
     ),
   };
   return (

@@ -63,6 +63,7 @@ export function OverlaySettings({
     network: "Connection",
     session: "Session presence",
     chat: "Approved chat",
+    voice: "Current call",
   };
   const orderedWidgets = [
     ...overlay.widgets,
@@ -195,8 +196,9 @@ export function OverlaySettings({
       </fieldset>
       <p className="hint">
         Move widgets up or down to arrange them. Ctrl + Shift + Space toggles
-        interaction; otherwise clicks pass through to your game. Voice is not
-        yet available. Exclusive fullscreen may hide the overlay.
+        interaction; otherwise clicks pass through to your game. Current call
+        shows voice status and can end a call; use the main window to start,
+        answer or talk. Exclusive fullscreen may hide the overlay.
       </p>
       <button
         id="overlayInteract"

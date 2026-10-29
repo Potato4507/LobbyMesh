@@ -1,4 +1,4 @@
-export const OVERLAY_WIDGETS = ["network", "session", "chat"] as const;
+export const OVERLAY_WIDGETS = ["network", "session", "chat", "voice"] as const;
 export type OverlayWidget = (typeof OVERLAY_WIDGETS)[number];
 export interface OverlayPreferences {
   enabled: boolean;
@@ -28,7 +28,7 @@ export function parseOverlayPreferences(value: unknown): OverlayPreferences {
     object.opacity > 1 ||
     !Array.isArray(object.widgets) ||
     object.widgets.length < 1 ||
-    object.widgets.length > 3 ||
+    object.widgets.length > OVERLAY_WIDGETS.length ||
     new Set(object.widgets).size !== object.widgets.length ||
     !object.widgets.every((widget) => OVERLAY_WIDGETS.includes(widget))
   )
@@ -45,6 +45,27 @@ export interface OverlayStatus {
   interactive: boolean;
   shortcutRegistered: boolean;
   preferences: OverlayPreferences;
+}
+// Read-only call observation plus a separate, strictly call-bound stop action.
+// No peer identities, media parameters, permission grants or PTT capability.
+export interface OverlayVoiceView {
+  phase: string;
+  callId: string | null;
+  capturing: boolean | null;
+  transmitting: boolean | null;
+}
+export function parseOverlayEndCall(value: unknown): { callId: string } {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.keys(value).join(",") !== "callId" ||
+    !("callId" in value) ||
+    typeof value.callId !== "string" ||
+    !/^[a-f0-9]{32}$/.test(value.callId)
+  )
+    throw new Error("INVALID_OVERLAY_END_CALL");
+  return { callId: value.callId };
 }
 export function overlayBounds(
   area: { x: number; y: number; width: number; height: number },

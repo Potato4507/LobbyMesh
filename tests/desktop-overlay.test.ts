@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   defaultOverlayPreferences,
   overlayBounds,
+  parseOverlayEndCall,
   parseOverlayPreferences,
 } from "../packages/protocol/src/overlay.js";
 import {
@@ -51,6 +52,29 @@ test("overlay layout validates bounded options and stays inside negative-origin 
   parsed.widgets.pop();
   assert.equal(value.widgets.length, 3);
 });
+
+test("overlay end requires a concrete current-call token and grants no voice capability", () => {
+  const callId = "ab".repeat(16);
+  assert.deepEqual(parseOverlayEndCall({ callId }), { callId });
+  for (const value of [
+    null,
+    [],
+    {},
+    { callId: null },
+    { callId: "bad" },
+    { callId, action: "answer" },
+    { callId, consent: true },
+    { callId, pressed: true },
+  ])
+    assert.throws(() => parseOverlayEndCall(value), /INVALID_OVERLAY_END_CALL/);
+  assert.deepEqual(
+    parseOverlayPreferences({
+      ...defaultOverlayPreferences(),
+      widgets: ["voice", "chat", "network", "session"],
+    }).widgets,
+    ["voice", "chat", "network", "session"],
+  );
+});
 test("legacy settings migrate overlay defaults without changing identity/contact policy; layout persists and snapshots are isolated", async () => {
   const directory = await mkdtemp(
     path.join(tmpdir(), "lobbymesh-overlay-settings-"),
@@ -75,21 +99,25 @@ test("legacy settings migrate overlay defaults without changing identity/contact
     const value = {
       ...defaultOverlayPreferences(),
       enabled: true,
-      widgets: ["chat", "session"] as ("chat" | "session")[],
+      widgets: ["voice", "chat", "session"] as ("voice" | "chat" | "session")[],
       corner: "bottom-left" as const,
       opacity: 0.7,
     };
     const updated = store.update({ overlay: value });
     value.widgets.pop();
     await updated;
-    assert.equal(store.snapshot().overlay.widgets.length, 2);
+    assert.equal(store.snapshot().overlay.widgets.length, 3);
     store.snapshot().overlay.widgets.pop();
-    assert.equal(store.snapshot().overlay.widgets.length, 2);
+    assert.equal(store.snapshot().overlay.widgets.length, 3);
     await store.close();
     store = await PreferenceStore.open(directory);
     assert.equal(store.snapshot().overlay.enabled, true);
     assert.equal(store.snapshot().overlay.corner, "bottom-left");
-    assert.deepEqual(store.snapshot().overlay.widgets, ["chat", "session"]);
+    assert.deepEqual(store.snapshot().overlay.widgets, [
+      "voice",
+      "chat",
+      "session",
+    ]);
     assert.ok(store.isAuthorized(peer));
   } finally {
     await store?.close();
