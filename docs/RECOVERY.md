@@ -1,4 +1,20 @@
-# Active checkpoint — 2026-10-29, microphone selection
+# Active checkpoint — 2026-10-29, message privacy and cleanup
+
+Latest verified runtime/source HEAD:2c0e51739f592fcf089daf78c46a93d219462f03, pushed on codex/lobbymesh-pi-lab-and-reliability, origin Potato4507/Roblox-app. Ubuntu40924758015 passed; prior9085415/40923645365 also passed. All runtime edits committed; subsequent documentation checkpoint records package evidence only. No user edits were present before this continuation. Native historical intermittency is not considered fixed by green runs.
+
+Implemented/verified replay-safe content clear, UI read/send revisions, cancelable sends/priority clear under16 ordinary IPC slots, automatic idle expiry, immediate blocked-contact backend content deletion and post-close reply-hint guard. Clear duplicate regression failed before fix; focused13/13/full167/167/typecheck/lint173/build and native desktop main/isolated clear/protected reopen pass. Additional clear scenarios are isolated in a fresh profile/process, included by default with the same30s per-process deadline; no old assertions removed. Idle timer tests advance mocked clock without reads/traffic; no physical soak claim. Previous block proof was denied reads/UI clearing; actual backend deletion is established only by the new test/change. See evidence/conversation-clear-replay.md and evidence/idle-content-expiry.md. Generated screenshots restored to the known clean baseline.
+
+Current artifact dist/LobbyMesh-win32-x64-1793296080147/LobbyMesh.exe, clean2c0e517,656 files/415638379 bytes/56 dependency copies. Actual executable/defaults off/protected reopen and manifest pin passed, NotSigned. SHA2569144a929b33253ee0f3386678a72684e0e6ce89ed917f788de64c547097c1fb2; retained evidence/windows-privacy-cleanup-package-summary.json. No installer/fresh-machine/packaged pair/physical audio/game/LAN/NAT/release-ready claim. Both historical authorized Pi hostname and overlay-address doctor attempts failed this continuation; local overlay-presence command unavailable, not proof of Pi power state. Live session probe waiting/no session/network off/self-asserted. No Pi facts, installs, privilege or OS networking changes.
+
+Next3 actions superseding older commands below:
+
+```powershell
+git status --short --branch; git log -5 --oneline
+pnpm verify:package D:\LobbyMesh\dist\LobbyMesh-win32-x64-1793296080147 --manifest-sha256 9144a929b33253ee0f3386678a72684e0e6ce89ed917f788de64c547097c1fb2
+Get-Content apps/desktop/src/messaging.ts; Get-Content apps/desktop/src/messages.tsx
+```
+
+Next concrete unblocked implementation: typed local delivery-failure projection for known cancellation/permission/timeout cases, with no raw endpoints/errors and no claim that remote text was erased or not received. Preserve cautious unconfirmed/ACK semantics and duplicate-resend warning. Continue other product lanes when that is complete. Old checkpoint paragraphs below are retained history and superseded here.
 
 Continuation source parent9085415 (conversation-clear fix pushed). Added automatic idle content/hint/fingerprint expiry via one unref'd earliest-deadline timer per direct/desktop owner. Block now deletes both backend plaintext copies immediately; older evidence proved only denied reads/UI clearing, not internal deletion. Closed inbound continuation cannot repopulate hints. Focused13/13/full167/167/typecheck/lint173/build and native desktop main/isolated clear/protected reopen pass. Mocked clock proves cleanup with no renderer reads, not a physical soak; existing wall-clock scheduling limits documented. All regenerated screenshots restored; owned runtime/test/evidence changes only. See evidence/idle-content-expiry.md. Next commit this verified runtime, build a clean package and pin-check its manifest; then inspect CI and continue the next unblocked product improvement. Current artifact0de3f4c remains historical until refreshed. No OS/network/privilege/license/release changes.
 
