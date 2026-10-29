@@ -1,4 +1,31 @@
-# Active checkpoint — 2026-10-28
+# Active checkpoint — 2026-10-29
+
+Repository: `D:\LobbyMesh`, `Potato4507/Roblox-app`. Branch `codex/lobbymesh-pi-lab-and-reliability`. Verified source HEAD when recording this checkpoint: `75c508fde16a44d5c3fb7f867a1c857d3a4de4a8`, pushed to origin. This documentation checkpoint follows it; use `git log -1` for the exact final tip. Working tree was clean before this recovery/status edit. No reset, force push, main mutation, PR, release or OS network/package/service change. The interrupted preexisting edits were preserved, repaired, verified and committed; no other active local worker was found.
+
+Completed checkpoints:
+
+- `174703d`: completed headless synthetic voice scenarios and fail-closed child control; allowlisted native RPC diagnostics. Full137/137, typecheck/lint154/build and native desktop/protected reopen pass.
+- `db7fdf7`: source mute and remote audio-ended now stop media/capture/PTT; initially-muted input maps to existing device-unavailable error. Native audio has four injected source/remote cases, stopped tracks/detached handlers/no unmute rearm. Native host/call smokes pass; full137/137/typecheck/lint/build pass.
+- `92523bb`: explicit `lab:doctor` read-only SSH inventory, normalized/redacted capabilities, strict known-host/batch auth, deadlines/output bounds. Six parser/process/fault tests; full143/143 and lint158/typecheck pass. Live authorized target unavailable. No Pi facts, privileges, kernel changes or topology proof.
+- `75c508f`: added aggregate outgoing/inbound diagnostics before failed headless peers are stopped. Focused8/8, typecheck/lint pass. No test assertion, retry, dependency or deadline relaxation.
+
+Latest CI: Ubuntu40864692669/174703d and40865097004/db7fdf7 passed. Later40865553952/92523bb failed first headless text send (`LAB_COMMAND_SEND_FAILED`, tests/lab-peer.test.ts:87), before voice. Cause not present in generic control error. Instrumented run40865801892/75c508f completed successfully; no failing native code was observed there. Final focused lab/RPC/doctor16/16 passes locally. Historical overlay native hello/admission/reverse-burst failures remain unresolved; do not infer repair from green runs. Connected workflow tools filter some events; authenticated REST was used without logging credentials.
+
+Latest clean Windows artifact: `dist/LobbyMesh-win32-x64-1793273043188/LobbyMesh.exe` from `db7fdf703be55e67ce4a3aa1c37a3cc619bfc0a3`, dirty=false, 656 files/415592909 bytes/56 dependency copies. Actual copied executable sandbox/default network+mic off/protected reopen and independent integrity pass. Manifest SHA256 `6faf02772a7b72581af5d5f094deb3640b4837ea97f8921f48f1a74780dd8839`; Authenticode NotSigned. See `docs/evidence/windows-track-package-summary.json`. Later changes are developer tooling/test diagnostics/docs; no shipped runtime change. No installer, fresh-machine or packaged-pair proof.
+
+Pi: historical authorized hostname and overlay-network endpoint both timed out under strict existing-auth SSH. New doctor also reports blocked. No passwords requested, keys copied or router/host settings changed. Run the doctor again only when access changes, using an explicitly authorized alias; do not commit personal endpoints. Namespace setup still requires explicit machine-level privilege authorization, even if sudo happens to work. Current live Windows session probe: waiting/no selected session/network not started. No ACTUAL_ROBLOX, SAME_LAN_PHYSICAL, VIRTUAL_NAT, PHYSICAL_AUDIO, REAL_EXTERNAL or RELEASE_READY claim.
+
+Next three shell actions (PowerShell, from `D:\LobbyMesh`):
+
+```powershell
+git status --short --branch; git log -6 --oneline
+pnpm typecheck; pnpm lint; pnpm exec tsx --test tests/lab-peer.test.ts tests/rpc-diagnostics.test.ts tests/lab-doctor.test.ts
+Get-Content docs/evidence/headless-lab.md; Get-Content docs/evidence/audio-track-interruption.md
+```
+
+Then inspect latest GitHub Actions outcome and, on failure, compare bounded phase/nativeCode diagnostics from both peers before choosing a transport change. Do not repeatedly rerun unchanged failures, broaden identity/protocol/post-dispatch retry or skip native cases. Continue next independent product dependency (device/input controls, supported session lifecycle, contact-safety controls, or release acceptance) when native investigation is externally blocked. Contact-age enforcement, creator-authorized session proof, physical devices, group performance, installer/signing/license choice remain unfinished. No intentional test processes remain. Existing historical checkpoints below are retained for provenance and superseded by this header.
+
+# Historical checkpoint — 2026-10-28
 
 Quality source pushed013ba60; clean Windows artifact dist/LobbyMesh-win32-x64-1793234611537/LobbyMesh.exe from013ba602db2c7f4af1d834cd0b3c293bf26ec9dd verified actual executable/default-off/protected reopen and independent integrity,656 files/415587215 bytes/56 dependency copies. Manifest458213e3754c064393a6da700db4876217ed4054f289ff9f2361edd2f767fb67, NotSigned. See windows-quality-package-summary.json. Final resource refinement reserves one optional stats slot separate from four ordinary commands; native deadline500ms retains single underlying job untilsettled; host/browser fault tests pass. Final full128/128/typecheck/lint146/build/native host/audio/call/UI and independent-client crash pass; quality0ms/0ms/loss0 finalnative scalar observation, cleanup11131ms. No live handles remain. Goalactive. Next add modular overlay voice status/current-call End control with strict no-capture-grant boundary, typed current-call ID, widget preference/order persistence and native overlay proof; gameplay/global PTT remains explicitly unverified/unimplemented. Keep broader detection/desktop/network/security/release scope.
 
