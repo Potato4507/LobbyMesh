@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Opt-in *isolated* Linux namespace / NAT / netem test lab.
 # Does not change physical interfaces, host routing, root firewall or SSH.
-set -euo pipefail
+set -Eeuo pipefail
 
 names=(lmx-a lmx-b lmx-ra lmx-rb lmx-wan)
+marker=lobbymesh-netlab-v1
+created=()
 usage() {
   cat <<'HELP'
 Usage: sudo bash labs/pi/netlab.sh create|status|profile clean|profile typical|profile severe|destroy
@@ -14,37 +16,66 @@ HELP
 }
 need_root() { [[ $EUID -eq 0 ]] || { echo 'Requires approved sudo/root for namespace operations' >&2; exit 1; }; }
 need_deps() {
-  for x in ip nft tc sysctl; do
+  for x in ip nft tc sysctl flock; do
     command -v "$x" >/dev/null 2>&1 || { echo "Missing command: $x" >&2; exit 1; }
   done
 }
-exists() { ip netns list | awk '{print $1}' | grep -Fxq "$1"; }
+exists() {
+  local listing
+  listing=$(ip netns list) || { echo 'Cannot list namespaces; stopping' >&2; exit 1; }
+  awk '{print $1}' <<<"$listing" | grep -Fxq "$1"
+}
 all_exist() {
   local n
   for n in "${names[@]}"; do exists "$n" || return 1; done
+}
+owned() {
+  ip -n "$1" -j link show dev lo | grep -Eq '"ifalias":[[:space:]]*"lobbymesh-netlab-v1"'
+}
+check_owned() {
+  local n
+  for n in "${names[@]}"; do
+    if exists "$n" && ! owned "$n"; then
+      echo "Refusing unmarked namespace: $n" >&2
+      return 1
+    fi
+  done
+  return 0
 }
 check_no_pids() {
   local n p
   for n in "${names[@]}"; do
     if exists "$n"; then
-      p=$(ip netns pids "$n" || true)
+      p=$(ip netns pids "$n") || { echo "Cannot inspect namespace processes: $n" >&2; return 1; }
       [[ -z "$p" ]] || { echo "Refusing to delete $n; active PIDs: $p" >&2; return 1; }
     fi
   done
+  return 0
 }
 remove_owned() {
   local n
-  check_no_pids
-  for n in "${names[@]}"; do exists "$n" && ip netns del "$n"; done
+  check_owned || return 1
+  check_no_pids || return 1
+  for n in "${names[@]}"; do
+    if exists "$n"; then ip netns del "$n" || return 1; fi
+  done
+  return 0
 }
-# A veth endpoint is created briefly in root WITHOUT an address, then moved to a namespace.
+# Create both endpoints directly in namespaces, never in root networking.
 connect_pair() {
-  local left="$1" la="$2" lname="$3" right="$4" ra="$5" rname="$6"
-  ip link add "$left" type veth peer name "$right"
-  ip link set "$left" netns "$la"
-  ip link set "$right" netns "$ra"
-  ip -n "$la" link set "$left" name "$lname"
-  ip -n "$ra" link set "$right" name "$rname"
+  local la="$1" lname="$2" ra="$3" rname="$4"
+  ip -n "$la" link add "$lname" type veth peer name "$rname" netns "$ra"
+}
+rollback_creation() {
+  local code="$1" n p
+  trap - ERR
+  echo 'Setup failed: inspecting only namespaces created by this invocation' >&2
+  for n in "${created[@]}"; do
+    p=$(ip netns pids "$n") || exit "$code"
+    [[ -z "$p" ]] || { echo "Retaining active namespace: $n" >&2; exit "$code"; }
+  done
+  for n in "${created[@]}"; do ip netns del "$n" || exit "$code"; done
+  exit "$code"
 }
 set_up() {
   local n="$1" d="$2" address="$3"
@@ -68,12 +99,18 @@ create_lab() {
     exists "$n" && { echo "Already exists: $n (refusing to touch existing lab)" >&2; exit 1; }
   done
   # Safe rollback applies only to our previously absent namespaces.
-  trap 'echo "Setup failed: reverting owned lab namespaces" >&2; remove_owned' ERR
-  for n in "${names[@]}"; do ip netns add "$n"; ip -n "$n" link set lo up; done
-  connect_pair lmx_a0 lmx-a eth0 lmx_ra0 lmx-ra inside0
-  connect_pair lmx_b0 lmx-b eth0 lmx_rb0 lmx-rb inside0
-  connect_pair lmx_ra1 lmx-ra outside0 lmx_wa0 lmx-wan wan-a
-  connect_pair lmx_rb1 lmx-rb outside0 lmx_wb0 lmx-wan wan-b
+  trap 'rollback_creation "$?"' ERR
+  created=()
+  for n in "${names[@]}"; do
+    ip netns add "$n"
+    created+=("$n")
+    ip -n "$n" link set lo alias "$marker"
+    ip -n "$n" link set lo up
+  done
+  connect_pair lmx-a eth0 lmx-ra inside0
+  connect_pair lmx-b eth0 lmx-rb inside0
+  connect_pair lmx-ra outside0 lmx-wan wan-a
+  connect_pair lmx-rb outside0 lmx-wan wan-b
   set_up lmx-a eth0 10.77.1.2/24
   set_up lmx-ra inside0 10.77.1.1/24
   set_up lmx-ra outside0 198.18.10.2/30
@@ -95,6 +132,7 @@ create_lab() {
 profile_lab() {
   local name="${1:-}"
   all_exist || { echo 'Incomplete lab; use status, inspect, and destroy safely' >&2; exit 1; }
+  check_owned || return 1
   local device
   case "$name" in
     clean)
@@ -133,6 +171,10 @@ main() {
   [[ "$1" == help || "$1" == --help || "$1" == -h ]] && { usage; exit 0; }
   need_root
   need_deps
+  # /run is root-owned on supported Linux. Serialize cooperating invocations.
+  # Do not unlink the lock file: that would allow two different locked inodes.
+  exec 9>/run/lobbymesh-netlab.lock
+  flock -n 9 || { echo 'Another lab operation holds the lock' >&2; exit 1; }
   case "$1" in
     create) [[ $# -eq 1 ]] || { usage; exit 2; }; create_lab ;;
     status) [[ $# -eq 1 ]] || { usage; exit 2; }; status_lab ;;
@@ -141,4 +183,4 @@ main() {
     *) usage; exit 2 ;;
   esac
 }
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then main "$@"; fi

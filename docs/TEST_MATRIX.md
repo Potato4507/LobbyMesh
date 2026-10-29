@@ -1,5 +1,7 @@
 # 2026-10-29 headless lab continuation
 
+Namespace-helper follow-up:8/8 unprivileged Bash command-model tests and source parsing pass; nested helper failure reproduced missing rollback before set-E repair. Ownership/preflight/PID/enumeration failure/idempotence/collision/unrelated namespace retention covered. UNIT/SIMULATION only, no Linux kernel or privileged operation. See evidence/pi-netlab-safety.md. Added same tests to CI without removing existing tests.
+
 Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reopen pass. New optional voice widget persists order/defaults; native redacted status/current-call End tests reject malformed/stale/foreign/capture-grant actions, preserve failed cleanup unknown and confirm successful End. Screenshot reviewed; synthetic media only. See evidence/overlay-current-call.md. Headless commit63ef7ea Ubuntu Actions40804657189 success.
 
 130/130 Windows tests, typecheck/lint152/build pass. New independent ephemeral headless peers use production signed pairing/Noise/text; explicit driver8/8 ACKs, history counts, revoke denial, mic off, cleanup ACK + exit0. SAME_HOST only; optional strict SSH path unverified, no Pi target. CLI/command/quotas and aggregate-only metrics documented in evidence/headless-lab.md. Existing native replica/burst assertions remain strict; latest failed Linux Actions runs diagnosed and retained there, no claim that flakiness is fixed.
