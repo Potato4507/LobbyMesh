@@ -353,6 +353,7 @@ export class VoiceCalls {
     this.timer = setTimeout(() => {
       this.timer = undefined;
       owner.polling = true;
+      const talkRevision = owner.talkRevision;
       void this.media(owner, () => owner.media.status()).then(
         (status) => {
           owner.polling = false;
@@ -360,15 +361,22 @@ export class VoiceCalls {
           owner.capturing = status.capturing;
           if (owner.mediaPhase !== status.phase) owner.qualityEpoch++;
           owner.mediaPhase = status.phase;
-          owner.transmitting = status.transmitting;
-          const input = {
-            inputLevel: status.inputLevel ?? null,
-            inputClipping: status.inputClipping ?? null,
-          };
-          owner.inputActivity = validInputActivity(input)
-            ? input
-            : unknownInputActivity();
-          owner.inputActivityAt = performance.now();
+          if (talkRevision === owner.talkRevision) {
+            owner.transmitting = status.transmitting;
+            const input = {
+              inputLevel: status.inputLevel ?? null,
+              inputClipping: status.inputClipping ?? null,
+            };
+            owner.inputActivity = validInputActivity(input)
+              ? input
+              : unknownInputActivity();
+            owner.inputActivityAt = performance.now();
+          } else {
+            // This status was requested before a newer local PTT command.
+            // Keep its confirmed talk state and discard the older meter sample.
+            owner.inputActivity = unknownInputActivity();
+            owner.inputActivityAt = 0;
+          }
           owner.outputLevel =
             typeof status.outputLevel === "number" &&
             Number.isFinite(status.outputLevel) &&

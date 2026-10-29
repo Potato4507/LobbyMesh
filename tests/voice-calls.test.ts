@@ -502,7 +502,15 @@ test("input activity stays bounded, expires during a stalled status read and can
   });
   await delay(10);
   assert.equal(left.status().inputLevel, 0.5);
-  local.status = () => new Promise(() => {});
+  let enteredStall: () => void = () => {};
+  const stalled = new Promise<void>((resolve) => {
+    enteredStall = resolve;
+  });
+  local.status = () => {
+    enteredStall();
+    return new Promise(() => {});
+  };
+  await stalled;
   await delay(1050);
   assert.equal(left.status().inputLevel, null);
   assert.equal(left.status().inputClipping, null);
@@ -550,4 +558,46 @@ test("late input-gain completion cannot overwrite a replacement call, and unconf
   assert.equal(left.status().error, "MEDIA_INPUT_FAILED");
   assert.equal(left.status().capturing, false);
   assert.equal(current.closed, true);
+});
+
+test("a delayed status reply cannot overwrite newer PTT activation or release", async (t) => {
+  for (const desired of [false, true]) {
+    const { left, right, media } = fixture(t);
+    left.setConsent(true);
+    right.setConsent(true);
+    const id = await left.dial({ id: b, transportKey: keyB }, true);
+    await right.answer(id, true);
+    await delay(10);
+    if (!desired) await left.setTalking(true);
+    const local = media[0];
+    assert.ok(local);
+    const original = local.status.bind(local);
+    let complete: () => void = () => {},
+      entered: () => void = () => {};
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    local.status = async () => {
+      const previous = await original();
+      return new Promise((resolve) => {
+        complete = () =>
+          resolve({
+            ...previous,
+            inputLevel: previous.transmitting ? 0.25 : 0,
+            inputClipping: false,
+          });
+        entered();
+      });
+    };
+    await started;
+    await left.setTalking(desired);
+    // Keep subsequent reads stalled so a fresh poll cannot hide the stale reply.
+    local.status = () => new Promise(() => {});
+    complete();
+    await delay(5);
+    assert.equal(local.talking, desired);
+    assert.equal(left.status().transmitting, desired);
+    assert.equal(left.status().inputLevel, null);
+    await left.hangup();
+  }
 });
