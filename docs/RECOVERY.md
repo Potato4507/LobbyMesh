@@ -1,4 +1,22 @@
-# Active checkpoint — 2026-10-29, local send controls
+# Active checkpoint — 2026-10-29, session detection lifecycle and visibility
+
+Latest verified runtime/source HEAD d297fc0375b7061e07b04ff86b8d98a89a529b13, pushed on codex/lobbymesh-pi-lab-and-reliability (origin Potato4507/Roblox-app). Scanner fix dd972b3069f9244d9f916c7bcbe4ed017d7ff424 passed Ubuntu40968625259. Current runtime Ubuntu40969706966 completed successfully. Subsequent package/docs checkpoint does not change runtime. No initial user changes, reset/main/PR/release/dependency/OS changes.
+
+Implemented generation checks at awaited directory/file boundaries: consent withdrawal clears value immediately and stops additional opens/enumeration after current OS work; acquired handles close. Reproduction failed2 vs1 opens before/pass after. Fixed status presentation distinguishes no player/pending log/generic incomplete source, explicitly calls logs unverified and fixes process-query failure labeling. Focused12/12/full175/175/typecheck/lint179/build; native main/conversation/session-status/protected reopen pass, plus final focused nine-case session run after empty-log/spacing changes. Reviewed new explicitly synthetic session screenshot; all other regenerated screenshots restored. See evidence/session-scan-optout.md and session-source-visibility.md. No manual identifiers or parser/identity promotion.
+
+Live read-only observation:1 local player/1 eligible log/0 recognized join-universe-replicator-leave markers, bounded4MiB caught up, parser waiting/no selected session, network off/no identifiers printed. Experience vs home vs changed log format remains unknown; no positive actual-game acceptance. Both authorized Pi targets unavailable, no Pi inventory or host changes. Optional recursive cleanup of first test-setup temporary folder was rejected by automatic approval review (“blocked by policy”); folder left in place with no deletion workaround.
+
+Current artifact dist/LobbyMesh-win32-x64-1793314647740/LobbyMesh.exe, clean d297fc0,656 files/415649500 bytes/56 dependency copies. Copied executable/defaults off/protected reopen and pin verification pass, NotSigned. SHA2560594c28d9088b9f74a18cac72e2110a875499a46345ad8e2a1081f408e22c660, retained evidence/windows-session-status-package-summary.json. No installer/fresh machine/packaged pair/physical audio/positive Roblox/LAN/NAT/release-ready proof. Native historical intermittency remains open.
+
+Next3 commands superseding older checkpoints:
+
+```powershell
+git status --short --branch; git log -5 --oneline
+pnpm verify:package D:\LobbyMesh\dist\LobbyMesh-win32-x64-1793314647740 --manifest-sha256 0594c28d9088b9f74a18cac72e2110a875499a46345ad8e2a1081f408e22c660
+Get-Content apps/desktop/src/messaging.ts; Get-Content packages/app-dht/src/runtime.ts
+```
+
+Next concrete balanced investigation: approved-contact rediscovery after reply-hint/routing cache expiry; reproduce a gap before changing key persistence or authentication. Keep source CI/native diagnostics and platform/hardware gates honest. Historical checkpoint paragraphs below are superseded.
 
 Continuation source parentdd972b3069f9244d9f916c7bcbe4ed017d7ff424, pushed; Ubuntu40968625259 passed. Added fixed session presentation for all states, two safe no-player/pending-log reasons, process-query-specific unavailable label and explicit unverified provenance. No raw metadata/manual fallback/parser trust change. Focused12/12/full175/175/typecheck/lint179/build and native main/conversation/session-status/protected reopen pass. Isolated session mode included by default with unchanged30s per-process deadline, plus final focused rerun after empty-log case/spacing; new screenshot explicitly synthetic and reviewed. Unrelated generated screenshots including workspace restored. See evidence/session-source-visibility.md. Real read-only probe1 player/1 eligible log/0 supported markers/no selected session; actual experience vs home vs changed log format unknown. Both authorized Pi probes unavailable. Optional first test-temp cleanup blocked by automatic approval review; no workaround. Next commit runtime, package clean source/pin-check and inspect CI. Artifact7a39fad is historical until refresh; preserve existing native reliability and release/hardware gates.
 
