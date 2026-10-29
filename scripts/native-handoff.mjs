@@ -1,8 +1,20 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createSocket } from "node:dgram";
+import { createRequire } from "node:module";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
-import DHT from "hyperdht";
+
+// Optional trusted developer comparison install. Workers inherit the same path;
+// production never imports this script. Default resolves the repository pin.
+const moduleRoot = process.env.LOBBYMESH_HANDOFF_MODULE_ROOT;
+if (moduleRoot && !path.isAbsolute(moduleRoot))
+  throw new Error("ABSOLUTE_COMPARISON_DIRECTORY_REQUIRED");
+const load = createRequire(
+  moduleRoot ? path.join(moduleRoot, "package.json") : import.meta.url,
+);
+const DHT = load("hyperdht");
+const hyperdhtVersion = load("hyperdht/package.json").version;
 
 // Local-only diagnostic, deliberately outside the application and default suite.
 // Fixed nonsecret echo bytes; ephemeral transport keys; no app authentication,
@@ -243,6 +255,7 @@ if (mode === "--bootstrap") {
       localBootstrap: true,
       independentProcesses: true,
       appRpc: false,
+      hyperdhtVersion,
       localConnection: !noLan,
       reusableSocket,
       fullyBootstrapped,

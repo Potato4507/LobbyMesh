@@ -1,0 +1,23 @@
+[
+  {
+    "hyperdht": "6.35.0",
+    "secretStream": "6.9.2",
+    "dhtRpc": "6.27.0",
+    "udxNative": "1.22.0",
+    "configuration": "repository-pin"
+  },
+  {
+    "hyperdht": "6.32.0",
+    "secretStream": "6.9.2",
+    "dhtRpc": "6.28.0",
+    "udxNative": "1.22.0",
+    "configuration": "isolated-original-resolution"
+  },
+  {
+    "hyperdht": "6.32.0",
+    "secretStream": "6.9.2",
+    "dhtRpc": "6.27.0",
+    "udxNative": "1.22.0",
+    "configuration": "isolated-matched-rpc"
+  }
+]
