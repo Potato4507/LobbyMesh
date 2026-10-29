@@ -3,6 +3,7 @@ import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 import {
   RpcDiagnostics,
+  rpcNativeDetail,
   rpcOutcome,
 } from "../packages/app-dht/src/diagnostics.js";
 import { NetworkOverlay } from "../packages/app-dht/src/network.js";
@@ -56,6 +57,73 @@ test("RPC diagnostics keep bounded redacted copies and retain failures after suc
     "transport",
   );
   assert.equal(JSON.stringify(metrics.snapshot(0)).includes("secret"), false);
+});
+
+test("native diagnostics retain only allowlisted codes, discard raw messages and cannot change retry policy", async () => {
+  const privateText = "private endpoint / key / payload";
+  const native = Object.assign(new Error(privateText), {
+    code: "DUPLICATE_CONNECTION",
+    address: privateText,
+  });
+  assert.deepEqual(rpcNativeDetail(native), {
+    nativeCode: "DUPLICATE_CONNECTION",
+  });
+  assert.deepEqual(
+    rpcNativeDetail(
+      Object.assign(new Error(privateText), { code: privateText }),
+    ),
+    {},
+  );
+  assert.deepEqual(rpcNativeDetail({ code: "DUPLICATE_CONNECTION" }), {});
+  const hostile = new Error(privateText);
+  Object.defineProperty(hostile, "code", {
+    get() {
+      throw new Error(privateText);
+    },
+  });
+  assert.deepEqual(rpcNativeDetail(hostile), {});
+  const identity = createIdentity(),
+    remote = createIdentity();
+  let connections = 0;
+  const servers: ReturnType<typeof pair>[1][] = [];
+  const overlay = new NetworkOverlay(identity, {
+    connect() {
+      connections++;
+      const [client, server] = pair();
+      servers.push(server);
+      client.handshakeHash = null;
+      queueMicrotask(() => client.destroy(native));
+      return client;
+    },
+  });
+  await overlay.start();
+  try {
+    await assert.rejects(
+      overlay.directRequest(
+        { id: remote.peerId, transportKey: "ab".repeat(32) },
+        {},
+        new AbortController().signal,
+      ),
+      (error: unknown) => error === native,
+    );
+    assert.equal(connections, 1);
+    const snapshot = overlay.diagnostics();
+    assert.equal(
+      snapshot.recentFailures[0]?.nativeCode,
+      "DUPLICATE_CONNECTION",
+    );
+    assert.equal(snapshot.recentFailures[0]?.phase, "transport");
+    assert.equal(JSON.stringify(snapshot).includes(privateText), false);
+    if (snapshot.recentFailures[0])
+      snapshot.recentFailures[0].nativeCode = "REMOTE_ABORTED";
+    assert.equal(
+      overlay.diagnostics().recentFailures[0]?.nativeCode,
+      "DUPLICATE_CONNECTION",
+    );
+  } finally {
+    await overlay.leave();
+    for (const server of servers) server.destroy();
+  }
 });
 
 test("RPC phase observations distinguish pre-authentication from response stalls and cannot change wire behavior", async () => {

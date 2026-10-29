@@ -12,6 +12,7 @@ import { PublicDiscovery } from "../../public-discovery/src/index.js";
 import {
   RpcDiagnostics,
   type RpcOperation,
+  rpcNativeDetail,
   rpcOperation,
   rpcOutcome,
 } from "./diagnostics.js";
@@ -98,6 +99,7 @@ export async function createOverlayRuntime(
           operation,
           phase,
           outcome: rpcOutcome(error),
+          ...rpcNativeDetail(error),
           queueMs: 0,
           transactionMs: performance.now() - started,
         });

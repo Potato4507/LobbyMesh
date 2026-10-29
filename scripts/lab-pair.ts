@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { launchLabPeer } from "./lab/client.js";
 import { parseLabOptions } from "./lab/options.js";
+import { exerciseLabVoice } from "./lab/voice-scenario.js";
 
 // Explicit operator invocation. SSH never installs packages or changes the host.
 const fields = new Map<string, string>();
@@ -40,6 +41,7 @@ let succeeded = 0,
   attempted = 0,
   cleanupVerified = false,
   passed = false;
+let voiceSignaling: Awaited<ReturnType<typeof exerciseLabVoice>> | null = null;
 const started = performance.now();
 try {
   const peerArgs = [
@@ -98,7 +100,8 @@ try {
       "off",
     );
   }
-  await b.request("revoke", infoA.peerId);
+  assert.ok(infoA.peerId);
+  voiceSignaling = await exerciseLabVoice(a, b, infoA.peerId);
   await assert.rejects(a.request("send", "revocation negative check"));
   passed = true;
 } catch {
@@ -134,6 +137,7 @@ try {
       cleanupVerified,
       result: passed && cleanupVerified ? "passed" : "failed",
       physicalAudio: false,
+      voiceSignaling,
       actualRoblox: false,
       realExternal: false,
     }),

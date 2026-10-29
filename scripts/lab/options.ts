@@ -68,6 +68,14 @@ export interface LabCommand {
     | "send"
     | "history"
     | "revoke"
+    | "voice-enable"
+    | "voice-disable"
+    | "voice-status"
+    | "voice-events"
+    | "voice-offer"
+    | "voice-answer"
+    | "voice-ice"
+    | "voice-hangup"
     | "stop";
   value?: string;
 }
@@ -81,6 +89,9 @@ export function parseLabCommand(value: unknown): LabCommand {
     "send",
     "history",
     "revoke",
+    "voice-answer",
+    "voice-ice",
+    "voice-hangup",
   ].includes(o.op as string);
   if (
     Object.keys(o).sort().join(",") !== (withValue ? "id,op,value" : "id,op") ||
@@ -94,6 +105,14 @@ export function parseLabCommand(value: unknown): LabCommand {
       "send",
       "history",
       "revoke",
+      "voice-enable",
+      "voice-disable",
+      "voice-status",
+      "voice-events",
+      "voice-offer",
+      "voice-answer",
+      "voice-ice",
+      "voice-hangup",
       "stop",
     ].includes(o.op as string) ||
     (withValue &&

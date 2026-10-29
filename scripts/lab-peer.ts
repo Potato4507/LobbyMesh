@@ -5,6 +5,7 @@ import { DesktopPairing } from "../apps/desktop/src/pairing.js";
 import { createOverlayRuntime } from "../packages/app-dht/src/runtime.js";
 import { createIdentity } from "../packages/identity/src/index.js";
 import type { KeyPair } from "../packages/public-discovery/src/hyperdht.js";
+import { VoiceSignaling } from "../packages/voice/src/signaling.js";
 import { parseLabCommand, parseLabOptions } from "./lab/options.js";
 
 // JSONL control channel, suitable for local pipes or an authorized SSH stdio
@@ -75,13 +76,27 @@ try {
       allowed: () => [...authorized],
     };
     let messaging: DesktopMessaging;
+    let voice: VoiceSignaling;
     const runtime = await createOverlayRuntime("", {
       credentials: { identity, transportKeys: keys },
       bootstrap: [options.bootstrap],
       signal: controller.signal,
       directHandler: (peer, request, signal) =>
-        messaging.handle(peer, request, signal),
+        request &&
+        typeof request === "object" &&
+        "type" in request &&
+        request.type === "voice"
+          ? voice.handle(peer, request, signal)
+          : messaging.handle(peer, request, signal),
     });
+    // Synthetic control-plane adapter only. No browser, mediaConnected transition,
+    // capture device or audio path exists in this process.
+    voice = new VoiceSignaling(
+      runtime.peerId,
+      (peer, request, signal) =>
+        runtime.overlay.directRequest(peer, request, signal),
+      { authorized: policy.authorized, mediaAvailable: () => true },
+    );
     messaging = new DesktopMessaging(
       runtime.peerId,
       (peer, request, signal) =>
@@ -102,6 +117,7 @@ try {
       (peer) => messaging.rememberContact(peer),
     );
     cleanup = async () => {
+      voice.close();
       messaging.close();
       await Promise.all([pairing.close(), runtime.stop()]);
       keys.secretKey.fill(0);
@@ -109,6 +125,35 @@ try {
     await runtime.start();
     command = async (op, value) => {
       switch (op) {
+        case "voice-enable":
+        case "voice-disable":
+          voice.setConsent(op === "voice-enable");
+          return voice.status();
+        case "voice-status":
+          return voice.status();
+        case "voice-events":
+          return voice.drainEvents();
+        case "voice-offer": {
+          const peers = [...authorized];
+          if (peers.length !== 1) throw new Error("LAB_EXPECTS_ONE_CONTACT");
+          return voice.offer(
+            messaging.resolveContact(peers[0] ?? ""),
+            "synthetic lab SDP offer; no media",
+          );
+        }
+        case "voice-answer":
+          await voice.answer(value ?? "", "synthetic lab SDP answer; no media");
+          return voice.status();
+        case "voice-ice":
+          await voice.ice(value ?? "", {
+            candidate: "synthetic lab ICE; no media",
+            sdpMid: "0",
+            sdpMLineIndex: 0,
+          });
+          return true;
+        case "voice-hangup":
+          await voice.hangup(value ?? "");
+          return voice.status();
         case "status":
           return {
             peers: runtime.overlay.authenticatedContacts().length,
@@ -132,6 +177,7 @@ try {
           authorized.delete(value ?? "");
           pairing.policyChanged();
           messaging.policyChanged(value ?? "");
+          voice.policyChanged();
           return true;
         case "send": {
           const peer = [...authorized];

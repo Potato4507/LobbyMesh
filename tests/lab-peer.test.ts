@@ -3,6 +3,7 @@ import { createSocket } from "node:dgram";
 import test from "node:test";
 import { launchLabPeer } from "../scripts/lab/client.js";
 import { parseLabCommand, parseLabOptions } from "../scripts/lab/options.js";
+import { exerciseLabVoice } from "../scripts/lab/voice-scenario.js";
 
 test("lab options require explicit endpoints, bounded lifetime and exact control commands", () => {
   assert.equal(
@@ -33,6 +34,9 @@ test("lab options require explicit endpoints, bounded lifetime and exact control
     { id: 1, op: "status", value: "x" },
     { id: 1, op: "preview", value: "x".repeat(4097) },
     { id: -1, op: "stop" },
+    { id: 1, op: "voice-enable", value: "true" },
+    { id: 1, op: "voice-answer" },
+    { id: 1, op: "voice-capture" },
   ])
     assert.throws(() => parseLabCommand(command), /INVALID_LAB_COMMAND/);
   assert.throws(
@@ -94,7 +98,12 @@ test(
       ).length,
       1,
     );
-    await b.request("revoke", infoA.peerId);
+    assert.ok(infoA.peerId);
+    assert.deepEqual(await exerciseLabVoice(a, b, infoA.peerId), {
+      result: "passed",
+      syntheticSignalingOnly: true,
+      physicalAudio: false,
+    });
     await assert.rejects(
       a.request("send", "revoked synthetic text"),
       /LAB_COMMAND_SEND_FAILED/,

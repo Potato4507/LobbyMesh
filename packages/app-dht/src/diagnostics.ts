@@ -24,6 +24,43 @@ export interface RpcMeasurement {
   phase: "queue" | "connect" | RpcPhase;
   queueMs: number;
   transactionMs: number;
+  nativeCode?: NativeRpcCode;
+}
+const NATIVE_RPC_CODES = [
+  "DUPLICATE_CONNECTION",
+  "PEER_CONNECTION_FAILED",
+  "PEER_NOT_FOUND",
+  "HOLEPUNCH_ABORTED",
+  "HOLEPUNCH_PROBE_TIMEOUT",
+  "HOLEPUNCH_DOUBLE_RANDOMIZED_NATS",
+  "CANNOT_HOLEPUNCH",
+  "REMOTE_ABORTED",
+  "REMOTE_NOT_HOLEPUNCHABLE",
+  "REMOTE_NOT_HOLEPUNCHING",
+  "RELAY_ABORTED",
+  "BAD_HOLEPUNCH_REPLY",
+  "HOLEPUNCH_INVALID",
+] as const;
+export type NativeRpcCode = (typeof NATIVE_RPC_CODES)[number];
+function nativeCode(value: unknown): NativeRpcCode | undefined {
+  return typeof value === "string" &&
+    NATIVE_RPC_CODES.includes(value as NativeRpcCode)
+    ? (value as NativeRpcCode)
+    : undefined;
+}
+// Copy only installed HyperDHT's known code enum; never its message or fields.
+export function rpcNativeDetail(error: unknown): {
+  nativeCode?: NativeRpcCode;
+} {
+  try {
+    const code =
+      error instanceof Error && "code" in error
+        ? nativeCode(error.code)
+        : undefined;
+    return code ? { nativeCode: code } : {};
+  } catch {
+    return {};
+  }
 }
 export function rpcOperation(request: unknown): RpcOperation {
   if (!request || typeof request !== "object") return "unknown";
@@ -87,6 +124,9 @@ export class RpcDiagnostics {
       phase: value.phase,
       queueMs: bounded(value.queueMs),
       transactionMs: bounded(value.transactionMs),
+      ...(nativeCode(value.nativeCode)
+        ? { nativeCode: nativeCode(value.nativeCode) as NativeRpcCode }
+        : {}),
     };
     this.total = Math.min(Number.MAX_SAFE_INTEGER, this.total + 1);
     this.counts[value.outcome] = Math.min(

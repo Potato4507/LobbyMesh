@@ -13,6 +13,7 @@ import {
 import {
   RpcDiagnostics,
   type RpcMeasurement,
+  rpcNativeDetail,
   rpcOperation,
   rpcOutcome,
 } from "./diagnostics.js";
@@ -342,6 +343,7 @@ export class NetworkOverlay {
             this.rpcMetrics.record({
               operation: rpcOperation(request),
               outcome: rpcOutcome(error),
+              ...rpcNativeDetail(error),
               phase,
               queueMs: (started ?? performance.now()) - enqueued,
               transactionMs:
@@ -365,6 +367,7 @@ export class NetworkOverlay {
         this.rpcMetrics.record({
           operation: rpcOperation(request),
           outcome: rpcOutcome(error),
+          ...rpcNativeDetail(error),
           phase,
           queueMs: retrying ? 0 : (started ?? performance.now()) - enqueued,
           transactionMs:
