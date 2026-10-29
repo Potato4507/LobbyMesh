@@ -372,11 +372,49 @@ test(
       code: codeA.code,
     })) as ContactPreview;
     await b.command("pairing-approve", { ticket: previewA.ticket });
-    const acknowledgement = (await a.command("direct-send", {
-      peerId: infoB.id,
-      key: infoB.key,
-      text: "synthetic encrypted text",
-    })) as { status: string };
+    const acknowledgement = (await a
+      .command("direct-send", {
+        peerId: infoB.id,
+        key: infoB.key,
+        text: "synthetic encrypted text",
+      })
+      .catch(async (error: unknown) => {
+        // Text can fail after the burst has succeeded. Retain that later path's
+        // counters without changing delivery attempts, deadlines or the error.
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          const snapshots = await Promise.race([
+            Promise.all(
+              [a, b].map(async (peer) => ({
+                outgoing: await peer.command("diagnostics"),
+                inbound: await peer.command("inbound-diagnostics"),
+              })),
+            ),
+            new Promise<null>((resolve) => {
+              timer = setTimeout(() => resolve(null), 500);
+            }),
+          ]);
+          if (snapshots) {
+            const encoded = JSON.stringify(snapshots);
+            for (const privateValue of [
+              infoA.id,
+              infoB.id,
+              infoA.key,
+              infoB.key,
+              address,
+              "synthetic encrypted text",
+              "must remain undelivered",
+            ])
+              assert.equal(encoded.includes(privateValue), false);
+            t.diagnostic(JSON.stringify({ nativeDirectFailure: snapshots }));
+          } else t.diagnostic("nativeDirectFailure: diagnostics unavailable");
+        } catch {
+          t.diagnostic("nativeDirectFailure: diagnostics unavailable");
+        } finally {
+          clearTimeout(timer);
+        }
+        throw error;
+      })) as { status: string };
     assert.equal(acknowledgement.status, "acknowledged");
     const history = (await b.command("direct-history", {
       peerId: infoA.id,
