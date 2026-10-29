@@ -8,6 +8,7 @@ import {
   systemPreferences,
 } from "electron";
 import { NetworkLifecycle } from "../../../packages/app-dht/src/lifecycle.js";
+import { parseMessageCancel } from "../../../packages/protocol/src/delivery.js";
 import { parseStatusRequest } from "../../../packages/protocol/src/index.js";
 import {
   type OverlayVoiceView,
@@ -136,6 +137,7 @@ export async function createDesktop(
         "companion:messages",
         "companion:messages:send",
         "companion:messages:clear",
+        "companion:messages:cancel",
       ].includes(channel)
     )
       return;
@@ -270,6 +272,7 @@ export async function createDesktop(
         name === "companion:overlay:voice" ||
         name === "companion:overlay:voice:end" ||
         name === "companion:messages:clear" ||
+        name === "companion:messages:cancel" ||
         (name === "companion:overlay:mode" && request === false) ||
         (name === "companion:network" && request === false) ||
         (name === "companion:contact" &&
@@ -549,6 +552,12 @@ export async function createDesktop(
     const peerId = parsePeerId(request);
     messaging((service) => service.clear(peerId));
     return { cleared: true };
+  });
+  handle("companion:messages:cancel", (request) => {
+    const { peerId, localId } = parseMessageCancel(request);
+    return {
+      canceled: messaging((service) => service.cancel(peerId, localId)),
+    };
   });
   handle("companion:contact", async (request) => {
     if (!preferences) throw new Error("PREFERENCES_UNAVAILABLE");

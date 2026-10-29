@@ -47,6 +47,9 @@ declare global {
         text: string,
       ): Promise<{ id: string; attempts: number; status: "acknowledged" }>;
       clearMessages(peerId: string): Promise<{ cleared: true }>;
+      cancelMessage(
+        request: import("../../../packages/protocol/src/delivery.js").MessageCancel,
+      ): Promise<{ canceled: boolean }>;
       preferences(): Promise<Preferences>;
       updatePreferences(request: unknown): Promise<Preferences>;
       contact(action: string, peerId: string): Promise<Preferences>;

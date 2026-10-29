@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   deliveryFailure,
+  parseMessageCancel,
   unconfirmedLabel,
 } from "../packages/protocol/src/delivery.js";
 
@@ -65,4 +66,21 @@ test("delivery reasons project exact local facts without exposing raw exception 
       /unconfirmed/i,
     );
   assert.equal(unconfirmedLabel(undefined), "Delivery unconfirmed");
+});
+
+test("cancel requests bind an exact local outgoing row ID to one contact without transport fields", () => {
+  const valid = { peerId: "a".repeat(64), localId: "b".repeat(32) };
+  assert.deepEqual(parseMessageCancel(valid), valid);
+  for (const value of [
+    null,
+    [],
+    {},
+    { ...valid, peerId: "bad" },
+    { ...valid, localId: "wire:id" },
+    { ...valid, localId: 32 },
+    { ...valid, localId: "c".repeat(64) },
+    { ...valid, transportKey: "d".repeat(64) },
+    { ...valid, consent: true },
+  ])
+    assert.throws(() => parseMessageCancel(value), /INVALID_MESSAGE_CANCEL/);
 });

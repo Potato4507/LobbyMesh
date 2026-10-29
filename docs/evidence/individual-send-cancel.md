@@ -1,0 +1,14 @@
+# Stop one pending send — 2026-10-29
+
+Each outgoing sending row now offers Stop send. The action stops that row's local waiting/retries through its owned AbortController; it does not erase accepted peer content. The row becomes locally canceled / delivery unconfirmed when cancellation wins. The UI retains the draft and warns before and after cancellation that the peer may already have received it. If the send settled first, the UI asks the user to inspect its actual status. A later obsolete send failure cannot overwrite a newer cancellation notice. Clear/block/current-contact revisions still guard late replies.
+
+New exact local IPC request contains only peerId64hex and localId32hex; the local row ID is distinct from the wire message ID. Backend permission and peer-to-row binding are checked. Unknown, settled, already-aborted and mismatched rows return canceled:false; malformed IDs/fields reject. The sender controller is the only operation canceled. Trusted main/overlay frames can use the priority cancellation channel even when16 ordinary IPC slots are occupied. Foreign frames remain denied. No new peer communication, permission grant, read receipt, retry count, network deadline or remote erasure claim.
+
+Windows Node24.22.1/Electron45.1.0 observations:
+
+- Focused delivery/desktop10/10, full172/172, typecheck/lint176/build pass. Exact schema rejects transport fields/wire-shaped IDs; tests bind peer and local ID, reject unauthorized/malformed requests, handle repeated cancellation, leave a concurrent send running, and prevent late handshake completion from starting text after cancellation.
+- Lost-ACK UNIT fixture delivers two texts into the peer's actual DirectMessenger, withholds replies, cancels one local send, then proves the other still sends and both peer copies remain. This establishes the ambiguity boundary, not real-network loss proof.
+- Native desktop main, isolated conversation process and protected-credential reopen pass. With16 held sends, ordinary preferences rejects REQUEST_QUOTA; cancel one completes and exactly15 remain sending. Refill to16, confirm quota again, then priority Clear settles all. Renderer Stop send retains draft, shows canceled/unconfirmed, preserves the cancellation notice and network stays online. Foreign-window cancellation is rejected.
+- Final focused native process reran after adding spacing and the accessible ambiguity hint. Reviewed lobbymesh-send-cancel-test.png at capture size: explicitly synthetic, visible per-row control and hint, no overlap. Unrelated generated screenshots restored from the clean baseline.
+
+Prior source1583e3d Ubuntu40959714858 passed. Historical native transport intermittency remains unresolved. Authorized read-only Pi hostname probe again unavailable; no inventory, install or privilege/network changes. Physical audio/game/LAN/NAT/remote receipt acceptance remains unverified.

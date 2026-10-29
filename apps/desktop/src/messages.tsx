@@ -30,6 +30,9 @@ export function Messages({
   const [notice, setNotice] = useState("");
   const [pollError, setPollError] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [canceling, setCanceling] = useState<string[]>([]);
+  const cancellations = useRef(new Set<string>()),
+    noticeRevision = useRef(0);
   const [clearing, setClearing] = useState(false);
   const clearPending = useRef(false),
     historyRevision = useRef(0);
@@ -123,6 +126,7 @@ export function Messages({
     const peerId = selected,
       text = draft;
     const revision = historyRevision.current;
+    const notice = ++noticeRevision.current;
     setSending((previous) => [...previous, peerId]);
     setNotice("");
     follow.current = true;
@@ -133,7 +137,11 @@ export function Messages({
           previous[peerId] === text ? { ...previous, [peerId]: "" } : previous,
         );
     } catch {
-      if (current.current === peerId && revision === historyRevision.current)
+      if (
+        current.current === peerId &&
+        revision === historyRevision.current &&
+        notice === noticeRevision.current
+      )
         setNotice(
           "Delivery was not confirmed. Sending again could create a duplicate.",
         );
@@ -183,6 +191,44 @@ export function Messages({
       historyRevision.current++;
       clearPending.current = false;
       setClearing(false);
+    }
+  }
+  async function cancel(message: MessageView) {
+    const { peerId, localId } = message;
+    if (
+      cancellations.current.has(localId) ||
+      clearPending.current ||
+      current.current !== peerId
+    )
+      return;
+    cancellations.current.add(localId);
+    setCanceling((previous) => [...previous, localId]);
+    const revision = historyRevision.current,
+      notice = ++noticeRevision.current;
+    try {
+      const result = await window.companion.cancelMessage({ peerId, localId });
+      if (
+        current.current === peerId &&
+        revision === historyRevision.current &&
+        notice === noticeRevision.current
+      )
+        setNotice(
+          result.canceled
+            ? "Cancellation requested. The peer may already have received this message."
+            : "The send has already finished. Check its delivery status.",
+        );
+    } catch {
+      if (
+        current.current === peerId &&
+        revision === historyRevision.current &&
+        notice === noticeRevision.current
+      )
+        setNotice(
+          "Could not confirm cancellation. Check the delivery status before sending again.",
+        );
+    } finally {
+      cancellations.current.delete(localId);
+      setCanceling((previous) => previous.filter((id) => id !== localId));
     }
   }
   async function blockSelected() {
@@ -338,9 +384,33 @@ export function Messages({
                         ? unconfirmedLabel(message.failure)
                         : "Received"}
                 </span>
+                {message.direction === "outgoing" &&
+                  message.status === "sending" && (
+                    <button
+                      type="button"
+                      className="secondary message-cancel"
+                      aria-describedby="messageCancelHint"
+                      data-cancel-send={message.localId}
+                      disabled={canceling.includes(message.localId) || clearing}
+                      onClick={() => void cancel(message)}
+                    >
+                      {canceling.includes(message.localId)
+                        ? "Stopping…"
+                        : "Stop send"}
+                    </button>
+                  )}
               </article>
             ))}
           </div>
+          {history.some(
+            (message) =>
+              message.direction === "outgoing" && message.status === "sending",
+          ) && (
+            <p id="messageCancelHint" className="hint">
+              Stopping a send stops local waiting and retries. The peer may
+              already have the message.
+            </p>
+          )}
           <form
             onSubmit={(event) => {
               void send(event);

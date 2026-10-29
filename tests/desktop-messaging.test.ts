@@ -267,6 +267,109 @@ test("desktop failure projection preserves unconfirmed delivery and copies only 
     }
   }
 });
+test(
+  "cancel binds contact and local ID, stops one send, and cannot undo peer acceptance",
+  { timeout: 5000 },
+  async () => {
+    const permits = policy([b, c]);
+    const remote = new DirectMessenger(b, async () => null, {
+      authorized: () => true,
+    });
+    let delivered = 0;
+    const service = new DesktopMessaging(
+      a,
+      async (_contact, request, signal) => {
+        const response = await remote.handle(peerA, request, signal);
+        if ((request as TextEnvelope).type !== "text") return response;
+        delivered++;
+        return new Promise((_resolve, reject) => {
+          if (signal.aborted) reject(new Error("canceled"));
+          else
+            signal.addEventListener(
+              "abort",
+              () => reject(new Error("canceled")),
+              { once: true },
+            );
+        });
+      },
+      permits.value,
+      () => [
+        { id: b, transportKey: key },
+        { id: c, transportKey: key },
+      ],
+    );
+    try {
+      const sends = [
+        service.send(b, "first accepted but ACK lost"),
+        service.send(b, "second accepted but ACK lost"),
+      ];
+      const checks = sends.map((send) =>
+        assert.rejects(send, /DELIVERY_UNCONFIRMED/),
+      );
+      while (delivered < 2) await setImmediate();
+      const first = service.history(b)[0]?.localId,
+        second = service.history(b)[1]?.localId;
+      assert.ok(first);
+      assert.ok(second);
+      assert.equal(service.cancel(c, first), false);
+      assert.equal(service.cancel(b, "0".repeat(32)), false);
+      assert.throws(() => service.cancel(b, "bad"), /INVALID_MESSAGE_CANCEL/);
+      assert.equal(service.cancel(b, first), true);
+      assert.equal(service.cancel(b, first), false);
+      await checks[0];
+      assert.equal(service.history(b)[0]?.failure?.reason, "canceled");
+      assert.equal(service.history(b)[1]?.status, "sending");
+      assert.equal(remote.history(a).length, 2);
+      assert.equal(service.cancel(b, second), true);
+      await checks[1];
+      assert.equal(service.cancel(b, second), false);
+      assert.equal(remote.history(a).length, 2);
+      permits.allowed.delete(b);
+      assert.throws(() => service.cancel(b, first), /CONTACT_NOT_AUTHORIZED/);
+    } finally {
+      service.close();
+      remote.close();
+    }
+  },
+);
+
+test("cancel during connection prevents late handshake completion from starting text", async () => {
+  const requests: string[] = [];
+  let finish: (value: unknown) => void = () => {};
+  const service = new DesktopMessaging(
+    a,
+    async (_contact, request) => {
+      requests.push((request as TextEnvelope).type);
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+    policy().value,
+    () => [{ id: b, transportKey: key }],
+  );
+  try {
+    const send = service.send(b, "cancel before text"),
+      failed = assert.rejects(send, /DELIVERY_UNCONFIRMED/);
+    const localId = service.history(b)[0]?.localId;
+    assert.ok(localId);
+    assert.equal(service.cancel(b, localId), true);
+    await failed;
+    finish({
+      namespace: DIRECT_NAMESPACE,
+      version: 1,
+      features: ["text-v1"],
+      peerId: b,
+    });
+    await setImmediate();
+    assert.deepEqual(requests, ["hello"]);
+    assert.deepEqual(service.history(b)[0]?.failure, {
+      reason: "canceled",
+      stage: "connection",
+    });
+  } finally {
+    service.close();
+  }
+});
 test("conversation/history bounds reject before accepting invisible incoming messages", async () => {
   let now = 1000;
   const ids = Array.from({ length: 33 }, (_, n) =>

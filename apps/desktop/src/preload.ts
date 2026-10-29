@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.invoke("companion:messages:send", { peerId, text }),
     clearMessages: (peerId: unknown) =>
       ipcRenderer.invoke("companion:messages:clear", peerId),
+    cancelMessage: (request: unknown) =>
+      ipcRenderer.invoke("companion:messages:cancel", request),
     network: (enabled: unknown) =>
       ipcRenderer.invoke("companion:network", enabled),
     preferences: () => ipcRenderer.invoke("companion:preferences"),

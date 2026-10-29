@@ -256,6 +256,9 @@ textarea:focus-visible {
   color: #a2b4ca;
   font-size: 11px;
 }
+.message-cancel {
+  margin-left: 8px;
+}
 .message[data-status="unconfirmed"] .message-status {
   color: #ffc58d;
 }

@@ -9,6 +9,29 @@ export interface DeliveryFailure {
   stage: "connection" | "delivery";
 }
 
+export interface MessageCancel {
+  peerId: string;
+  localId: string;
+}
+export function parseMessageCancel(value: unknown): MessageCancel {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.keys(value).sort().join(",") !== "localId,peerId"
+  )
+    throw new Error("INVALID_MESSAGE_CANCEL");
+  const request = value as MessageCancel;
+  if (
+    typeof request.peerId !== "string" ||
+    !/^[a-f0-9]{64}$/.test(request.peerId) ||
+    typeof request.localId !== "string" ||
+    !/^[a-f0-9]{32}$/.test(request.localId)
+  )
+    throw new Error("INVALID_MESSAGE_CANCEL");
+  return { peerId: request.peerId, localId: request.localId };
+}
+
 // Local projection only, never a remote assertion or an exception-message echo.
 export function deliveryFailure(
   error: unknown,

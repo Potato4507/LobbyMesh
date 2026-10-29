@@ -436,6 +436,38 @@ async function run() {
         ),
         true,
       );
+      const onePending = messaging
+        .history(allowed)
+        .find((row) => row.status === "sending");
+      assert.ok(onePending);
+      assert.deepEqual(
+        await execute(
+          `window.companion.cancelMessage(${JSON.stringify({ peerId: allowed, localId: onePending.localId })})`,
+        ),
+        { canceled: true },
+      );
+      await delay(10);
+      assert.equal(
+        messaging.history(allowed).filter((row) => row.status === "sending")
+          .length,
+        15,
+      );
+      assert.equal(
+        messaging
+          .history(allowed)
+          .find((row) => row.localId === onePending.localId)?.failure?.reason,
+        "canceled",
+      );
+      await execute(
+        `window.pendingMessages.push(window.companion.sendText('${allowed}','replacement held fixture').catch(()=>null));true`,
+      );
+      await delay(30);
+      assert.equal(
+        await execute(
+          "window.companion.preferences().then(()=>false,e=>e.message.includes('REQUEST_QUOTA'))",
+        ),
+        true,
+      );
       await execute(`window.companion.clearMessages('${allowed}')`);
       await execute("Promise.all(window.pendingMessages)");
       assert.deepEqual(messaging.history(allowed), []);
@@ -475,6 +507,25 @@ async function run() {
         );
       }
       textFailure = null;
+      holdSends = true;
+      await draft("single local cancellation fixture");
+      await execute(
+        "document.querySelector('#messagesPanel form').requestSubmit()",
+      );
+      await until("document.querySelector('[data-cancel-send]') !== null");
+      await execute(
+        "(() => {const label=document.createElement('p');label.className='eyebrow';label.textContent='SYNTHETIC SEND TEST · NO LIVE PEER';document.querySelector('#messageHistory').before(label);document.querySelector('[data-cancel-send]').scrollIntoView({block:'center'});})()",
+      );
+      await captureDesktop("docs/evidence/lobbymesh-send-cancel-test.png");
+      await execute("document.querySelector('[data-cancel-send]').click()");
+      await until(
+        "document.querySelector('[data-status=unconfirmed] .message-status')?.textContent.includes('Canceled locally') && document.querySelector('#messageNotice')?.textContent.includes('The peer may already have received') && document.querySelector('#sendMessage')?.textContent === 'Send'",
+      );
+      assert.equal(
+        await execute("document.querySelector('#messageDraft').value"),
+        "single local cancellation fixture",
+      );
+      holdSends = false;
       console.log(
         JSON.stringify({
           result: "conversation-clear-passed",
@@ -484,6 +535,7 @@ async function run() {
           clearUnderFullQuota: true,
           networkStayedOnline: true,
           deliveryReasons: "bounded-unconfirmed-and-draft-retained",
+          individualCancel: "one-row-draft-retained-and-priority-quota",
           microphone: false,
         }),
       );
@@ -1423,6 +1475,7 @@ async function run() {
     await foreign.loadFile(path.resolve("dist/index.html"));
     for (const expression of [
       "window.companion.overlayVoice()",
+      "window.companion.cancelMessage({peerId:'a'.repeat(64),localId:'b'.repeat(32)})",
       "window.companion.endOverlayCall({callId:'ab'.repeat(16)})",
     ]) {
       assert.ok(

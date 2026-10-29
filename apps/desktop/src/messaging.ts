@@ -285,6 +285,20 @@ export class DesktopMessaging {
     }
     this.prune();
   }
+  cancel(peerId: string, localId: string): boolean {
+    this.permit(peerId);
+    if (typeof localId !== "string" || !/^[a-f0-9]{32}$/.test(localId))
+      throw new Error("INVALID_MESSAGE_CANCEL");
+    const pending = this.pending.get(localId);
+    if (
+      !pending ||
+      pending.peerId !== peerId ||
+      pending.controller.signal.aborted
+    )
+      return false;
+    pending.controller.abort("canceled");
+    return true;
+  }
   clear(peerId: string): void {
     this.permit(peerId);
     for (const value of this.pending.values())
