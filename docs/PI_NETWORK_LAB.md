@@ -6,6 +6,8 @@ One Windows computer and one Raspberry Pi on the **same home LAN** are sufficien
 
 ## Phase 0 — access with least privilege
 
+Implemented Windows entrypoint: `pnpm lab:doctor --ssh-target AUTHORIZED_ALIAS`. It runs the existing read-only facts script through explicitly targeted SSH, with strict known-host checking, existing batch authentication, 5s connect/10s total bound and 8KiB output limit. Reports only normalized capabilities, never the target/raw device strings/errors. No installs, elevation or host networking changes. Unit/child-process tests cover safe options, normalization, malformed/duplicate/oversize facts, nonzero/spawn failures and timeout cleanup. The actual remembered authorized target timed out on 2026-10-29, so no current Pi inventory or physical topology has been verified.
+
 - Ask the user to power on the Pi, enable SSH and supply a target through an approved SSH mechanism; do not invent hostnames/usernames, prompt for passwords in conversation, install SSH credentials or expose port 22 to the internet.
 - Collect **read-only** OS/model/architecture/memory information using `bash labs/pi/host-facts.sh`, plus the presence of `ip`, `nft`, `tc`, `node` and `pnpm`. Avoid writing hardware identifiers, home IP addresses or SSH target paths into Git logs.
 - Test a non-root SSH session before asking for privileges. Obtain explicit authority for package installation or namespace/firewall commands. Prefer distro-native iproute2/nftables and existing Node 24/pnpm; inspect support for ARM64/native HyperDHT dependencies instead of assuming Electron runs there.

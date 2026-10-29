@@ -26,6 +26,7 @@
     "diagnose:handoff": "node scripts/native-handoff.mjs",
     "lab:peer": "tsx scripts/lab-peer.ts",
     "lab:pair": "tsx scripts/lab-pair.ts",
+    "lab:doctor": "tsx scripts/lab-doctor.ts",
     "smoke:public-pair": "node scripts/public-pair-smoke.mjs",
     "simulate:overlay": "tsx scripts/simulate-overlay.ts"
   },

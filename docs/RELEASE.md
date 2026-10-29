@@ -2,6 +2,8 @@
 
 Development only; no public release, installer, code signature or updater produced. Current source/evidence supersedes the historical GUI/Windows blocker.
 
+2026-10-29 clean source artifact db7fdf703be55e67ce4a3aa1c37a3cc619bfc0a3: `dist/LobbyMesh-win32-x64-1793273043188/LobbyMesh.exe`, actual copied executable smoke/protected reopen/defaults off and independent integrity pass, 656 files/415592909 bytes. Manifest hash and limits in evidence/windows-track-package-summary.json. NotSigned. Later Pi-doctor changes are developer tooling only. Both174703d anddb7fdf7 pass Ubuntu CI; historical native intermittency remains unresolved.
+
 | Boundary | Status | Evidence / remaining |
 | --- | --- | --- |
 | Workspace/build | VERIFIED_INTEGRATION | 131 tests, typecheck/lint/build pass on Windows; source and proof retained. Headless milestone Ubuntu CI passes; historical native integration intermittency remains unresolved. |

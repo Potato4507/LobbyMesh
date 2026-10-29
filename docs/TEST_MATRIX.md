@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 Pi doctor: six option/projection/process tests pass, including LF stdin, clean-exit requirement, malformed/duplicate/oversize output, stalled child kill and spawn failure. Live authorized SSH remains unavailable; no actual Pi facts. Windows copied executable+independent integrity fromdb7fdf7 pass (656 files); see windows-track-package-summary.json. Ubuntu40865097004 atdb7fdf7 passed. No physical or release acceptance inferred.
+
 2026-10-29 native track lifecycle: `pnpm test:audio`, `pnpm test:media-host`, `pnpm test:voice-calls` pass. Synthetic source mute/end, remote end and initial-muted capture fail closed, old PTT/unmute cannot resume, existing decoded audio/silence and cleanup retained. SAME_PROCESS native proof, no PHYSICAL_AUDIO. Ubuntu CI40864692669 at174703d passed full checks; intermittency remains unresolved. See evidence/audio-track-interruption.md.
 
 2026-10-29 continuation: Windows Node24 full137/137; focused lab/control/RPC15/15; typecheck/lint154/build and native desktop/protected reopen pass. Independent headless peers exercise synthetic consent/answer/ICE/hangup/revoke with no media; malformed child output, spawn failure and forced cleanup deadline covered. SAME_HOST only. Latest Ubuntu40805690469 reverse-burst failure retained without weakened checks; authorized Pi SSH attempts timed out. See evidence/headless-lab.md.
