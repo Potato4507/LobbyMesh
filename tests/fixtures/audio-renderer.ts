@@ -135,6 +135,13 @@ async function run() {
     const talking = await right.metrics();
     const talkingRms = rms();
     const quality = await right.quality();
+    const inputUnity = left.status();
+    check(
+      inputUnity.inputLevel !== null &&
+        inputUnity.inputLevel > 0.1 &&
+        typeof inputUnity.inputClipping === "boolean",
+      "INPUT_UNITY_ACTIVITY_MISSING",
+    );
     check(
       quality.roundTripMs !== null &&
         quality.jitterMs !== null &&
@@ -150,14 +157,51 @@ async function run() {
     left.setInputGain(0.25);
     await delay(400);
     const quarterInputRms = rms();
+    const inputQuarter = left.status();
+    check(
+      inputQuarter.inputLevel !== null &&
+        inputQuarter.inputLevel / inputUnity.inputLevel > 0.18 &&
+        inputQuarter.inputLevel / inputUnity.inputLevel < 0.32 &&
+        inputQuarter.inputClipping === false,
+      "INPUT_ACTIVITY_GAIN_NOT_QUARTER",
+    );
     check(
       quarterInputRms / talkingRms > 0.18 &&
         quarterInputRms / talkingRms < 0.32,
       "INPUT_GAIN_NOT_QUARTER_AUDIO",
     );
+    left.setInputGain(2);
+    await delay(100);
+    const inputHigh = left.status();
+    check(
+      inputHigh.inputClipping === true && inputHigh.inputLevel === 1,
+      "INPUT_PEAK_WARNING_MISSING",
+    );
+    const analyser = (left as unknown as { inputAnalyser: AnalyserNode })
+      .inputAnalyser;
+    const nativeRead = analyser.getFloatTimeDomainData.bind(analyser);
+    try {
+      analyser.getFloatTimeDomainData = () => {
+        throw new Error("synthetic optional analysis failure");
+      };
+      const unknown = left.status();
+      check(
+        unknown.inputLevel === null &&
+          unknown.inputClipping === null &&
+          unknown.phase === "connected" &&
+          unknown.transmitting,
+        "OPTIONAL_ACTIVITY_FAILURE_ENDED_CALL",
+      );
+    } finally {
+      analyser.getFloatTimeDomainData = nativeRead;
+    }
     left.setInputGain(0);
     await delay(400);
     const zeroInputRms = rms();
+    check(
+      left.status().inputLevel === 0 && left.status().inputClipping === false,
+      "ZERO_GAIN_ACTIVITY_NOT_ZERO",
+    );
     check(
       zeroInputRms < 0.00001 &&
         left.status().capturing &&
@@ -420,6 +464,15 @@ async function run() {
       talkingRms,
       quarterInputRms,
       zeroInputRms,
+      inputUnity: {
+        level: inputUnity.inputLevel,
+        peak: inputUnity.inputClipping,
+      },
+      inputQuarter: {
+        level: inputQuarter.inputLevel,
+        peak: inputQuarter.inputClipping,
+      },
+      inputHigh: { level: inputHigh.inputLevel, peak: inputHigh.inputClipping },
       quality,
       statsStallRecovered: true,
       syntheticTrackInterruptions: [

@@ -123,6 +123,8 @@ export function installMediaOwner(
                 phase: "idle",
                 capturing: false,
                 transmitting: false,
+                inputLevel: null,
+                inputClipping: null,
               }),
               outputLevel: outputLevel(),
             };

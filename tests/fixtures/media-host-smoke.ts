@@ -29,6 +29,8 @@ async function run() {
       capturing: false,
       transmitting: false,
       outputLevel: null,
+      inputLevel: null,
+      inputClipping: null,
     });
     await assert.rejects(left.offer(false), /MEDIA_HOST_DENIED/);
     const offer = await left.offer(true);
@@ -74,6 +76,8 @@ async function run() {
     );
     await left.setTalking(true);
     await delay(600);
+    const localInput = await left.status();
+    assert.ok(localInput.inputLevel !== null && localInput.inputLevel > 0.1);
     const talking = await Promise.all(
       windows.map((window) =>
         window.webContents.executeJavaScript("window.syntheticRms()"),
@@ -148,6 +152,14 @@ async function run() {
       await left.setInputGain(0.25);
       await delay(250);
       quarterInput = await outputRms();
+      const quarterActivity = await left.status();
+      assert.ok(
+        quarterActivity.inputLevel !== null &&
+          localInput.inputLevel !== null &&
+          quarterActivity.inputLevel / localInput.inputLevel > 0.18 &&
+          quarterActivity.inputLevel / localInput.inputLevel < 0.32,
+      );
+      assert.equal(quarterActivity.inputClipping, false);
       assert.ok(
         quarterInput / fullOutput > 0.18 && quarterInput / fullOutput < 0.32,
         "native input gain scales encoded audio",
@@ -157,6 +169,8 @@ async function run() {
       zeroInput = await outputRms();
       assert.ok(zeroInput < 0.00001, "zero input gain silences encoded audio");
       assert.equal((await left.status()).capturing, true);
+      assert.equal((await left.status()).inputLevel, 0);
+      assert.equal((await left.status()).inputClipping, false);
       await left.setInputGain(1);
       await delay(200);
       assert.ok((await outputRms()) > 0.1, "input unity restores audio");

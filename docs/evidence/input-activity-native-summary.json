@@ -1,0 +1,141 @@
+{
+  "date": "2026-10-29",
+  "tiers": ["SAME_PROCESS", "SAME_HOST"],
+  "browser": {
+    "result": "synthetic-audio-passed",
+    "syntheticSources": 13,
+    "receivedPackets": 46,
+    "receivedBytes": 2749,
+    "receivedEnergy": 0,
+    "mutedRms": 0.000002336051101031902,
+    "talkingRms": 0.7042805098582757,
+    "quarterInputRms": 0.1768782268045589,
+    "zeroInputRms": 0,
+    "inputUnity": {
+      "level": 0.6958289195173439,
+      "peak": false
+    },
+    "inputQuarter": {
+      "level": 0.17395725445324023,
+      "peak": false
+    },
+    "inputHigh": {
+      "level": 1,
+      "peak": true
+    },
+    "quality": {
+      "roundTripMs": 0,
+      "jitterMs": 0,
+      "packetsLost": 0
+    },
+    "statsStallRecovered": true,
+    "syntheticTrackInterruptions": [
+      "source-muted",
+      "source-ended",
+      "remote-ended",
+      "input-suspended",
+      "initial-muted"
+    ],
+    "releasedRms": 0,
+    "microphone": false,
+    "audibleOutput": false,
+    "crossNat": false,
+    "electron": "45.1.0",
+    "sandbox": true,
+    "permissionRequests": 1
+  },
+  "host": {
+    "result": "media-host-passed",
+    "sandbox": true,
+    "isolatedSessions": true,
+    "muted": [0.000002336051101031902, 0.000002336051101031902],
+    "talking": [0.7051269820845555, 0.000002611776559985895],
+    "released": [0, 0.000002611776559985895],
+    "reverseTalking": [0, 0.7094600479654838],
+    "fullOutput": 0.7047151440237563,
+    "quarterOutput": 0.1776049970098594,
+    "mutedOutput": 0.000002336051101031902,
+    "quarterInput": 0.17777529467304723,
+    "zeroInput": 0.000002336051101031902,
+    "receivedPackets": 47,
+    "quality": {
+      "roundTripMs": 0,
+      "jitterMs": 0,
+      "packetsLost": 0
+    },
+    "foreignReadyRejected": true,
+    "microphone": false,
+    "audibleOutput": false
+  },
+  "independent": {
+    "result": "independent-voice-passed",
+    "electronMainProcesses": 2,
+    "clientLaunches": 3,
+    "restartedIdentityPreserved": true,
+    "voiceConsentReset": true,
+    "revokedContactPersisted": true,
+    "distinctProfiles": true,
+    "distinctAppIdentities": true,
+    "protectedCredentials": true,
+    "mutualSignedPairing": true,
+    "forward": 0.7046194795522048,
+    "silence": 0,
+    "reverse": 0.7077832927540395,
+    "quarterOutput": 0.17632957513444336,
+    "quarterInput": 0.17668406250577492,
+    "inputActivity": {
+      "unity": {
+        "level": 0.7034499268665706,
+        "peak": false
+      },
+      "quarter": {
+        "level": 0.17906270591510626,
+        "peak": false
+      },
+      "high": {
+        "level": 1,
+        "peak": true
+      }
+    },
+    "zeroInput": 0,
+    "mutedOutput": 0,
+    "recipientNoCaptureBeforeAnswer": true,
+    "microphone": false,
+    "audibleOutput": false,
+    "crossNat": false,
+    "crashCleanupMs": 11418,
+    "crashTrace": [
+      {
+        "elapsedMs": 39,
+        "phase": "connected",
+        "capturing": true,
+        "hosts": 1
+      },
+      {
+        "elapsedMs": 6360,
+        "phase": "reconnecting",
+        "capturing": true,
+        "hosts": 1
+      },
+      {
+        "elapsedMs": 11418,
+        "phase": "failed",
+        "capturing": false,
+        "hosts": 0
+      }
+    ],
+    "quality": {
+      "roundTripMs": 0,
+      "jitterMs": 0,
+      "packetsLost": 0
+    }
+  },
+  "limits": [
+    "synthetic-audio-only",
+    "no-hardware-microphone",
+    "no-audible-output",
+    "no-VAD-or-automatic-transmission",
+    "no-actual-Roblox",
+    "no-LAN-or-NAT-proof"
+  ]
+}

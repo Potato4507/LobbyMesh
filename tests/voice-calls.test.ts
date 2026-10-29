@@ -466,6 +466,55 @@ test("call input gain is bounded, single-flight, acknowledged and resets without
   assert.equal(left.status().inputGain, 1);
 });
 
+test("input activity stays bounded, expires during a stalled status read and cannot survive call replacement", async (t) => {
+  const { left, right, media } = fixture(t);
+  left.setConsent(true);
+  right.setConsent(true);
+  const id = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(id, true);
+  await delay(10);
+  await left.setTalking(true);
+  const local = media[0];
+  assert.ok(local);
+  const nativeStatus = local.status.bind(local);
+  local.status = async () => ({
+    ...(await nativeStatus()),
+    inputLevel: 0.25,
+    inputClipping: false,
+  });
+  await delay(10);
+  assert.equal(left.status().inputLevel, 0.25);
+  const exported = left.status();
+  exported.inputLevel = 1;
+  assert.equal(left.status().inputLevel, 0.25);
+  local.status = async () => ({
+    ...(await nativeStatus()),
+    inputLevel: NaN,
+    inputClipping: false,
+  });
+  await delay(10);
+  assert.equal(left.status().inputLevel, null);
+  assert.equal(left.status().phase, "connected");
+  local.status = async () => ({
+    ...(await nativeStatus()),
+    inputLevel: 0.5,
+    inputClipping: true,
+  });
+  await delay(10);
+  assert.equal(left.status().inputLevel, 0.5);
+  local.status = () => new Promise(() => {});
+  await delay(1050);
+  assert.equal(left.status().inputLevel, null);
+  assert.equal(left.status().inputClipping, null);
+  assert.equal(left.status().phase, "connected");
+  await left.hangup();
+  assert.equal(left.status().inputLevel, null);
+  const replacement = await left.dial({ id: b, transportKey: keyB }, true);
+  await right.answer(replacement, true);
+  await delay(10);
+  assert.equal(left.status().inputLevel, null);
+});
+
 test("late input-gain completion cannot overwrite a replacement call, and unconfirmed updates stop media", async (t) => {
   const { left, right, media } = fixture(t);
   left.setConsent(true);

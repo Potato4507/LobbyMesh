@@ -1,6 +1,11 @@
 import type { RpcHandler } from "../../app-dht/src/rpc.js";
 import type { DirectContact } from "../../protocol/src/direct.js";
 import {
+  type InputActivity,
+  unknownInputActivity,
+  validInputActivity,
+} from "./input-activity.js";
+import {
   type MediaQuality,
   unknownMediaQuality,
   validMediaQuality,
@@ -20,6 +25,8 @@ export interface CallMedia {
     capturing: boolean;
     transmitting: boolean;
     outputLevel?: number | null;
+    inputLevel?: number | null;
+    inputClipping?: boolean | null;
   }>;
   close(): void;
 }
@@ -42,6 +49,8 @@ interface OwnedMedia {
   outputPending: boolean;
   inputGain: number;
   inputPending: boolean;
+  inputActivity: InputActivity;
+  inputActivityAt: number;
   outputLevel: number | null;
   mediaPhase: string;
   quality: MediaQuality;
@@ -164,6 +173,8 @@ export class VoiceCalls {
     error: string | null;
     outputVolume: number;
     inputGain: number;
+    inputLevel: number | null;
+    inputClipping: boolean | null;
     outputMuted: boolean;
     outputLevel: number | null;
   } {
@@ -192,6 +203,16 @@ export class VoiceCalls {
       error: this.failure,
       outputVolume: this.owner?.outputVolume ?? 1,
       inputGain: this.owner?.inputGain ?? 1,
+      ...(this.owner &&
+      this.owner.mediaPhase === "connected" &&
+      this.owner.capturing === true &&
+      !this.owner.controller.signal.aborted &&
+      performance.now() - this.owner.inputActivityAt <= 1000
+        ? this.owner.inputActivity.inputLevel !== null &&
+          (!this.owner.talkDesired || !this.owner.transmitting)
+          ? { inputLevel: 0, inputClipping: false }
+          : { ...this.owner.inputActivity }
+        : unknownInputActivity()),
       outputMuted: this.owner?.outputMuted ?? false,
       outputLevel: this.owner?.outputLevel ?? null,
       quality:
@@ -230,6 +251,8 @@ export class VoiceCalls {
       outputPending: false,
       inputGain: 1,
       inputPending: false,
+      inputActivity: unknownInputActivity(),
+      inputActivityAt: 0,
       outputLevel: null,
       mediaPhase: "preparing",
       quality: unknownMediaQuality(),
@@ -338,6 +361,14 @@ export class VoiceCalls {
           if (owner.mediaPhase !== status.phase) owner.qualityEpoch++;
           owner.mediaPhase = status.phase;
           owner.transmitting = status.transmitting;
+          const input = {
+            inputLevel: status.inputLevel ?? null,
+            inputClipping: status.inputClipping ?? null,
+          };
+          owner.inputActivity = validInputActivity(input)
+            ? input
+            : unknownInputActivity();
+          owner.inputActivityAt = performance.now();
           owner.outputLevel =
             typeof status.outputLevel === "number" &&
             Number.isFinite(status.outputLevel) &&
@@ -470,8 +501,11 @@ export class VoiceCalls {
     owner.talkDesired = value;
     try {
       await this.media(owner, () => owner.media.setTalking(value));
-      if (revision === owner.talkRevision) owner.transmitting = value;
-      else if (!owner.talkDesired)
+      if (revision === owner.talkRevision) {
+        owner.transmitting = value;
+        if (!value && owner.inputActivity.inputLevel !== null)
+          owner.inputActivity = { inputLevel: 0, inputClipping: false };
+      } else if (!owner.talkDesired)
         await this.media(owner, () => owner.media.setTalking(false));
     } catch (error) {
       if (error instanceof Error && error.message === "MEDIA_NOT_CONNECTED")

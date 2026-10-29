@@ -96,6 +96,7 @@ async function run() {
     holdVoiceInput = false;
   let failVoiceClose = false,
     failVoiceQuality = true;
+  let inputActivityMode: "unknown" | "measured" | "peaking" = "unknown";
   let mediaConnectionState: ((phase: string) => void) | undefined;
   const networkFactory: DesktopNetworkFactory = async (
     _signal,
@@ -180,7 +181,23 @@ async function run() {
           return { roundTripMs: 18.25, jitterMs: 2.75, packetsLost: 3 };
         },
         async status() {
-          return { phase, capturing: !closed, transmitting: talking };
+          return {
+            phase,
+            capturing: !closed,
+            transmitting: talking,
+            inputLevel:
+              inputActivityMode === "unknown"
+                ? null
+                : talking
+                  ? inputActivityMode === "peaking"
+                    ? 1
+                    : 0.25
+                  : 0,
+            inputClipping:
+              inputActivityMode === "unknown"
+                ? null
+                : talking && inputActivityMode === "peaking",
+          };
         },
         close() {
           if (local && failVoiceClose)
@@ -524,6 +541,15 @@ async function run() {
     await execute("document.querySelector('#pushToTalk').focus()");
     contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
     await until("window.companion.voice().then(s=>s.transmitting)");
+    inputActivityMode = "measured";
+    await until("document.querySelector('#callInputLevel')?.value === 0.25");
+    inputActivityMode = "peaking";
+    await until("document.querySelector('#inputClippingNotice') !== null");
+    inputActivityMode = "unknown";
+    await until(
+      "document.querySelector('#callInputLevel') === null && document.querySelector('#voiceState')?.textContent === 'Connected'",
+    );
+    inputActivityMode = "measured";
     await delay(900);
     assert.equal(
       (await execute<{ transmitting: boolean }>("window.companion.voice()"))
@@ -1337,6 +1363,7 @@ async function run() {
           "explicit-voice-consent-call-answer-decline-and-ptt",
           "call-output-volume-mute-and-unknown-level",
           "call-input-gain-coalesced-reset-and-stale-id-denied",
+          "input-activity-meter-peak-and-unknown-without-call-failure",
           "input-zero-stall-stops-capture",
           "local-call-quality-measured-and-unavailable-without-call-failure",
           "voice-focus-loss-page-change-and-stalled-mute-teardown",

@@ -224,6 +224,8 @@ export async function createDesktop(
         error,
         outputVolume: 1,
         inputGain: 1,
+        inputLevel: null,
+        inputClipping: null,
         outputMuted: false,
         outputLevel: null,
         quality: unknownMediaQuality(),

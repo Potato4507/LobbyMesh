@@ -14,6 +14,8 @@ export interface VoiceView {
   error: string | null;
   outputVolume: number;
   inputGain: number;
+  inputLevel: number | null;
+  inputClipping: boolean | null;
   outputMuted: boolean;
   outputLevel: number | null;
   quality: VoiceQuality;

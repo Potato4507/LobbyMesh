@@ -83,6 +83,27 @@ export function CallInput({ voice }: { voice: VoiceView }) {
           }}
         />
       </label>
+      <div className="output-level">
+        {voice.inputLevel === null ? (
+          <span className="hint">Input level unavailable</span>
+        ) : (
+          <>
+            <label htmlFor="callInputLevel">Input level while talking</label>
+            <meter
+              id="callInputLevel"
+              min="0"
+              max="1"
+              value={voice.inputLevel}
+              aria-label="Input level while talking"
+            />
+          </>
+        )}
+        {voice.inputClipping === true && (
+          <span id="inputClippingNotice" className="hint">
+            Input peaks reach the limit. Lower gain if sound is distorted.
+          </span>
+        )}
+      </div>
       <p className="hint">
         Adjusts transmitted input. 0% silences input while the microphone stays
         on; hold to talk is still required. Above 100% may distort. Resets each

@@ -189,6 +189,12 @@ try {
   const forward = await b.command("samples");
   assert.equal(forward.hosts, 1);
   assert.ok(forward.rms[0] > 0.01);
+  const activity = (value) => ({
+    level: value.inputLevel,
+    peak: value.inputClipping,
+  });
+  const inputActivityUnity = activity((await a.command("snapshot")).voice);
+  assert.ok(inputActivityUnity.level > 0.1);
   await until(
     async () => (await b.command("snapshot")).voice.quality.jitterMs !== null,
     "native call quality",
@@ -217,15 +223,28 @@ try {
   await a.command("input-gain", { gain: 0.25 });
   await delay(400);
   const quarterInput = await b.command("samples");
+  const inputActivityQuarter = activity((await a.command("snapshot")).voice);
+  assert.ok(
+    inputActivityQuarter.level / inputActivityUnity.level > 0.18 &&
+      inputActivityQuarter.level / inputActivityUnity.level < 0.32,
+  );
+  assert.equal(inputActivityQuarter.peak, false);
   assert.ok(
     quarterInput.rms[0] / forward.rms[0] > 0.18 &&
       quarterInput.rms[0] / forward.rms[0] < 0.32,
   );
+  await a.command("input-gain", { gain: 2 });
+  await delay(300);
+  const inputActivityHigh = activity((await a.command("snapshot")).voice);
+  assert.equal(inputActivityHigh.peak, true);
+  assert.equal(inputActivityHigh.level, 1);
   await a.command("input-gain", { gain: 0 });
   await delay(400);
   const zeroInput = await b.command("samples");
   assert.ok(zeroInput.rms[0] < 0.00001);
   assert.equal((await a.command("snapshot")).voice.capturing, true);
+  assert.equal((await a.command("snapshot")).voice.inputLevel, 0);
+  assert.equal((await a.command("snapshot")).voice.inputClipping, false);
   await a.command("input-gain", { gain: 1 });
   await delay(400);
   assert.ok((await b.command("samples")).rms[0] > 0.1);
@@ -339,6 +358,11 @@ try {
       reverse: reverse.rms[0],
       quarterOutput: quiet.outputRms[0],
       quarterInput: quarterInput.rms[0],
+      inputActivity: {
+        unity: inputActivityUnity,
+        quarter: inputActivityQuarter,
+        high: inputActivityHigh,
+      },
       zeroInput: zeroInput.rms[0],
       mutedOutput: deafened.outputRms[0],
       recipientNoCaptureBeforeAnswer: true,

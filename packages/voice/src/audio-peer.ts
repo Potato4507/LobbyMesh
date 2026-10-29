@@ -1,5 +1,11 @@
 // Browser-only media owner primitive. Main-process permission/identity IPC is a
 // separate boundary; only the dedicated media owner loads this primitive.
+
+import {
+  type InputActivity,
+  readInputActivity,
+  unknownInputActivity,
+} from "./input-activity.js";
 import {
   type MediaQuality,
   readMediaQuality,
@@ -40,6 +46,7 @@ export class AudioPeer {
   private processed: MediaStream | undefined;
   private inputContext: AudioContext | undefined;
   private inputGain: GainNode | undefined;
+  private inputAnalyser: AnalyserNode | undefined;
   private remote: MediaStream | undefined;
   private phase:
     | "idle"
@@ -202,7 +209,11 @@ export class AudioPeer {
     this.inputGain = gain;
     gain.gain.value = 1;
     context.createMediaStreamSource(stream).connect(gain);
-    gain.connect(destination);
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 512;
+    this.inputAnalyser = analyser;
+    gain.connect(analyser);
+    analyser.connect(destination);
     this.processed = destination.stream;
     const outgoing = destination.stream.getAudioTracks()[0];
     if (!outgoing) throw new Error("MEDIA_CAPTURE_FAILED");
@@ -356,9 +367,18 @@ export class AudioPeer {
       for (const track of stream?.getAudioTracks() ?? [])
         track.enabled = this.talking;
   }
-  status(): { phase: string; transmitting: boolean; capturing: boolean } {
+  status(): {
+    phase: string;
+    transmitting: boolean;
+    capturing: boolean;
+  } & InputActivity {
     if (!this.allowed()) this.close();
     return {
+      ...(this.inputAnalyser &&
+      this.phase === "connected" &&
+      !this.lifetime.signal.aborted
+        ? readInputActivity(this.inputAnalyser, this.talking)
+        : unknownInputActivity()),
       phase: this.phase,
       transmitting: this.talking && !this.lifetime.signal.aborted,
       capturing:
@@ -440,6 +460,7 @@ export class AudioPeer {
       void this.inputContext.close().catch(() => {});
     }
     this.inputGain = undefined;
+    this.inputAnalyser = undefined;
     this.connection.ontrack = null;
     this.connection.onconnectionstatechange = null;
     this.connection.close();

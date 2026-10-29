@@ -286,12 +286,16 @@ export class DesktopMediaHost {
     capturing: boolean;
     transmitting: boolean;
     outputLevel: number | null;
+    inputLevel: number | null;
+    inputClipping: boolean | null;
   }> {
     return (await this.command("status", null)) as {
       phase: string;
       capturing: boolean;
       transmitting: boolean;
       outputLevel: number | null;
+      inputLevel: number | null;
+      inputClipping: boolean | null;
     };
   }
   async quality(): Promise<MediaQuality> {

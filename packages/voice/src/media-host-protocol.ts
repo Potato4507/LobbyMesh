@@ -1,3 +1,4 @@
+import { validInputActivity } from "./input-activity.js";
 import { validMediaQuality } from "./quality.js";
 export const MEDIA_COMMAND = "companion:media:command";
 export const MEDIA_REPLY = "companion:media:reply";
@@ -141,9 +142,19 @@ export function validMediaResult(op: MediaOperation, data: unknown): boolean {
       capturing: boolean;
       transmitting: boolean;
       outputLevel: number | null;
+      inputLevel: number | null;
+      inputClipping: boolean | null;
     };
     return (
-      exact(data, ["phase", "capturing", "transmitting", "outputLevel"]) &&
+      exact(data, [
+        "phase",
+        "capturing",
+        "transmitting",
+        "outputLevel",
+        "inputLevel",
+        "inputClipping",
+      ]) &&
+      validInputActivity(status) &&
       [
         "idle",
         "capturing",

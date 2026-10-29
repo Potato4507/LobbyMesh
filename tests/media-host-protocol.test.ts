@@ -94,6 +94,8 @@ test("media commands and replies reject coercion, unknown fields, oversize and i
       capturing: true,
       transmitting: false,
       outputLevel: null,
+      inputLevel: null,
+      inputClipping: null,
     }),
     true,
   );
@@ -103,6 +105,8 @@ test("media commands and replies reject coercion, unknown fields, oversize and i
       capturing: true,
       transmitting: false,
       outputLevel: null,
+      inputLevel: 0,
+      inputClipping: false,
     }),
     true,
   );
@@ -113,6 +117,8 @@ test("media commands and replies reject coercion, unknown fields, oversize and i
         capturing: true,
         transmitting: false,
         outputLevel,
+        inputLevel: null,
+        inputClipping: null,
       }),
       false,
     );

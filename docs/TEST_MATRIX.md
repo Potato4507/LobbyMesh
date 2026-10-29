@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 input activity: full152/152/typecheck/lint/build and native audio/host/call/UI/protected reopen/independent crash pass. Tests cover bounded/no-muted sampling, exact paired scalars, malformed/throwing/nonfinite activity, cache expiry/replacement, measured gain/peak/unknown and unchanged PTT/capture. Synthetic SAME_PROCESS/SAME_HOST only; see evidence/microphone-input-activity.md.
+
 2026-10-29 Conversations safety: full148/148/typecheck/lint161/build and native desktop/protected reopen pass. Saturated ordinary IPC explicitly returns REQUEST_QUOTA; priority block ends active synthetic call/capture, cancels held sends, denies subsequent text/history, preserves online network and unrelated unsaved name. Unblock does not authorize. Existing disk-failure deny coverage retained. See evidence/conversation-blocking.md.
 
 2026-10-29 final native follow-up: Ubuntu40868813933 passes offline facts2/2+namespace8/8 models but regression147/148 fails strict reverse lookup timeout vs exhausted. No HOLEPUNCH_ABORTED observed; hello/queue3s failure retained. Failure-only inbound/outbound diagnostic summary added after schema/privacy checks; Windows focused native/RPC13/13 and typecheck/lint pass. Runtime full148/148/Windows artifact evidence retained separately.
