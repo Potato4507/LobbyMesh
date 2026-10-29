@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 idle expiry: focused13/13/full167/167/typecheck/lint173/build and native desktop main/isolated clear/protected reopen pass. Mocked timer tests examine both content caches without reads/traffic after acceptance, verify replay/hint expiry, earlier deadlines and close, plus block replay suppression and late inbound completion. UNIT clock advancement, not physical soak. See evidence/idle-content-expiry.md.
+
 2026-10-29 conversation clear: reproduced duplicate restoring cleared content; direct/desktop8/8/full162/162/typecheck/lint171/build and native desktop main/isolated clear/protected reopen pass. New bounded process tests pre-clear reply suppression, replay ACK without restoration, pending-send cancellation and priority clear under full16-slot ordinary quota with network retained. Each process deadline stays30s; see evidence/conversation-clear-replay.md.
 
 2026-10-29 native text failure diagnostics: focused independent-process2/2/typecheck/lint171 pass after adding bounded failure-only outgoing/inbound snapshots at later authorized text rejection. Local run recovered one existing hello timeout and retained strict burst/delivery assertions. Latest inspected Ubuntu40914557204/ca6df21 fails159/160 with DELIVERY_UNCONFIRMED; no corresponding new failure snapshot yet, cause unconfirmed. No runtime/deadline/retry/assertion change.

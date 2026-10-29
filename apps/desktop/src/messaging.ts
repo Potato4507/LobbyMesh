@@ -9,6 +9,7 @@ import {
   type ReceivedText,
   validText,
 } from "../../../packages/protocol/src/direct.js";
+import { ExpiryTimer } from "../../../packages/protocol/src/expiry.js";
 import { parsePeerId } from "../../../packages/protocol/src/preferences.js";
 
 export interface MessagingPolicy {
@@ -41,6 +42,13 @@ export class DesktopMessaging {
     { peerId: string; controller: AbortController }
   >();
   private closed = false;
+  private readonly expiry = new ExpiryTimer(() => {
+    try {
+      this.prune();
+    } catch {
+      this.close();
+    }
+  });
   private readonly negotiated = new Map<string, string>();
   constructor(
     self: string,
@@ -69,8 +77,14 @@ export class DesktopMessaging {
   }
   private prune(): void {
     const now = this.now();
+    let next = Infinity;
     for (const [peerId, messages] of this.conversations) {
-      const retained = messages.filter((message) => message.at + 900_000 > now);
+      const retained = messages.filter((message) => {
+        const expires = message.at + 900_000;
+        if (expires <= now) return false;
+        next = Math.min(next, expires);
+        return true;
+      });
       if (retained.length) this.conversations.set(peerId, retained);
       else this.conversations.delete(peerId);
     }
@@ -81,6 +95,8 @@ export class DesktopMessaging {
         this.policy.blocked(id)
       )
         this.incomingContacts.delete(id);
+      else next = Math.min(next, value.expiresAt);
+    this.expiry.schedule(next, now);
   }
   private reserve(peerId: string): MessageView[] {
     this.prune();
@@ -96,6 +112,7 @@ export class DesktopMessaging {
     const messages = this.reserve(peerId);
     messages.push(message);
     if (messages.length > 50) messages.shift();
+    this.expiry.include(message.at + 900_000, this.now());
   }
   private received(message: ReceivedText): void {
     const value = message.envelope;
@@ -130,11 +147,19 @@ export class DesktopMessaging {
       this.reserve(peer.id);
     const result = await this.messenger.handle(peer, request, signal);
     // Only authenticated, locally permitted requests can supply a reply transport.
-    if (this.policy.authorized(peer.id) && !this.policy.blocked(peer.id))
+    if (
+      !this.closed &&
+      this.policy.authorized(peer.id) &&
+      !this.policy.blocked(peer.id)
+    ) {
+      const now = this.now(),
+        expiresAt = now + 120_000;
       this.incomingContacts.set(peer.id, {
         contact: { id: peer.id, transportKey: peer.transportKey },
-        expiresAt: this.now() + 120_000,
+        expiresAt,
       });
+      this.expiry.include(expiresAt, now);
+    }
     return result;
   };
   contacts(): ContactView[] {
@@ -160,10 +185,13 @@ export class DesktopMessaging {
       this.incomingContacts.size >= 256
     )
       throw new Error("CONTACT_QUOTA");
+    const now = this.now(),
+      expiresAt = now + 120_000;
     this.incomingContacts.set(contact.id, {
       contact: { ...contact },
-      expiresAt: this.now() + 120_000,
+      expiresAt,
     });
+    this.expiry.include(expiresAt, now);
   }
   history(peerId: string): MessageView[] {
     this.permit(peerId);
@@ -233,6 +261,11 @@ export class DesktopMessaging {
       if (value.peerId === peerId) value.controller.abort();
     this.incomingContacts.delete(peerId);
     this.negotiated.delete(peerId);
+    if (this.policy.blocked(peerId)) {
+      this.conversations.delete(peerId);
+      this.messenger.clearHistory(peerId);
+    }
+    this.prune();
   }
   clear(peerId: string): void {
     this.permit(peerId);
@@ -240,8 +273,10 @@ export class DesktopMessaging {
       if (value.peerId === peerId) value.controller.abort();
     this.conversations.delete(peerId);
     this.messenger.clearHistory(peerId);
+    this.prune();
   }
   close(): void {
+    this.expiry.close();
     this.closed = true;
     for (const value of this.pending.values()) value.controller.abort();
     this.pending.clear();

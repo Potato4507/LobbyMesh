@@ -138,6 +138,42 @@ test("clearing local conversation cannot restore an accepted message on a lost-A
   assert.equal(service.history(b)[0]?.text, "new message after clear");
   service.close();
 });
+test("blocking deletes both local plaintext histories immediately and retries cannot restore them after reauthorization", async () => {
+  const permits = policy();
+  const service = new DesktopMessaging(
+    a,
+    async () => null,
+    permits.value,
+    () => [{ id: b, transportKey: key }],
+  );
+  const original: TextEnvelope = {
+    namespace: DIRECT_NAMESPACE,
+    version: 1,
+    type: "text",
+    id: "12".repeat(16),
+    from: b,
+    to: a,
+    senderEpoch: "34".repeat(16),
+    seq: 1,
+    createdAt: Date.now(),
+    text: "blocked plaintext",
+  };
+  const signal = new AbortController().signal;
+  await service.handle(peerB, original, signal);
+  permits.blocked.add(b);
+  service.policyChanged(b);
+  const retained = service as unknown as {
+    conversations: Map<string, unknown>;
+    messenger: DirectMessenger;
+  };
+  assert.equal(retained.conversations.size, 0);
+  permits.blocked.delete(b);
+  assert.deepEqual(retained.messenger.history(b), []);
+  assert.deepEqual(service.history(b), []);
+  await service.handle(peerB, original, signal);
+  assert.deepEqual(service.history(b), []);
+  service.close();
+});
 test("pending/unconfirmed delivery is explicit; revocation aborts pending work and hides history", async () => {
   const permits = policy();
   const service = new DesktopMessaging(

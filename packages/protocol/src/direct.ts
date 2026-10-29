@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import type { AuthenticatedPeer, RpcHandler } from "../../app-dht/src/rpc.js";
+import { ExpiryTimer } from "./expiry.js";
 
 export const DIRECT_NAMESPACE = "companion/direct/v1";
 export interface DirectContact {
@@ -51,6 +52,13 @@ export class DirectMessenger {
   private sequence = 0;
   private pending = 0;
   private readonly controller = new AbortController();
+  private readonly expiry = new ExpiryTimer(() => {
+    try {
+      this.prune(this.now());
+    } catch {
+      this.close();
+    }
+  });
   constructor(
     private readonly self: string,
     private readonly transact: (
@@ -101,12 +109,20 @@ export class DirectMessenger {
     return now;
   }
   private prune(now: number): void {
+    let next = Infinity;
     for (const [id, inbox] of this.inboxes) {
       for (const [key, value] of inbox.seen)
         if (value.expiresAt <= now) inbox.seen.delete(key);
-      inbox.history = inbox.history.filter((m) => m.receivedAt + 900_000 > now);
+        else next = Math.min(next, value.expiresAt);
+      inbox.history = inbox.history.filter((m) => {
+        const expires = m.receivedAt + 900_000;
+        if (expires <= now) return false;
+        next = Math.min(next, expires);
+        return true;
+      });
       if (!inbox.history.length && !inbox.seen.size) this.inboxes.delete(id);
     }
+    this.expiry.schedule(next, now);
   }
   readonly handle: RpcHandler = async (
     peer: AuthenticatedPeer,
@@ -179,13 +195,12 @@ export class DirectMessenger {
         inbox.count = 0;
       }
       if (++inbox.count > 20) throw new Error("MESSAGE_RATE_LIMIT");
-      inbox.seen.set(message.id, {
-        digest,
-        expiresAt: Math.max(
-          now + (this.options.dedupeTtlMs ?? 60_000),
-          message.createdAt + 120_001,
-        ),
-      });
+      const expiresAt = Math.max(
+        now + (this.options.dedupeTtlMs ?? 60_000),
+        message.createdAt + 120_001,
+      );
+      inbox.seen.set(message.id, { digest, expiresAt });
+      this.expiry.include(Math.min(expiresAt, now + 900_000), now);
       const received = { envelope: message, receivedAt: now };
       inbox.history.push(received);
       if (inbox.history.length > (this.options.historyLimit ?? 100))
@@ -350,14 +365,17 @@ export class DirectMessenger {
   }
   forget(peerId: string): void {
     this.inboxes.delete(peerId);
+    this.prune(this.now());
   }
   // Erase content while retaining bounded replay/rate metadata through its
   // existing expiry. An accepted message's lost ACK must not restore history.
   clearHistory(peerId: string): void {
     const inbox = this.inboxes.get(peerId);
     if (inbox) inbox.history = [];
+    this.prune(this.now());
   }
   close(): void {
+    this.expiry.close();
     this.controller.abort();
     this.inboxes.clear();
   }
