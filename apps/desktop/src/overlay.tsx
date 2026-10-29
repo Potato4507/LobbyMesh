@@ -48,7 +48,14 @@ function Overlay() {
         <h2>Connection</h2>
         <strong>{status?.connection.state ?? "Unavailable"}</strong>
         <p>
-          {status?.connection.peers ?? 0} authenticated peers · Microphone off
+          {status?.connection.peers ?? 0} authenticated peers ·{" "}
+          <span id="overlayMicrophoneStatus">
+            {status?.microphone === "capturing"
+              ? "Microphone on"
+              : status?.microphone === "off"
+                ? "Microphone off"
+                : "Microphone state unknown"}
+          </span>
         </p>
       </section>
     ),

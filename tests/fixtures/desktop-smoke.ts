@@ -93,6 +93,7 @@ async function run() {
   let remoteVoice: VoiceCalls | undefined,
     localMediaStarts = 0,
     holdVoiceMute = false;
+  let failVoiceClose = false;
   let mediaConnectionState: ((phase: string) => void) | undefined;
   const networkFactory: DesktopNetworkFactory = async (
     _signal,
@@ -172,6 +173,8 @@ async function run() {
           return { phase, capturing: !closed, transmitting: talking };
         },
         close() {
+          if (local && failVoiceClose)
+            throw new Error("synthetic close failure");
           phase = "closed";
           closed = true;
           talking = false;
@@ -664,6 +667,48 @@ async function run() {
       );
       assert.equal(overlayWindow.isFocusable(), false);
       assert.equal(overlayWindow.isAlwaysOnTop(), true);
+      await untilOverlay(
+        "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone off'",
+      );
+      desktop.window.show();
+      desktop.window.focus();
+      await until("document.hasFocus()");
+      await execute(
+        "window.companion.voiceAction({action:'consent',enabled:true})",
+      );
+      const overlayVoice = await execute<{ callId: string }>(
+        `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true})`,
+      );
+      await remoteVoice.answer(overlayVoice.callId, true);
+      await untilOverlay(
+        "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone on'",
+      );
+      await overlayExecute(
+        "(() => { const label=document.createElement('p'); label.id='voiceFixture'; label.className='eyebrow'; label.textContent='SYNTHETIC VOICE · NO MICROPHONE OR NETWORK'; document.querySelector('main').prepend(label); })()",
+      );
+      overlayWindow.showInactive();
+      await delay(200);
+      await writeFile(
+        path.resolve("docs/evidence/lobbymesh-overlay-voice-test.png"),
+        (await overlayWindow.webContents.capturePage()).toPNG(),
+      );
+      overlayWindow.hide();
+      await overlayExecute("document.querySelector('#voiceFixture').remove()");
+      failVoiceClose = true;
+      await execute(
+        `window.companion.voiceAction({action:'hangup',callId:${JSON.stringify(overlayVoice.callId)}})`,
+      );
+      await untilOverlay(
+        "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone state unknown'",
+      );
+      failVoiceClose = false;
+      await execute(
+        "window.companion.voiceAction({action:'consent',enabled:false})",
+      );
+      await untilOverlay(
+        "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone off'",
+      );
+      desktop.window.hide();
       assert.deepEqual(
         await overlayExecute("[typeof require, typeof process]"),
         ["undefined", "undefined"],
@@ -1065,6 +1110,7 @@ async function run() {
           ...(process.platform === "win32"
             ? [
                 "native-overlay-widgets-and-authorized-chat",
+                "overlay-capture-on-unknown-and-confirmed-off",
                 "overlay-input-modes-and-ipc-restrictions",
               ]
             : []),
