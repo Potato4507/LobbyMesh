@@ -1,0 +1,59 @@
+{
+  "result": "native-handoff-observed",
+  "localBootstrap": true,
+  "independentProcesses": true,
+  "appRpc": false,
+  "localConnection": true,
+  "reusableSocket": false,
+  "attempts": 32,
+  "successes": 31,
+  "oneWay": [
+    [
+      { "outcome": "success", "phase": "reply", "elapsedMs": 16 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 5 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 }
+    ],
+    [
+      { "outcome": "success", "phase": "reply", "elapsedMs": 7 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 }
+    ]
+  ],
+  "bidirectional": [
+    [
+      { "outcome": "success", "phase": "reply", "elapsedMs": 6 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 }
+    ],
+    [
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "timeout", "phase": "reply", "elapsedMs": 1512 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 2 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 2 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 2 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 2 }
+    ]
+  ],
+  "snapshots": [
+    { "active": 0, "accepted": 15, "replies": 15, "invalid": 0 },
+    { "active": 0, "accepted": 16, "replies": 16, "invalid": 0 }
+  ],
+  "cleanupVerified": true
+}

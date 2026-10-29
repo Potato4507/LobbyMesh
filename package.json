@@ -23,6 +23,7 @@
     "test:independent-voice": "node scripts/independent-voice-smoke.mjs",
     "test:voice-crash": "node scripts/independent-voice-smoke.mjs --crash",
     "diagnose:session": "tsx scripts/session-status.ts",
+    "diagnose:handoff": "node scripts/native-handoff.mjs",
     "smoke:public-pair": "node scripts/public-pair-smoke.mjs",
     "simulate:overlay": "tsx scripts/simulate-overlay.ts"
   },

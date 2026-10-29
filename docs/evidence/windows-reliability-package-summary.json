@@ -1,14 +1,14 @@
 {
   "version": 1,
   "date": "2026-10-28",
-  "artifactDirectory": "dist/LobbyMesh-win32-x64-1793232257022",
+  "artifactDirectory": "dist/LobbyMesh-win32-x64-1793232481056",
   "source": {
-    "revision": "aca79ca8fb9bea22521bda02d306b987a3b1fa72",
+    "revision": "fc039d81176dd4135eae5db4312f6bbbecc52b8b",
     "dirty": false
   },
-  "manifestSha256": "90f5cf1ef6b568de0e85ec8a7c356ba5c365783f004e156cdcfc40f2493934f2",
+  "manifestSha256": "6f6c75407adca5627eb4f9a3fdc9d6f285cb3b0c14ef3d91012ad58f59497461",
   "files": 656,
-  "bytes": 415579010,
+  "bytes": 415579252,
   "dependencyCopies": 56,
   "smoke": {
     "result": "passed",
@@ -20,7 +20,7 @@
     "microphone": "off",
     "credentials": "protected-reopen"
   },
-  "feature": "voice-reconnecting-and-bounded-bidirectional-rpc-diagnostics",
+  "feature": "voice-reconnecting-overlay-capture-status-and-bidirectional-rpc-diagnostics",
   "limits": [
     "no-physical-microphone-or-audible-acceptance",
     "no-packaged-client-pair-acceptance",
