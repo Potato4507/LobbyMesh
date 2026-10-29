@@ -227,6 +227,10 @@ test(
         nativeBurst: { puts: 8, reverseLookups: 8 },
         a: diagnosticA.outcomes,
         b: diagnosticB.outcomes,
+        failedAttempts: {
+          a: diagnosticA.recentFailures,
+          b: diagnosticB.recentFailures,
+        },
       }),
     );
     const result = (await b.command("lookup", { key })) as {

@@ -1,6 +1,8 @@
 # Active checkpoint — 2026-10-28
 
-Goal active. Repository D:\LobbyMesh, branch codex/lobbymesh-authenticated-overlay, remote Potato4507/Roblox-app. Prior clean HEAD01d7edc. This checkpoint adds verified transient voice interruption handling and independent peer-crash proof. Use git log -1 for its exact commit. No preexisting dirty files; all checkpoint edits owned. No main push, PR, release or merge. No intentional test process remains.
+Goal active. Repository D:\LobbyMesh, branch codex/lobbymesh-authenticated-overlay, remote Potato4507/Roblox-app. Voice interruption pushed as c7b6c5c. This checkpoint refines native transport phase diagnostics. Use git log -1 for its exact commit. No preexisting dirty files; all checkpoint edits owned. No main push, PR, release or merge. No intentional test process remains.
+
+Latest proof: Node122/122, typecheck/lint134/build pass. Native Noise connect() returns before handshakeHash exists; diagnostic phase now distinguishes transport until trusted local connect event from app hello. No await/scheduling/deadline/wire change. Existing one pre-dispatch retry includes transport. Fault test verifies unopened versus established-but-silent, late observer removal and single-dispatch retry. Native two-process burst retained find-node hello timeout1506.01ms/queue0.07ms after local Noise establishment; all8 PUTs/8 reverse lookups succeeded through existing retry. Root cause unresolved. Next collect bounded inbound phase outcomes alongside outbound diagnostics before selecting reuse/concurrency changes. Read-only diagnose:session again waiting/no selected session/no network; no positive actual Roblox lifecycle proof.
 
 Production: browser disconnected immediately disables audio tracks/clears talking; local phase reconnecting shows End call and capture-on during existing5000ms grace. Connected recovery requires fresh PTT. Known MEDIA_NOT_CONNECTED talking races are nonfatal across trusted media owner/host/coordinator; all other errors/timeout/invalid replies keep teardown. No new remote protocol operation/heartbeat. Existing600ms main/750ms media PTT leases,200ms mute watchdog, strict consent/focus/contact/identity boundaries unchanged. Actual capture may stay on until grace expires; UI never silently calls that off.
 
@@ -17,4 +19,3 @@ git status --short; git log -4 --oneline
 Get-Content docs/evidence/native-rpc-reliability.md
 Get-Content packages/app-dht/src/rpc.ts; rg -n 'queue|transaction|serial|diagnos' packages/app-dht/src
 ```
-

@@ -450,7 +450,7 @@ export class NetworkOverlay {
             !expectedPeerId ||
             signal?.aborted ||
             this.controller.signal.aborted ||
-            (phase !== "hello" && phase !== "proof") ||
+            (phase !== "transport" && phase !== "hello" && phase !== "proof") ||
             !(error instanceof Error) ||
             (error.message !== "RPC_TIMEOUT" && error.message !== "RPC_CLOSED")
           )

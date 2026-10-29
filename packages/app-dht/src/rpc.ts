@@ -7,7 +7,13 @@ import {
 
 export const RPC_NAMESPACE = "companion/app-overlay/rpc/v1";
 export const MAX_FRAME_BYTES = 24 * 1024;
-export type RpcPhase = "hello" | "proof" | "request" | "response" | "complete";
+export type RpcPhase =
+  | "transport"
+  | "hello"
+  | "proof"
+  | "request"
+  | "response"
+  | "complete";
 type PhaseObserver = (phase: RpcPhase) => void;
 function observe(observer: PhaseObserver | undefined, phase: RpcPhase): void {
   try {
@@ -19,7 +25,7 @@ function observe(observer: PhaseObserver | undefined, phase: RpcPhase): void {
 export interface NoiseStream extends EventEmitter {
   publicKey: Buffer;
   remotePublicKey: Buffer;
-  handshakeHash: Buffer;
+  handshakeHash: Buffer | null;
   write(data: Buffer, callback?: (error?: Error | null) => void): boolean;
   end(): void;
   destroy(error?: Error): void;
@@ -205,33 +211,48 @@ export async function authenticate(
   identity: Identity,
   observer?: PhaseObserver,
 ): Promise<AuthenticatedPeer> {
-  observe(observer, "hello");
-  const local = hello(identity);
-  await channel.write(local);
-  const remote = parseHello(await channel.read());
-  if (remote.id === local.id) throw new Error("SELF_CONNECTION");
-  const signature = identity
-    .sign(transcript(stream, local, remote, true))
-    .toString("hex");
-  observe(observer, "proof");
-  await channel.write({ signature });
-  const proof = (await channel.read()) as { signature?: unknown } | null;
-  if (
-    !proof ||
-    typeof proof.signature !== "string" ||
-    !/^[a-f0-9]{128}$/.test(proof.signature) ||
-    !verify(
-      remote.publicKey,
-      transcript(stream, remote, local, false),
-      Buffer.from(proof.signature, "hex"),
+  // Native connect() returns before the Noise handshake. Buffered hello writes
+  // do not prove transport establishment. Observe its trusted local event only;
+  // authentication, deadlines and application dispatch remain unchanged.
+  let transportPending = stream.handshakeHash?.length !== 64;
+  const connected = () => {
+    if (!transportPending) return;
+    transportPending = false;
+    observe(observer, "hello");
+  };
+  observe(observer, transportPending ? "transport" : "hello");
+  if (transportPending) stream.once("connect", connected);
+  try {
+    const local = hello(identity);
+    await channel.write(local);
+    const remote = parseHello(await channel.read());
+    if (remote.id === local.id) throw new Error("SELF_CONNECTION");
+    const signature = identity
+      .sign(transcript(stream, local, remote, true))
+      .toString("hex");
+    observe(observer, "proof");
+    await channel.write({ signature });
+    const proof = (await channel.read()) as { signature?: unknown } | null;
+    if (
+      !proof ||
+      typeof proof.signature !== "string" ||
+      !/^[a-f0-9]{128}$/.test(proof.signature) ||
+      !verify(
+        remote.publicKey,
+        transcript(stream, remote, local, false),
+        Buffer.from(proof.signature, "hex"),
+      )
     )
-  )
-    throw new Error("INVALID_HANDSHAKE_SIGNATURE");
-  return Object.freeze({
-    id: remote.id,
-    publicKey: remote.publicKey,
-    transportKey: stream.remotePublicKey.toString("hex"),
-  });
+      throw new Error("INVALID_HANDSHAKE_SIGNATURE");
+    return Object.freeze({
+      id: remote.id,
+      publicKey: remote.publicKey,
+      transportKey: stream.remotePublicKey.toString("hex"),
+    });
+  } finally {
+    transportPending = false;
+    stream.removeListener("connect", connected);
+  }
 }
 async function transaction<T>(
   stream: NoiseStream,

@@ -159,6 +159,40 @@ test("network metrics distinguish canceled queued work from opened transactions 
   assert.equal(JSON.stringify(snapshot).includes(contact.id), false);
 });
 
+test("RPC setup distinguishes unopened Noise from an established transport waiting for app hello", async () => {
+  const identity = createIdentity();
+  for (const establish of [false, true]) {
+    const [client, server] = pair();
+    const hash = client.handshakeHash;
+    client.handshakeHash = null;
+    const phases: RpcPhase[] = [];
+    const request = requestRpc(client, identity, null, {
+      timeoutMs: 30,
+      onPhase: (phase) => phases.push(phase),
+    });
+    assert.deepEqual(phases, ["transport"]);
+    assert.equal(client.listenerCount("connect"), 1);
+    if (establish) {
+      client.handshakeHash = hash;
+      client.emit("connect");
+      client.emit("connect");
+    }
+    await assert.rejects(request, /RPC_TIMEOUT/);
+    await setImmediate();
+    server.destroy();
+    assert.deepEqual(
+      phases,
+      establish ? ["transport", "hello"] : ["transport"],
+    );
+    assert.equal(client.listenerCount("connect"), 0);
+    client.emit("connect");
+    assert.deepEqual(
+      phases,
+      establish ? ["transport", "hello"] : ["transport"],
+    );
+  }
+});
+
 test("known-contact setup retries once before dispatch, retaining the failed attempt without repeating the handler", async () => {
   const identity = createIdentity(),
     remote = createIdentity();
@@ -173,6 +207,7 @@ test("known-contact setup retries once before dispatch, retaining the failed att
         connections++;
         const [client, server] = pair();
         servers.push(server);
+        if (connections === 1) client.handshakeHash = null;
         if (connections > 1)
           serving.push(
             serveRpc(server, remote, async () => {
@@ -200,7 +235,7 @@ test("known-contact setup retries once before dispatch, retaining the failed att
     const view = overlay.diagnostics();
     assert.equal(view.outcomes.timeout, 1);
     assert.equal(view.outcomes.success, 1);
-    assert.equal(view.recentFailures[0]?.phase, "hello");
+    assert.equal(view.recentFailures[0]?.phase, "transport");
     assert.equal(JSON.stringify(view).includes("never-in-diagnostics"), false);
   } finally {
     await overlay.leave();
