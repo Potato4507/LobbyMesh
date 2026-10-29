@@ -330,6 +330,172 @@ test("known-contact setup retries once before dispatch, retaining the failed att
   }
 });
 
+test("observed native holepunch abort recovers once for a pinned contact before any application dispatch", async () => {
+  const identity = createIdentity(),
+    remote = createIdentity();
+  let connections = 0,
+    dispatches = 0;
+  const servers: ReturnType<typeof pair>[1][] = [],
+    serving: Promise<unknown>[] = [];
+  const overlay = new NetworkOverlay(identity, {
+    connect() {
+      connections++;
+      const [client, server] = pair();
+      servers.push(server);
+      if (connections === 1) {
+        client.handshakeHash = null;
+        queueMicrotask(() =>
+          client.destroy(
+            Object.assign(new Error("private native detail"), {
+              code: "HOLEPUNCH_ABORTED",
+            }),
+          ),
+        );
+      } else
+        serving.push(
+          serveRpc(server, remote, async () => {
+            dispatches++;
+            return "accepted";
+          }).catch(() => {}),
+        );
+      return client;
+    },
+  });
+  await overlay.start();
+  try {
+    assert.equal(
+      await overlay.directRequest(
+        { id: remote.peerId, transportKey: "ab".repeat(32) },
+        {},
+        new AbortController().signal,
+      ),
+      "accepted",
+    );
+    assert.equal(connections, 2);
+    assert.equal(dispatches, 1);
+    const metrics = overlay.diagnostics();
+    assert.equal(metrics.outcomes.transport, 1);
+    assert.equal(metrics.outcomes.success, 1);
+    assert.equal(metrics.recentFailures[0]?.nativeCode, "HOLEPUNCH_ABORTED");
+    assert.equal(metrics.recentFailures[0]?.phase, "transport");
+    assert.equal(
+      JSON.stringify(metrics).includes("private native detail"),
+      false,
+    );
+  } finally {
+    await overlay.leave();
+    for (const server of servers) server.destroy();
+    await Promise.all(serving);
+  }
+});
+
+test("native setup-abort retry stays finite, rechecks block and cancellation, and excludes unpinned peers", async () => {
+  for (const mode of ["exhaust", "block", "cancel", "unpinned"] as const) {
+    const identity = createIdentity(),
+      remote = createIdentity(),
+      controller = new AbortController();
+    let connections = 0,
+      blocked = false;
+    const servers: ReturnType<typeof pair>[1][] = [];
+    const overlay = new NetworkOverlay(
+      identity,
+      {
+        connect() {
+          connections++;
+          const [client, server] = pair();
+          servers.push(server);
+          client.handshakeHash = null;
+          queueMicrotask(() => {
+            client.destroy(
+              Object.assign(new Error("private abort"), {
+                code: "HOLEPUNCH_ABORTED",
+              }),
+            );
+            if (mode === "block") blocked = true;
+            if (mode === "cancel") controller.abort();
+          });
+          return client;
+        },
+      },
+      { blocked: () => blocked },
+    );
+    await overlay.start();
+    try {
+      await assert.rejects(
+        mode === "unpinned"
+          ? overlay.probe(
+              {
+                id: remote.peerId,
+                publicKey: Buffer.from("ab".repeat(32), "hex"),
+                connectionHints: [],
+              },
+              controller.signal,
+            )
+          : overlay.directRequest(
+              { id: remote.peerId, transportKey: "ab".repeat(32) },
+              {},
+              controller.signal,
+            ),
+      );
+      assert.equal(connections, mode === "exhaust" ? 2 : 1);
+    } finally {
+      await overlay.leave();
+      for (const server of servers) server.destroy();
+    }
+  }
+});
+
+test("a native abort after transport establishment or dispatch cannot expand setup retry", async () => {
+  for (const mode of ["established", "post-dispatch"] as const) {
+    const identity = createIdentity(),
+      remote = createIdentity();
+    let connections = 0,
+      dispatches = 0;
+    const servers: ReturnType<typeof pair>[1][] = [],
+      serving: Promise<unknown>[] = [];
+    const overlay = new NetworkOverlay(identity, {
+      connect() {
+        connections++;
+        const [client, server] = pair();
+        servers.push(server);
+        const error = Object.assign(new Error("private native failure"), {
+          code: "HOLEPUNCH_ABORTED",
+        });
+        if (mode === "established") queueMicrotask(() => client.destroy(error));
+        else
+          serving.push(
+            serveRpc(server, remote, async () => {
+              dispatches++;
+              client.destroy(error);
+              return null;
+            }).catch(() => {}),
+          );
+        return client;
+      },
+    });
+    await overlay.start();
+    try {
+      await assert.rejects(
+        overlay.directRequest(
+          { id: remote.peerId, transportKey: "ab".repeat(32) },
+          {},
+          new AbortController().signal,
+        ),
+      );
+      assert.equal(connections, 1);
+      assert.equal(dispatches, mode === "established" ? 0 : 1);
+      assert.equal(
+        overlay.diagnostics().recentFailures[0]?.phase,
+        mode === "established" ? "hello" : "response",
+      );
+    } finally {
+      await overlay.leave();
+      for (const server of servers) server.destroy();
+      await Promise.all(serving);
+    }
+  }
+});
+
 test("setup retry budget is finite and a newly blocked contact cannot open the retry socket", async () => {
   for (const blockAfterFirst of [false, true]) {
     const identity = createIdentity(),

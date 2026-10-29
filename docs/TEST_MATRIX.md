@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 native setup-abort mitigation: full146/146/typecheck/lint158/build pass Windows. Exact observed HOLEPUNCH_ABORTED retry only in transport phase for pinned identity, at most existing2 attempts. Positive one-dispatch, finite/cancel/block/unpinned/established/post-dispatch negatives; strict native headless/overlay cases retained. See evidence/native-setup-abort.md. Ubuntu40866041526 failure retained; no universal repair claim.
+
 2026-10-29 Pi doctor: six option/projection/process tests pass, including LF stdin, clean-exit requirement, malformed/duplicate/oversize output, stalled child kill and spawn failure. Live authorized SSH remains unavailable; no actual Pi facts. Windows copied executable+independent integrity fromdb7fdf7 pass (656 files); see windows-track-package-summary.json. Ubuntu40865097004 atdb7fdf7 passed. No physical or release acceptance inferred.
 
 2026-10-29 native track lifecycle: `pnpm test:audio`, `pnpm test:media-host`, `pnpm test:voice-calls` pass. Synthetic source mute/end, remote end and initial-muted capture fail closed, old PTT/unmute cannot resume, existing decoded audio/silence and cleanup retained. SAME_PROCESS native proof, no PHYSICAL_AUDIO. Ubuntu CI40864692669 at174703d passed full checks; intermittency remains unresolved. See evidence/audio-track-interruption.md.

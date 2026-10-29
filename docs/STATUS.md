@@ -1,5 +1,7 @@
 # Continuation — 2026-10-29 UTC
 
+New observed cause: Ubuntu40866041526/3f9a4b8 failed headless pairing; aggregate diagnostics retain HOLEPUNCH_ABORTED at transport/find-node17.2ms, not an app handler or quota rejection. Implemented exact-code pre-establishment recovery for pinned identity within the existing single setup retry; no added attempts/deadlines, unpinned/established/post-dispatch errors still fail. Full146/146/typecheck/lint158/build pass on Windows; positive/negative policy coverage and strict native process assertions retained. See evidence/native-setup-abort.md. This mitigates an observed failure, not all historical native intermittency. Next integrated product increment: per-call microphone input controls while retaining consent/PTT and terminal device cleanup.
+
 Final source checkpoint75c508f Ubuntu CI40865801892 passed; final focused lab/RPC/doctor16/16 passes locally. Earlier92523bb failed headless ACK and remains recorded. No failing instrumented native code observed; intermittency remains unresolved. Clean Windows runtime package is fromdb7fdf7; later commits are tools/test diagnostics/docs.
 
 Recovery checkpoint: branch codex/lobbymesh-pi-lab-and-reliability, pushed source75c508f; clean before this documentation update. Full143/143 at92523bb; latest diagnostic-only focused8/8/typecheck/lint158 pass. Latest live session probe waiting/no selected session/network off. See RECOVERY.md for exact source hashes, artifact, CI failure and next3 actions. Historical entries below retain prior proofs and do not override current blockers.

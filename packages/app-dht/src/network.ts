@@ -448,6 +448,8 @@ export class NetworkOverlay {
           // An authenticated/pinned known contact gets one setup retry only
           // before request transmission. Identity/protocol errors never retry;
           // reads and writes after transmission remain caller-owned policies.
+          // CI observed HOLEPUNCH_ABORTED before Noise establishment. Only that
+          // exact native code in transport may consume the same single retry.
           if (
             attempt !== 0 ||
             !expectedPeerId ||
@@ -455,7 +457,12 @@ export class NetworkOverlay {
             this.controller.signal.aborted ||
             (phase !== "transport" && phase !== "hello" && phase !== "proof") ||
             !(error instanceof Error) ||
-            (error.message !== "RPC_TIMEOUT" && error.message !== "RPC_CLOSED")
+            (error.message !== "RPC_TIMEOUT" &&
+              error.message !== "RPC_CLOSED" &&
+              !(
+                phase === "transport" &&
+                rpcNativeDetail(error).nativeCode === "HOLEPUNCH_ABORTED"
+              ))
           )
             throw error;
           onRetry?.(error);
