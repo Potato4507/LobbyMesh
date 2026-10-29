@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 final native follow-up: Ubuntu40868813933 passes offline facts2/2+namespace8/8 models but regression147/148 fails strict reverse lookup timeout vs exhausted. No HOLEPUNCH_ABORTED observed; hello/queue3s failure retained. Failure-only inbound/outbound diagnostic summary added after schema/privacy checks; Windows focused native/RPC13/13 and typecheck/lint pass. Runtime full148/148/Windows artifact evidence retained separately.
+
 2026-10-29 microphone gain: full148/148/typecheck/lint159/build; native audio/host/call/UI/protected reopen, independent Electron clients and crash pass. Exact finite range, current-call/overlay denial, single-flight, late replacement, failure cleanup and per-call reset covered. Native input gain quarter-amplitude/zero-silence/restore measured; input-context suspension stops both raw and processed tracks. Synthetic SAME_PROCESS/SAME_HOST; see evidence/microphone-input-gain.md and input-gain-native-summary.json.
 
 2026-10-29 native setup-abort mitigation: full146/146/typecheck/lint158/build pass Windows. Exact observed HOLEPUNCH_ABORTED retry only in transport phase for pinned identity, at most existing2 attempts. Positive one-dispatch, finite/cancel/block/unpinned/established/post-dispatch negatives; strict native headless/overlay cases retained. See evidence/native-setup-abort.md. Ubuntu40866041526 failure retained; no universal repair claim.

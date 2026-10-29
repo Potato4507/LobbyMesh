@@ -232,6 +232,31 @@ test(
       for (const privateValue of [infoA.id, infoB.id, infoA.key, infoB.key])
         assert.equal(encoded.includes(privateValue), false);
     }
+    // Preserve receiver-side evidence on failure; privacy/schema checks above
+    // still gate diagnostics. Success keeps the existing compact summary.
+    const burstFailed =
+      burst.slice(0, 8).some((result) => {
+        const put = result as { replicas?: number; failures?: number } | null;
+        return put?.replicas !== 1 || put.failures !== 0;
+      }) ||
+      burst.slice(8).some((result) => {
+        const lookup = result as {
+          routing?: { state?: string; failures?: number };
+        } | null;
+        return (
+          lookup?.routing?.state !== "exhausted" ||
+          lookup.routing.failures !== 0
+        );
+      });
+    if (burstFailed)
+      t.diagnostic(
+        JSON.stringify({
+          nativeBurstFailure: {
+            outgoing: { a: diagnosticA, b: diagnosticB },
+            inbound: { a: inboundA, b: inboundB },
+          },
+        }),
+      );
     for (const result of burst.slice(0, 8))
       assert.deepEqual(
         result,

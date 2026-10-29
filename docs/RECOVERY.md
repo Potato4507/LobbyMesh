@@ -1,4 +1,32 @@
-# Active checkpoint — 2026-10-29
+# Active checkpoint — 2026-10-29, microphone gain and native setup recovery
+
+Checkout `D:\LobbyMesh`, branch `codex/lobbymesh-pi-lab-and-reliability`, origin Potato4507/Roblox-app. Current source HEAD at this recording: `9500ff4e323bf625a9fb904fbf9202b1bd439e4a`, pushed; working tree clean before this documentation checkpoint. This header supersedes older entries below. Use `git log -1` for the final documentation tip. No main mutation, rewrite, PR, public release, system install or network change.
+
+Final checkpoint also includes failure-only receiver diagnostics in tests/overlay-process.test.ts (no production change). Focused native/RPC13/13, typecheck and lint pass after that change; full148/148 is the verified production-gain milestone. Owned changes at recording: this recovery header, STATUS, native-setup-abort evidence and that diagnostic test; committed together. Latest full Linux failure remains documented rather than classified as fixed. No new uncommitted work is intentionally left.
+
+New verified milestones:
+
+- `309c562`: current Ubuntu40866041526 failure finally retained HOLEPUNCH_ABORTED at native transport/find-node17.2ms. Added only this exact pre-establishment code for pinned identity to the existing one setup retry. Same backoff/deadline/overall budgets. Finite/block/cancel/unpinned/established/post-dispatch negatives retained. Full146/146/typecheck/lint/build pass. Ubuntu40867300865 passed. This mitigation does not resolve every native hello/admission timeout.
+- `419169c`: per-call microphone gain0–200%, default/reset100%, owned input-only WebAudio graph, bounded main/media IPC, single-flight and late-call protection, UI coalescing and current-ID/overlay denial. No capture or talking grant. Both raw/processed tracks default-muted, disable on reconnect and stop on teardown; input-context suspension terminal. Zero-gain failures/stalls end current call rather than retaining unconfirmed input. Full148/148, typecheck, lint, build pass; native browser/host/authenticated-call/UI/protected reopen and independent clients/crash pass. Native UI screenshots reviewed; only changed voice screenshot retained.
+- `9500ff4`: Pi facts version commands disable Corepack networking/latest lookup/auto-pin/project/env config/download prompts for that invocation. An unavailable offline version reports missing and other facts continue. Two unprivileged shell command models added to CI; no real tool/package manager execution in models. Both models now pass on Ubuntu; Windows has no Bash runtime. Authorized Pi doctor retried once and still LAB_HOST_UNAVAILABLE.
+
+Current CI:40868516016/419169c and40867300865/309c562 passed Ubuntu.40868813933/9500ff4 passed offline facts models2/2 and namespace models8/8, then failed regression147/148 at reverse lookup timeout vs exhausted. Diagnostics: hello1500.53ms timeout, another hello stall/queue reaching3s lookup budget, no HOLEPUNCH_ABORTED. Native half-open/admission/queue issue remains unresolved. A failure-only summary now emits inbound evidence before strict burst assertions (after privacy checks); no policy/assertion/deadline relaxation. Historical failures retained in evidence/headless-lab.md and native-setup-abort.md. Do not repeatedly rerun unchanged failures.
+
+Latest clean Windows artifact: `dist/LobbyMesh-win32-x64-1793274643297/LobbyMesh.exe`, source `419169cfdf32338f5880196d5bd177a1ffc8b858`, dirty=false.656 files/415603969 bytes/56 dependency copies, actual copied executable/default network+mic off/protected reopen and independent integrity pass, Authenticode NotSigned. Manifest SHA256 `f16f93fe245839192fdd089186b97f1f4d4af9037256c752d3b462bb0617f1c6`. See evidence/windows-input-gain-package-summary.json. Later changes affect development Pi probes/docs only.
+
+Gain proof: browser decoded unity0.7039/quarter0.1779/zero0; separate desktop processes unity0.7049/quarter0.1767/zero0. Existing protected identity/revocation/restart retained. Crash cleanup11294ms observed, not a promised bound or improvement. Five synthetic lifecycle negatives (source mute/end, remote end, initial mute, suspended input context) stop raw/processed tracks. Evidence/microphone-input-gain.md and input-gain-native-summary.json contain exact claims. No physical microphone/audible output, group/VAD/device selection, actual Roblox, LAN/virtual NAT/external, installer/signing/license/fresh-machine acceptance.
+
+Next three actions from this directory:
+
+```powershell
+git status --short --branch; git log -6 --oneline
+pnpm typecheck; pnpm lint; pnpm exec tsx --test tests/rpc-diagnostics.test.ts tests/voice-calls.test.ts tests/voice-actions.test.ts tests/media-host-protocol.test.ts
+Get-Content docs/evidence/native-setup-abort.md; Get-Content docs/evidence/microphone-input-gain.md; Get-Content docs/PI_NETWORK_LAB.md -First 24
+```
+
+Inspect latest CI completion and any redacted failure phases first. For next independent production work consider explicit input-device selection or contact-safety controls; keep detection/desktop/network scope balanced. Device testing still requires reachable authorized SSH, and privileged namespace setup still requires explicit machine-level authorization. No passwords/keys/endpoints are stored in this checkpoint. Physical audio must remain explicitly consented. No intentional test processes remain.
+
+# Historical checkpoint — 2026-10-29 before input gain
 
 Repository: `D:\LobbyMesh`, `Potato4507/Roblox-app`. Branch `codex/lobbymesh-pi-lab-and-reliability`. Verified source HEAD when recording this checkpoint: `75c508fde16a44d5c3fb7f867a1c857d3a4de4a8`, pushed to origin. This documentation checkpoint follows it; use `git log -1` for the exact final tip. Working tree was clean before this recovery/status edit. No reset, force push, main mutation, PR, release or OS network/package/service change. The interrupted preexisting edits were preserved, repaired, verified and committed; no other active local worker was found.
 
