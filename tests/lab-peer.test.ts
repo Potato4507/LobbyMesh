@@ -55,6 +55,28 @@ test(
     await new Promise<void>((resolve) => socket.close(() => resolve()));
     const children: ReturnType<typeof launchLabPeer>[] = [];
     t.after(async () => {
+      // On early failure the peers are still alive. Retain only their existing
+      // aggregate diagnostics before teardown; never invitations or peer IDs.
+      const observations = await Promise.allSettled(
+        children.map((p) => p.request("status")),
+      );
+      const diagnostics = observations.flatMap((entry) => {
+        if (
+          entry.status !== "fulfilled" ||
+          !entry.value ||
+          typeof entry.value !== "object"
+        )
+          return [];
+        const value = entry.value as {
+          diagnostics?: unknown;
+          inbound?: unknown;
+        };
+        return value.diagnostics
+          ? [{ outgoing: value.diagnostics, inbound: value.inbound }]
+          : [];
+      });
+      if (diagnostics.length)
+        t.diagnostic(JSON.stringify({ labRpc: diagnostics }));
       await Promise.all(children.reverse().map((p) => p.stop()));
     });
     const bootstrap = launchLabPeer([
