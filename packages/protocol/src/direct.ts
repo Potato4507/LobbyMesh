@@ -351,6 +351,12 @@ export class DirectMessenger {
   forget(peerId: string): void {
     this.inboxes.delete(peerId);
   }
+  // Erase content while retaining bounded replay/rate metadata through its
+  // existing expiry. An accepted message's lost ACK must not restore history.
+  clearHistory(peerId: string): void {
+    const inbox = this.inboxes.get(peerId);
+    if (inbox) inbox.history = [];
+  }
   close(): void {
     this.controller.abort();
     this.inboxes.clear();

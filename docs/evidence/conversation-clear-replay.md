@@ -1,0 +1,16 @@
+# Conversation clear and delayed replies — 2026-10-29
+
+Reproduced before repair: accept an incoming envelope, clear local history, then receive the same envelope as a lost-ACK retry. The prior clear called full forget, discarded deduplication and displayed the old text again. The new regression failed with a received-message row where an empty history was expected.
+
+Desktop clear now removes content through DirectMessenger.clearHistory, retaining existing bounded message-ID/digest/expiry and rate metadata. An exact duplicate is acknowledged without another notification or history row; conflicting content still rejects. Metadata retains its original freshness-window expiry,4096 IDs/peer and peer quota; clear does not reset rate limits or allocate a new inbox. No plaintext remains in the cleared direct history. Full forget/disconnect/restart still discard process-local state; no cross-restart exactly-once guarantee. Previously unseen first delivery and genuinely new messages can still arrive. Clear affects this device, not the other participant's copy.
+
+Renderer clear now invalidates pending history reads and send-completion updates with a local revision. A late pre-clear read cannot overwrite successful empty state. Clear remains available during sending; backend cancellation already aborts pending work. Exact trusted clear IPC is now a priority operation under the16-slot ordinary quota; authorization/peer validation remain enforced. No new remote operation, disk history, report upload or permission grant.
+
+Windows Node24.22.1 / Electron45.1.0:
+
+- Focused direct/desktop8/8, including original10,000-send fault model. Duplicate/conflict after clear,120s freshness boundary, rate/peer bounds and expiry cleanup covered. Full162/162/typecheck/lint171/build pass.
+- Native desktop main smoke, new isolated conversation-clear process, and protected-credential reopen pass. New process holds an old history IPC response, clears, releases old data, verifies empty UI, retries the old envelope and verifies no restoration. A held UI send is canceled through Clear without an obsolete send failure overwriting the success notice. With16 held sends, ordinary preferences returns REQUEST_QUOTA, priority clear completes, all sends settle, history stays empty and networking stays online.
+- Initial combined desktop suite reached its30s aggregate harness limit after the later safety checks. Split the additional scenarios into a fresh process/profile, preserving every existing assertion and each process's30s bound. No timeout, transport deadline or retry assertion was relaxed. The script can run the focused process with `node scripts/desktop-smoke.mjs --conversation-clear-only` and includes it by default.
+- Generated unrelated screenshots were restored from the known clean pre-feature baseline. No intended layout change or physical audio/network claim.
+
+Latest inspected prior sourcec75dfa3 Ubuntu40915139106 passed. Earlier native hello/queue and authorized-text failures remain unresolved; one green run does not establish repair. Authorized strict read-only Pi doctor still returns LAB_HOST_UNAVAILABLE. Live session probe waiting/no session/network off, windows-log/self-asserted. SAME_PROCESS synthetic UI and UNIT evidence; no physical Pi/LAN/NAT/Roblox/audio acceptance.

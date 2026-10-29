@@ -22,13 +22,21 @@ try {
   const executable = createRequire(import.meta.url)("electron"),
     environment = { ...process.env };
   delete environment.ELECTRON_RUN_AS_NODE;
-  for (const mode of process.platform === "win32"
-    ? ["", "credentials-only"]
-    : [""])
+  for (const mode of process.argv[2] === "--conversation-clear-only"
+    ? ["conversation-clear-only"]
+    : process.platform === "win32"
+      ? ["", "conversation-clear-only", "credentials-only"]
+      : ["", "conversation-clear-only"])
     await new Promise((resolve, reject) => {
       const child = spawn(
         executable,
-        [entry, directory, ...(mode ? [mode] : [])],
+        [
+          entry,
+          mode === "conversation-clear-only"
+            ? path.join(directory, "conversation-clear")
+            : directory,
+          ...(mode ? [mode] : []),
+        ],
         {
           windowsHide: true,
           env: environment,
@@ -57,7 +65,11 @@ try {
         if (
           code === 0 &&
           output.includes(
-            mode ? '"result":"credential-reload-passed"' : '"result":"passed"',
+            mode === "conversation-clear-only"
+              ? '"result":"conversation-clear-passed"'
+              : mode
+                ? '"result":"credential-reload-passed"'
+                : '"result":"passed"',
           )
         )
           resolve();

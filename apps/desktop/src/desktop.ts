@@ -269,6 +269,7 @@ export async function createDesktop(
         name === "companion:overlay" ||
         name === "companion:overlay:voice" ||
         name === "companion:overlay:voice:end" ||
+        name === "companion:messages:clear" ||
         (name === "companion:overlay:mode" && request === false) ||
         (name === "companion:network" && request === false) ||
         (name === "companion:contact" &&

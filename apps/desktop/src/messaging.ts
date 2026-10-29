@@ -239,7 +239,7 @@ export class DesktopMessaging {
     for (const value of this.pending.values())
       if (value.peerId === peerId) value.controller.abort();
     this.conversations.delete(peerId);
-    this.messenger.forget(peerId);
+    this.messenger.clearHistory(peerId);
   }
   close(): void {
     this.closed = true;

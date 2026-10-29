@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 conversation clear: reproduced duplicate restoring cleared content; direct/desktop8/8/full162/162/typecheck/lint171/build and native desktop main/isolated clear/protected reopen pass. New bounded process tests pre-clear reply suppression, replay ACK without restoration, pending-send cancellation and priority clear under full16-slot ordinary quota with network retained. Each process deadline stays30s; see evidence/conversation-clear-replay.md.
+
 2026-10-29 native text failure diagnostics: focused independent-process2/2/typecheck/lint171 pass after adding bounded failure-only outgoing/inbound snapshots at later authorized text rejection. Local run recovered one existing hello timeout and retained strict burst/delivery assertions. Latest inspected Ubuntu40914557204/ca6df21 fails159/160 with DELIVERY_UNCONFIRMED; no corresponding new failure snapshot yet, cause unconfirmed. No runtime/deadline/retry/assertion change.
 
 2026-10-29 package manifest pin:2 focused/full160/160/typecheck/lint170 pass. Tampered payload and coordinated manifest edits, malformed options/inventories, unsafe/missing/unexpected entries tested; actual0de3f4c artifact pinned digest verification passed. Ubuntu40913949823 at0de3f4c fails157/158 on existing native bootstrap burst timeout vs exhausted, hello1500ms/queue3000ms; inbound7/13 accepted, no admission rejection. Strict assertions retained. See evidence/package-manifest-pinning.md and evidence/windows-device-selection-package-summary.json.

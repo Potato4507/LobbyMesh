@@ -334,6 +334,127 @@ async function run() {
       );
       if (!visible) window.hide();
     }
+    if (process.argv[3] === "conversation-clear-only") {
+      desktop.window.show();
+      desktop.window.focus();
+      await execute("window.companion.network(true)");
+      await until("window.companion.status().then(s=>s.network==='online')");
+      await navigate("messages");
+      assert.ok(messaging);
+      const incoming: TextEnvelope = {
+        namespace: DIRECT_NAMESPACE,
+        version: 1,
+        type: "text",
+        id: "12".repeat(16),
+        from: allowed,
+        to: self,
+        senderEpoch: "34".repeat(16),
+        seq: 0,
+        createdAt: Date.now(),
+        text: "synthetic cleared message",
+      };
+      await messaging.handle(
+        { id: allowed, publicKey: "synthetic app", transportKey },
+        incoming,
+        new AbortController().signal,
+      );
+      await until(
+        "document.querySelector('#messageHistory .incoming')?.textContent.includes('synthetic cleared message')",
+      );
+      const draft = (text: string) =>
+        execute(
+          `(()=>{const input=document.querySelector('#messageDraft');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,${JSON.stringify(text)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`,
+        );
+      const historyRead = messaging.history.bind(messaging);
+      let heldHistory: (() => void)[] = [],
+        delayHistory = true;
+      messaging.history = ((peerId: string) => {
+        const snapshot = historyRead(peerId);
+        if (!delayHistory) return snapshot;
+        return new Promise((resolve) => {
+          heldHistory.push(() => resolve(snapshot));
+        });
+      }) as unknown as DesktopMessaging["history"];
+      const historyDeadline = Date.now() + 2000;
+      while (!heldHistory.length && Date.now() < historyDeadline)
+        await delay(20);
+      assert.ok(heldHistory.length, "old history poll was not held");
+      await execute("document.querySelector('#clearMessages').click()");
+      await until(
+        "document.querySelectorAll('#messageHistory article').length === 0",
+      );
+      delayHistory = false;
+      for (const finish of heldHistory) finish();
+      heldHistory = [];
+      await delay(100);
+      assert.equal(
+        await execute(
+          "document.querySelectorAll('#messageHistory article').length",
+        ),
+        0,
+      );
+      messaging.history = historyRead;
+      await messaging.handle(
+        { id: allowed, publicKey: "synthetic app", transportKey },
+        incoming,
+        new AbortController().signal,
+      );
+      assert.deepEqual(messaging.history(allowed), []);
+      await delay(1100);
+      assert.equal(
+        await execute(
+          "document.querySelectorAll('#messageHistory article').length",
+        ),
+        0,
+      );
+      holdSends = true;
+      await draft("cancel this send with clear");
+      await execute(
+        "document.querySelector('#messagesPanel form').requestSubmit()",
+      );
+      await until(
+        "document.querySelector('#sendMessage')?.textContent.includes('Sending') && !document.querySelector('#clearMessages').disabled",
+      );
+      await execute("document.querySelector('#clearMessages').click()");
+      await until(
+        "document.querySelector('#messageNotice')?.textContent.includes('Local conversation cleared') && document.querySelector('#sendMessage')?.textContent === 'Send'",
+      );
+      assert.deepEqual(messaging.history(allowed), []);
+      holdSends = false;
+
+      holdSends = true;
+      await execute(
+        `(()=>{window.pendingMessages=Array.from({length:16},()=>window.companion.sendText('${allowed}','held fixture').catch(()=>null));return true;})()`,
+      );
+      await delay(30);
+      assert.equal(
+        await execute(
+          "window.companion.preferences().then(()=>false,e=>e.message.includes('REQUEST_QUOTA'))",
+        ),
+        true,
+      );
+      await execute(`window.companion.clearMessages('${allowed}')`);
+      await execute("Promise.all(window.pendingMessages)");
+      assert.deepEqual(messaging.history(allowed), []);
+      assert.equal(
+        await execute("window.companion.status().then(s=>s.network)"),
+        "online",
+      );
+
+      holdSends = false;
+      console.log(
+        JSON.stringify({
+          result: "conversation-clear-passed",
+          oldReadDiscarded: true,
+          lostAckRetrySuppressed: true,
+          pendingSendCanceled: true,
+          clearUnderFullQuota: true,
+          networkStayedOnline: true,
+          microphone: false,
+        }),
+      );
+      return;
+    }
     await until(
       "document.querySelector('#displayName')?.value === 'LobbyMesh user'",
     );

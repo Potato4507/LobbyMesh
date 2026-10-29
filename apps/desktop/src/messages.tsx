@@ -29,6 +29,9 @@ export function Messages({
   const [notice, setNotice] = useState("");
   const [pollError, setPollError] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const clearPending = useRef(false),
+    historyRevision = useRef(0);
   const current = useRef(selected);
   current.current = selected;
   const log = useRef<HTMLDivElement>(null),
@@ -47,6 +50,7 @@ export function Messages({
     const poll = async () => {
       if (busy) return;
       busy = true;
+      const revision = historyRevision.current;
       try {
         const summary = await window.companion.messaging();
         if (!active || current.current !== selected) return;
@@ -64,10 +68,20 @@ export function Messages({
           setHistory([]);
         } else if (next) {
           const messages = await window.companion.messages(next);
-          if (active && current.current === next) setHistory(messages);
+          if (
+            active &&
+            current.current === next &&
+            revision === historyRevision.current &&
+            !clearPending.current
+          )
+            setHistory(messages);
         } else setHistory([]);
       } catch {
-        if (active) {
+        if (
+          active &&
+          revision === historyRevision.current &&
+          !clearPending.current
+        ) {
           setHistory([]);
           setPollError(true);
         }
@@ -101,46 +115,73 @@ export function Messages({
       !discovered ||
       !draft.trim() ||
       bytes > 4096 ||
-      sending.includes(selected)
+      sending.includes(selected) ||
+      clearPending.current
     )
       return;
     const peerId = selected,
       text = draft;
+    const revision = historyRevision.current;
     setSending((previous) => [...previous, peerId]);
     setNotice("");
     follow.current = true;
     try {
       await window.companion.sendText(peerId, text);
-      setDrafts((previous) =>
-        previous[peerId] === text ? { ...previous, [peerId]: "" } : previous,
-      );
+      if (revision === historyRevision.current)
+        setDrafts((previous) =>
+          previous[peerId] === text ? { ...previous, [peerId]: "" } : previous,
+        );
     } catch {
-      if (current.current === peerId)
+      if (current.current === peerId && revision === historyRevision.current)
         setNotice(
           "Delivery was not confirmed. Sending again could create a duplicate.",
         );
     } finally {
       setSending((previous) => previous.filter((id) => id !== peerId));
-      if (current.current === peerId) {
+      if (
+        current.current === peerId &&
+        revision === historyRevision.current &&
+        !clearPending.current
+      ) {
         try {
           const messages = await window.companion.messages(peerId);
-          if (current.current === peerId) setHistory(messages);
+          if (
+            current.current === peerId &&
+            revision === historyRevision.current &&
+            !clearPending.current
+          )
+            setHistory(messages);
         } catch {
-          if (current.current === peerId) setHistory([]);
+          if (
+            current.current === peerId &&
+            revision === historyRevision.current
+          )
+            setHistory([]);
         }
       }
     }
   }
   async function clear() {
     const peerId = selected;
+    if (!peerId || clearPending.current) return;
+    clearPending.current = true;
+    historyRevision.current++;
+    setClearing(true);
     try {
       await window.companion.clearMessages(peerId);
       if (current.current === peerId) {
         setHistory([]);
-        setNotice("Local conversation cleared.");
+        setNotice(
+          "Local conversation cleared. This does not delete the other person's copy.",
+        );
       }
     } catch {
-      setNotice("Could not clear the conversation.");
+      if (current.current === peerId)
+        setNotice("Could not clear the conversation.");
+    } finally {
+      historyRevision.current++;
+      clearPending.current = false;
+      setClearing(false);
     }
   }
   async function blockSelected() {
@@ -327,7 +368,8 @@ export function Messages({
                   !discovered ||
                   !draft.trim() ||
                   bytes > 4096 ||
-                  sending.includes(selected)
+                  sending.includes(selected) ||
+                  clearing
                 }
               >
                 {sending.includes(selected) ? "Sending…" : "Send"}
@@ -336,7 +378,7 @@ export function Messages({
                 id="clearMessages"
                 type="button"
                 className="secondary"
-                disabled={!history.length || sending.includes(selected)}
+                disabled={!history.length || clearing}
                 onClick={() => {
                   void clear();
                 }}

@@ -83,6 +83,61 @@ test("desktop messages show actual send acknowledgments and deduplicated incomin
   service.close();
   remote.close();
 });
+test("clearing local conversation cannot restore an accepted message on a lost-ACK retry", async () => {
+  let now = 1000;
+  const permits = policy();
+  const service = new DesktopMessaging(
+    a,
+    async () => null,
+    permits.value,
+    () => [{ id: b, transportKey: key }],
+    () => now,
+  );
+  const signal = new AbortController().signal;
+  const original: TextEnvelope = {
+    namespace: DIRECT_NAMESPACE,
+    version: 1,
+    type: "text",
+    id: "12".repeat(16),
+    from: b,
+    to: a,
+    senderEpoch: "34".repeat(16),
+    seq: 1,
+    createdAt: now,
+    text: "clear this local text",
+  };
+  const ack = await service.handle(peerB, original, signal);
+  assert.equal(service.history(b).length, 1);
+  service.clear(b);
+  assert.deepEqual(service.history(b), []);
+  assert.deepEqual(await service.handle(peerB, original, signal), ack);
+  assert.deepEqual(service.history(b), []);
+  await assert.rejects(
+    service.handle(peerB, { ...original, text: "conflicting content" }, signal),
+    /MESSAGE_ID_CONFLICT/,
+  );
+  now += 119_999;
+  await service.handle(peerB, original, signal);
+  assert.deepEqual(service.history(b), []);
+  now++;
+  await assert.rejects(
+    service.handle(peerB, original, signal),
+    /INVALID_TEXT_ENVELOPE/,
+  );
+  await service.handle(
+    peerB,
+    {
+      ...original,
+      id: "56".repeat(16),
+      seq: 2,
+      createdAt: now,
+      text: "new message after clear",
+    },
+    signal,
+  );
+  assert.equal(service.history(b)[0]?.text, "new message after clear");
+  service.close();
+});
 test("pending/unconfirmed delivery is explicit; revocation aborts pending work and hides history", async () => {
   const permits = policy();
   const service = new DesktopMessaging(

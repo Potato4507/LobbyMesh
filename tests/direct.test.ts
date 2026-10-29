@@ -76,6 +76,60 @@ test("direct contact policy defaults deny and protocol validates permission, ide
   receiver.close();
   denied.close();
 });
+test("content clear preserves replay and rate bounds without retaining plaintext or re-delivering old envelopes", async () => {
+  let now = 1000,
+    delivered = 0;
+  const receiver = new DirectMessenger(b, async () => null, {
+    authorized: () => true,
+    now: () => now,
+    onMessage: () => {
+      delivered++;
+    },
+    maxPeers: 1,
+  });
+  const signal = new AbortController().signal;
+  for (let i = 0; i < 20; i++) await receiver.handle(peer, envelope(i), signal);
+  receiver.clearHistory(a);
+  assert.deepEqual(receiver.history(a), []);
+  await receiver.handle(peer, envelope(0), signal);
+  assert.equal(delivered, 20);
+  await assert.rejects(
+    receiver.handle(peer, envelope(20), signal),
+    /MESSAGE_RATE_LIMIT/,
+  );
+  const inboxes = (
+    receiver as unknown as {
+      inboxes: Map<string, { history: unknown[]; seen: Map<string, unknown> }>;
+    }
+  ).inboxes;
+  assert.ok(
+    !JSON.stringify(
+      [...inboxes.values()].map((inbox) => ({
+        ...inbox,
+        seen: [...inbox.seen],
+      })),
+    ).includes("message 0"),
+  );
+  const other = "d".repeat(64);
+  await assert.rejects(
+    receiver.handle(
+      { ...peer, id: other },
+      { ...envelope(1), from: other },
+      signal,
+    ),
+    /PEER_QUOTA/,
+  );
+  now = 121002;
+  await receiver.handle(
+    { ...peer, id: other },
+    { ...envelope(1), from: other, createdAt: now },
+    signal,
+  );
+  assert.equal(delivered, 21);
+  assert.equal(inboxes.size, 1);
+  receiver.close();
+  assert.equal(inboxes.size, 0);
+});
 test("10,000 synthetic sends survive deterministic drop, duplicate and lost-ACK faults with bounded history", async (t) => {
   let now = 1000,
     delivered = 0,
