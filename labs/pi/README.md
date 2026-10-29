@@ -8,6 +8,8 @@ Read `docs/PI_NETWORK_LAB.md` first. Then, with authorized access:
 
 From Windows run `pnpm lab:doctor --ssh-target AUTHORIZED_ALIAS` first. This streams the read-only host-facts script over SSH using batch authentication, strict known-host checking and bounded connect/total deadlines. It prints only normalized architecture/OS/model class, memory capacity and tool/version availability. It installs nothing and does not record the SSH target or raw host strings. Missing/invalid inventory fails closed. Tool presence is not native dependency, LAN/topology or sudo authorization proof; no namespace operation runs. A blocked result requires checking existing access/known-host configuration locally; do not supply passwords in chat.
 
+Version probes explicitly disable Corepack networking, latest-version lookup, automatic package pinning, project/env-file overrides and download prompts for that invocation. An unavailable offline manager reports missing without aborting other facts. `bash labs/pi/test-host-facts.sh` verifies both success and failed-offline cases using shell functions; no real package manager, network operation or privileges. See [Corepack's documented environment controls](https://github.com/nodejs/corepack#environment-variables).
+
 ```bash
 bash labs/pi/host-facts.sh
 # If iproute2 + nftables are available AND you've approved privileged test setup:

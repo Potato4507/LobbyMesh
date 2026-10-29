@@ -2,6 +2,8 @@
 
 Development only; no public release, installer, code signature or updater produced. Current source/evidence supersedes the historical GUI/Windows blocker.
 
+2026-10-29 current clean runtime419169cfdf32338f5880196d5bd177a1ffc8b858: `dist/LobbyMesh-win32-x64-1793274643297/LobbyMesh.exe`, actual executable/default-off/protected reopen and independent656-file integrity pass,415603969 bytes. Contains microphone input gain and exact native setup-abort recovery. NotSigned. Summary evidence/windows-input-gain-package-summary.json. Later Pi probe guards are development tooling only. No installer/fresh-machine/physical audio/LAN/NAT acceptance.
+
 2026-10-29 clean source artifact db7fdf703be55e67ce4a3aa1c37a3cc619bfc0a3: `dist/LobbyMesh-win32-x64-1793273043188/LobbyMesh.exe`, actual copied executable smoke/protected reopen/defaults off and independent integrity pass, 656 files/415592909 bytes. Manifest hash and limits in evidence/windows-track-package-summary.json. NotSigned. Later Pi-doctor changes are developer tooling only. Both174703d anddb7fdf7 pass Ubuntu CI; historical native intermittency remains unresolved.
 
 | Boundary | Status | Evidence / remaining |

@@ -17,7 +17,16 @@ fi
 for cmd in ip nft tc node pnpm; do
   if command -v "$cmd" >/dev/null 2>&1; then
     if [[ "$cmd" == node || "$cmd" == pnpm ]]; then
-      printf '%s: ' "$cmd"; "$cmd" --version
+      # A Corepack shim may otherwise fetch a manager or edit package metadata.
+      # Missing offline runtime is a capability gap, never an install request.
+      if version=$(COREPACK_ENABLE_NETWORK=0 COREPACK_ENABLE_AUTO_PIN=0 \
+        COREPACK_DEFAULT_TO_LATEST=0 COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+        COREPACK_ENV_FILE=0 COREPACK_ENABLE_PROJECT_SPEC=0 \
+        "$cmd" --version 2>/dev/null); then
+        printf '%s: %s\n' "$cmd" "$version"
+      else
+        printf '%s: missing\n' "$cmd"
+      fi
     else
       printf '%s: present\n' "$cmd"
     fi
