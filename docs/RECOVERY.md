@@ -1,5 +1,19 @@
 # Active checkpoint — 2026-10-29, microphone selection
 
+Updated checkpoint: microphone feature0de3f4c0e73242e6504e8552410ac6d2f87714a3 committed/pushed. Clean unsigned artifact dist/LobbyMesh-win32-x64-1793292056268/LobbyMesh.exe passed copied executable/defaults off/protected reopen and independent656-file integrity415633637 bytes. Added optional manifest-digest pin to standalone verifier, with2 adversarial tests/full160/160/typecheck/lint170. Actual pinned verification passed SHA2568a8084121677b3ed26f713020b6f8a43a41c58cfbf25b18c909f19d66eb00052. See evidence/windows-device-selection-package-summary.json and package-manifest-pinning.md. Current tooling/docs commit descends from runtime0de3f4c; no runtime changes after packaging. All changed files in this checkpoint are owned verifier/tests/evidence updates.
+
+Current source CI40913949823/Ubuntu at0de3f4c fails157/158 on existing strict native bootstrap burst timeout vs exhausted. Both directions hello~1500ms, queues~3000ms; inbound accepted7/13, no policy/quota/disabled/closed admission. No test weakening/retry increase/deadline change or rerun request. Previous green runs remain historical, not proof of repair. Preserve failure and move to independent work rather than repeatedly running unchanged transport tests.
+
+Next3 actions superseding the historical package commands below:
+
+```powershell
+git status --short --branch; git log -5 --oneline
+pnpm verify:package D:\LobbyMesh\dist\LobbyMesh-win32-x64-1793292056268 --manifest-sha256 8a8084121677b3ed26f713020b6f8a43a41c58cfbf25b18c909f19d66eb00052
+Get-Content docs/STATUS.md -First 18; Get-Content docs/evidence/native-setup-abort.md
+```
+
+Then inspect new tooling commit CI and pick a distinct product increment. Pi remains unavailable from the authorized bounded doctor attempt; do not alter host networking/install services to bypass it. Hardware enumeration/audio, actual Roblox, global PTT, physical LAN/virtual NAT, contact identity/age/safety, license/signing/installer/fresh-machine remain unverified/blocked as previously recorded. No intentional test processes remain.
+
 `D:\LobbyMesh`, branch `codex/lobbymesh-pi-lab-and-reliability`, origin Potato4507/Roblox-app. Source parent at recordingeda1e32; the following feature commit contains the owned input-device changes and this note. Use `git log -1` for exact current tip. Previous meter760db2c and PTT-orderingeda1e32 were pushed and passed Ubuntu CI40890243020/40890790590. Remote fetched with no newer changes. No reset/main push/PR/release/dependency or OS networking change.
 
 Explicit connected-call microphone selection implemented through exact focused main IPC; labels and ephemeral tokens only, raw browser IDs stay inside sandboxed media owner. Enumerate only on explicit refresh, max128 records/32 choices/80-character labels,1000ms retained single-flight. Hardware tokens rotate on refresh and revoke on devicechange/close. Stop PTT/main lease and old raw+processed tracks before replacement; same RTP connection/gain retained and fresh PTT required. Expired choices reject without call teardown; capture/replacement failure and late result close safely. See evidence/microphone-device-switching.md and input-device-native-summary.json. Physical devices remain unverified; browser visibility/OS permission may make enumeration unavailable.

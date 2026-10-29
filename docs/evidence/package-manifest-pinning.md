@@ -1,0 +1,9 @@
+# Optional package manifest pin — 2026-10-29
+
+`pnpm verify:package DIRECTORY --manifest-sha256 DIGEST` hashes the exact manifest bytes and rejects a mismatch before parsing the inventory or reading package payloads. The optional digest accepts exactly64 hex characters; wrong/missing/extra flags fail closed. Output states the actual manifestSha256 and whether manifestPinned was supplied. The existing directory-only command remains a local manifest consistency check. Empty inventories and null/non-object entries are now explicitly rejected.
+
+The digest must come from an independently retained source, such as the versioned artifact summary. Copying a digest from the same untrusted folder adds no independent assurance. A matching checksum is not a publisher signature or proof of fresh-machine acceptance; an unsigned artifact remains unsigned.
+
+Regression tests use isolated temporary payloads, not an actual package or user profile. Original matching pin passes (including uppercase hex); payload-only edit fails the file hash. Updating the payload and manifest together passes the existing unpinned consistency check, but fails the original pinned digest. Also test malformed options, unexpected and missing files, empty inventories, null entries and traversal paths. Both tests pass; full160/160/typecheck/lint170 pass on Windows. No third-party dependencies added.
+
+The actual clean runtime0de3f4c package passed the optional pin as well as the original verification.656 files/415633637 bytes, exact manifest SHA2568a8084121677b3ed26f713020b6f8a43a41c58cfbf25b18c909f19d66eb00052. Actual copied executable smoke/default microphone+network off/protected reopen passed; Authenticode NotSigned. See windows-device-selection-package-summary.json. Later checksum-tool/documentation commits do not change the recorded runtime artifact.

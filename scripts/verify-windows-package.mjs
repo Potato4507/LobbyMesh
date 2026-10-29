@@ -3,17 +3,36 @@ import { createReadStream } from "node:fs";
 import { lstat, readdir, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 
-if (!process.argv[2]) throw new Error("PACKAGE_DIRECTORY_REQUIRED");
-const root = await realpath(path.resolve(process.argv[2]));
+const args = process.argv.slice(2);
+if (!args.length) throw new Error("PACKAGE_DIRECTORY_REQUIRED");
+if (
+  args.length !== 1 &&
+  !(
+    args.length === 3 &&
+    args[1] === "--manifest-sha256" &&
+    /^[a-f0-9]{64}$/i.test(args[2])
+  )
+)
+  throw new Error("INVALID_PACKAGE_VERIFY_OPTIONS");
+const expectedDigest = args[2]?.toLowerCase();
+const root = await realpath(path.resolve(args[0]));
 const manifestPath = path.join(root, "manifest.json");
 const manifestInfo = await lstat(manifestPath);
 if (!manifestInfo.isFile() || manifestInfo.size > 8 * 1024 * 1024)
   throw new Error("MANIFEST_TOO_LARGE");
-const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+const manifestBytes = await readFile(manifestPath);
+const manifestSha256 = createHash("sha256").update(manifestBytes).digest("hex");
+if (expectedDigest && expectedDigest !== manifestSha256)
+  throw new Error("MANIFEST_DIGEST_MISMATCH");
+const manifest = JSON.parse(manifestBytes.toString("utf8"));
 if (
+  !manifest ||
+  typeof manifest !== "object" ||
+  Array.isArray(manifest) ||
   manifest.version !== 1 ||
   manifest.platform !== "win32-x64" ||
   !Array.isArray(manifest.files) ||
+  manifest.files.length === 0 ||
   manifest.files.length > 20_000
 )
   throw new Error("INVALID_MANIFEST");
@@ -21,6 +40,9 @@ const expected = new Map();
 let bytes = 0;
 for (const entry of manifest.files) {
   if (
+    !entry ||
+    typeof entry !== "object" ||
+    Array.isArray(entry) ||
     typeof entry.path !== "string" ||
     entry.path.length > 1024 ||
     path.isAbsolute(entry.path) ||
@@ -72,6 +94,8 @@ console.log(
     result: "package-integrity-passed",
     files: manifest.files.length,
     bytes,
+    manifestSha256,
+    manifestPinned: expectedDigest !== undefined,
     source: manifest.git,
     packagedSmoke: manifest.smoke,
   }),
