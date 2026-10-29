@@ -13,6 +13,7 @@ export type RpcPhase =
   | "proof"
   | "request"
   | "response"
+  | "closing"
   | "complete";
 type PhaseObserver = (phase: RpcPhase) => void;
 function observe(observer: PhaseObserver | undefined, phase: RpcPhase): void {
@@ -337,14 +338,17 @@ export function serveRpc(
   identity: Identity,
   handler: RpcHandler,
   timeoutMs = 5000,
+  onPhase?: PhaseObserver,
 ): Promise<void> {
   return transaction(stream, timeoutMs, undefined, async (channel, signal) => {
-    const peer = await authenticate(channel, stream, identity);
+    const peer = await authenticate(channel, stream, identity, onPhase);
+    observe(onPhase, "request");
     const request = (await channel.read()) as {
       type?: unknown;
       body?: unknown;
     } | null;
     if (request?.type !== "request") throw new Error("INVALID_RPC_REQUEST");
+    observe(onPhase, "response");
     try {
       const result = await handler(peer, request.body, signal);
       if (signal.aborted) return;
@@ -352,8 +356,10 @@ export function serveRpc(
     } catch {
       if (!signal.aborted) await channel.write({ type: "error" });
     }
+    observe(onPhase, "closing");
     // Let the client acknowledge receipt by closing; bounded by the transaction deadline.
     stream.end();
     await new Promise<void>((resolve) => stream.once("close", resolve));
+    observe(onPhase, "complete");
   });
 }

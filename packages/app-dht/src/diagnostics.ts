@@ -12,6 +12,7 @@ export type RpcOutcome =
   | "aborted"
   | "closed"
   | "remote-rejected"
+  | "handler-rejected"
   | "identity"
   | "protocol"
   | "blocked"

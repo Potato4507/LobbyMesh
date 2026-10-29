@@ -61,7 +61,8 @@ test("RPC diagnostics keep bounded redacted copies and retain failures after suc
 test("RPC phase observations distinguish pre-authentication from response stalls and cannot change wire behavior", async () => {
   const a = createIdentity(),
     b = createIdentity(),
-    phases: RpcPhase[] = [];
+    phases: RpcPhase[] = [],
+    serverPhases: RpcPhase[] = [];
   const [client, server] = pair();
   await Promise.all([
     requestRpc(
@@ -75,13 +76,30 @@ test("RPC phase observations distinguish pre-authentication from response stalls
         },
       },
     ),
-    serveRpc(server, b, async () => "result"),
+    serveRpc(
+      server,
+      b,
+      async () => "result",
+      5000,
+      (phase) => {
+        serverPhases.push(phase);
+        throw new Error("observer failed");
+      },
+    ),
   ]);
   assert.deepEqual(phases, [
     "hello",
     "proof",
     "request",
     "response",
+    "complete",
+  ]);
+  assert.deepEqual(serverPhases, [
+    "hello",
+    "proof",
+    "request",
+    "response",
+    "closing",
     "complete",
   ]);
   const [stalled, unused] = pair();

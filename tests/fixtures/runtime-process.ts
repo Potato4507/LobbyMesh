@@ -123,6 +123,8 @@ process.on(
           return true;
         case "diagnostics":
           return runtime.overlay.diagnostics();
+        case "inbound-diagnostics":
+          return runtime.inboundDiagnostics();
         case "direct-allow":
           authorized.add(message.peerId ?? "");
           return true;

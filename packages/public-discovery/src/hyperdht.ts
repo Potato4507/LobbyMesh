@@ -131,6 +131,21 @@ export class HyperDHTBackend implements DiscoveryBackend {
   private readonly streams = new Set<NoiseStream>();
   private closed = false;
   private closing: Promise<void> | undefined;
+  private readonly inboundAdmission = {
+    accepted: 0,
+    disabled: 0,
+    closed: 0,
+    quota: 0,
+  };
+  inboundDiagnostics() {
+    return { ...this.inboundAdmission };
+  }
+  private admitted(reason: keyof typeof this.inboundAdmission): void {
+    this.inboundAdmission[reason] = Math.min(
+      Number.MAX_SAFE_INTEGER,
+      this.inboundAdmission[reason] + 1,
+    );
+  }
   constructor(
     private readonly keys: KeyPair,
     private readonly options: {
@@ -184,14 +199,19 @@ export class HyperDHTBackend implements DiscoveryBackend {
     if (this.server) return;
     this.server = this.node.createServer((stream) => {
       stream.on("error", () => {});
-      if (
-        !this.options.inbound ||
-        this.closed ||
-        this.streams.size >= (this.options.maxConnections ?? 32)
-      ) {
+      const denied = this.closed
+        ? "closed"
+        : !this.options.inbound
+          ? "disabled"
+          : this.streams.size >= (this.options.maxConnections ?? 32)
+            ? "quota"
+            : null;
+      if (denied) {
+        this.admitted(denied);
         stream.destroy();
         return;
       }
+      this.admitted("accepted");
       this.track(stream);
       void Promise.resolve()
         .then(() => this.options.inbound?.(stream))

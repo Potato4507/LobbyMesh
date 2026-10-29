@@ -9,9 +9,15 @@ import {
   loadTransportKeys,
 } from "../../public-discovery/src/hyperdht.js";
 import { PublicDiscovery } from "../../public-discovery/src/index.js";
+import {
+  RpcDiagnostics,
+  type RpcOperation,
+  rpcOperation,
+  rpcOutcome,
+} from "./diagnostics.js";
 import { type MaintenanceReport, OverlayMaintenance } from "./maintenance.js";
 import { NetworkOverlay } from "./network.js";
-import { type RpcHandler, serveRpc } from "./rpc.js";
+import { type RpcHandler, type RpcPhase, serveRpc } from "./rpc.js";
 
 export async function createOverlayRuntime(
   directory: string,
@@ -42,22 +48,64 @@ export async function createOverlayRuntime(
     (await loadTransportKeys(path.join(directory, "transport")));
   options.signal?.throwIfAborted();
   let overlay: NetworkOverlay;
+  const inboundMetrics = new RpcDiagnostics();
+  let activeInbound = 0;
   const backend = new HyperDHTBackend(keys, {
     ...(options.bootstrap ? { bootstrap: options.bootstrap } : {}),
     ...(options.port === undefined ? {} : { port: options.port }),
-    inbound: (stream) =>
-      serveRpc(stream, identity, async (peer, request, signal) => {
-        if (
-          request &&
-          typeof request === "object" &&
-          "namespace" in request &&
-          request.namespace === "companion/direct/v1"
-        ) {
-          if (!options.directHandler) throw new Error("DIRECT_DISABLED");
-          return options.directHandler(peer, request, signal);
-        }
-        return overlay.handle(peer, request, signal);
-      }),
+    inbound: async (stream) => {
+      const started = performance.now();
+      let phase: RpcPhase = "transport";
+      let operation: RpcOperation = "unknown";
+      let handlerRejected = false;
+      activeInbound++;
+      try {
+        await serveRpc(
+          stream,
+          identity,
+          async (peer, request, signal) => {
+            operation = rpcOperation(request);
+            try {
+              if (
+                request &&
+                typeof request === "object" &&
+                "namespace" in request &&
+                request.namespace === "companion/direct/v1"
+              ) {
+                if (!options.directHandler) throw new Error("DIRECT_DISABLED");
+                return await options.directHandler(peer, request, signal);
+              }
+              return await overlay.handle(peer, request, signal);
+            } catch (error) {
+              handlerRejected = true;
+              throw error;
+            }
+          },
+          5000,
+          (value) => {
+            phase = value;
+          },
+        );
+        inboundMetrics.record({
+          operation,
+          phase,
+          outcome: handlerRejected ? "handler-rejected" : "success",
+          queueMs: 0,
+          transactionMs: performance.now() - started,
+        });
+      } catch (error) {
+        inboundMetrics.record({
+          operation,
+          phase,
+          outcome: rpcOutcome(error),
+          queueMs: 0,
+          transactionMs: performance.now() - started,
+        });
+        throw error;
+      } finally {
+        activeInbound--;
+      }
+    },
   });
   const discovery = new PublicDiscovery(backend);
   overlay = new NetworkOverlay(identity, backend, {
@@ -116,6 +164,12 @@ export async function createOverlayRuntime(
       return starting;
     },
     status: () => maintenance.status(),
+    // Developer/local API only. No endpoint, peer identity or payload is retained.
+    inboundDiagnostics: () => ({
+      active: activeInbound,
+      admission: backend.inboundDiagnostics(),
+      ...inboundMetrics.snapshot(0),
+    }),
     stop,
   };
 }

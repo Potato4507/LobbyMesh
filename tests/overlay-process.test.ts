@@ -3,10 +3,15 @@ import { type ChildProcess, spawn } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import type { NetworkOverlay } from "../packages/app-dht/src/network.js";
+import type { createOverlayRuntime } from "../packages/app-dht/src/runtime.js";
 import { createIdentity } from "../packages/identity/src/index.js";
 import type { ContactPreview } from "../packages/protocol/src/pairing.js";
 import { createContactCode } from "../packages/protocol/src/pairing.js";
 import type { RecordV1 } from "../packages/security/src/records.js";
+
+type InboundDiagnostics = ReturnType<
+  Awaited<ReturnType<typeof createOverlayRuntime>>["inboundDiagnostics"]
+>;
 
 function child(argument: string, fixture = "overlay-process.ts") {
   const processChild: ChildProcess = spawn(
@@ -199,6 +204,29 @@ test(
     const diagnosticB = (await b.command("diagnostics")) as ReturnType<
       NetworkOverlay["diagnostics"]
     >;
+    const inboundA = (await a.command(
+      "inbound-diagnostics",
+    )) as InboundDiagnostics;
+    const inboundB = (await b.command(
+      "inbound-diagnostics",
+    )) as InboundDiagnostics;
+    for (const snapshot of [inboundA, inboundB]) {
+      assert.ok(snapshot.active >= 0 && snapshot.active <= 32);
+      assert.ok(snapshot.total > 0);
+      assert.ok(snapshot.recent.length <= 32);
+      assert.ok(snapshot.recentFailures.length <= 16);
+      assert.ok((snapshot.outcomes.success ?? 0) > 0);
+      assert.equal(snapshot.admission.quota, 0);
+      assert.equal(snapshot.admission.disabled, 0);
+      assert.equal(snapshot.admission.closed, 0);
+      assert.equal(
+        snapshot.admission.accepted,
+        snapshot.total + snapshot.active,
+      );
+      const encoded = JSON.stringify(snapshot);
+      for (const privateValue of [infoA.id, infoB.id, infoA.key, infoB.key])
+        assert.equal(encoded.includes(privateValue), false);
+    }
     for (const result of burst.slice(0, 8))
       assert.deepEqual(
         result,
@@ -230,6 +258,20 @@ test(
         failedAttempts: {
           a: diagnosticA.recentFailures,
           b: diagnosticB.recentFailures,
+        },
+        inbound: {
+          a: {
+            active: inboundA.active,
+            admission: inboundA.admission,
+            outcomes: inboundA.outcomes,
+            failedAttempts: inboundA.recentFailures,
+          },
+          b: {
+            active: inboundB.active,
+            admission: inboundB.admission,
+            outcomes: inboundB.outcomes,
+            failedAttempts: inboundB.recentFailures,
+          },
         },
       }),
     );
@@ -375,6 +417,14 @@ test(
       ((await b.command("direct-history", { peerId: infoA.id })) as unknown[])
         .length,
       1,
+    );
+    const deniedInbound = (await b.command(
+      "inbound-diagnostics",
+    )) as InboundDiagnostics;
+    assert.ok((deniedInbound.outcomes["handler-rejected"] ?? 0) > 0);
+    assert.equal(
+      JSON.stringify(deniedInbound).includes("must remain undelivered"),
+      false,
     );
     for (const peer of [b, a])
       assert.equal(await peer.command("stop"), "stopped");
