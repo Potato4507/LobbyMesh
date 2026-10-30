@@ -1,5 +1,8 @@
 # Raspberry Pi + one-house LobbyMesh verification lab
 
+2026-10-30 fresh Pi setup is SSH reachable; read-only Pi5/ARM64/Debian13/8058MiB inventory retained in evidence/pi-readonly-inventory-summary.json. Node/pnpm/nft/tc absent. User-local Node setup approval is pending; no remote installation or physical protocol test yet. `pnpm lab:package` prepares a standalone peer and exact production dependency tree locally, with Linux ARM64 native files inventoried and a verified local bootstrap smoke. The current SSH pair source-layout path still requires a checkout/tsx; portable-layout launch is the next increment. See evidence/portable-headless-package.md.
+
+
 Headless recovery extension (2026-10-30): `pnpm lab:pair --bootstrap LAB_INTERFACE_IPV4:49737 --scenario restart` exercises production network-instance replacement, identity/permission retention, voice default-off, fresh text ACKs and revocation with existing optional authorized SSH worker fields. Local SAME_HOST proof only; no Pi/namespace execution or privilege claim. See evidence/headless-network-restart.md.
 
 ## Design goal

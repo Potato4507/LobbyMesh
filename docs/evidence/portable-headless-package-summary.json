@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-30",
+  "artifact": {
+    "directory": "D:\\LobbyMesh\\dist\\LobbyMesh-headless-1793396113804",
+    "archive": "D:\\LobbyMesh\\dist\\LobbyMesh-headless-1793396113804.tar.gz",
+    "archiveSha256": "74a0be194458f037046bc5e2b65dea1384208d6ba3582117c06c36e89c6912e4",
+    "source": {
+      "revision": "8deb4794bbe62b3be330c6fc86141a5d4d776913",
+      "dirty": true
+    }
+  },
+  "source": {
+    "revision": "8deb4794bbe62b3be330c6fc86141a5d4d776913",
+    "dirty": true
+  },
+  "files": 568,
+  "archiveBytes": 13103323,
+  "dependencyCopies": 56,
+  "linuxArm64Prebuilds": [
+    {
+      "name": "udx-native",
+      "path": "node_modules/udx-native/prebuilds/linux-arm64/udx-native.node",
+      "sha256": "0f639f447375b6c019b367de01554952a7fd2064fb46db758266b1880a9ac5d9"
+    },
+    {
+      "name": "sodium-native",
+      "path": "node_modules/sodium-native/prebuilds/linux-arm64/sodium-native.node",
+      "sha256": "90429dad3bb575f5817e4d598d7c1a71eac60208c280adea210d9749da2c743f"
+    }
+  ],
+  "smoke": {
+    "platform": "win32",
+    "architecture": "x64",
+    "bootstrapReady": true,
+    "cleanupConfirmed": true,
+    "linuxArm64Executed": false,
+    "audioCapture": false
+  },
+  "windowsCopierRegression": {
+    "files": 656,
+    "changedFiles": 0,
+    "missingFiles": 0,
+    "comparedWithCleanSource": "30cad2d23f80b4477b85e2df5ab9f163b7bcf7e7"
+  },
+  "remoteInstallation": false,
+  "physicalLANProtocol": false,
+  "releaseReady": false
+}
