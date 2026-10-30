@@ -1,5 +1,8 @@
 # Release readiness
 
+`pnpm verify:windows` (Windows + PowerShell7) runs local checks from a clean committed checkout, pins HEAD, serializes owned runs and retains dist/windows-verification-ID/summary.json plus stage logs. It includes the full independent voice smoke and stops on a failing stage; no retries/deadline relaxations or release publication. It verifies clean package provenance and a pinned manifest only after prior stages pass, then rechecks source. Dirty work and preexisting locks are preserved and rejected. A stale lock requires explicit process/ownership inspection before manual cleanup. This runner has preflight tests; its first complete run is pending at this source checkpoint. It changes no execution policy and adds no hosted CI job.
+
+
 Native screenshots: `pnpm test:desktop` retains per-run images in a new `dist/desktop-evidence-*` directory and prints its path. Use `--update-evidence` explicitly to update canonical screenshots; focused modes remain available. Normal verification preserves tracked evidence. Latest clean package is runtime7bcc86fb1e467fb889163484d7cdfe81a3cc8d9d at dist/LobbyMesh-win32-x64-1793376289516, pinned digest e46e51742c2b828d5a56a5d369dd7e03df670693ff1f2b64b959f58fdcd15a24, NotSigned; see evidence/windows-voice-observation-package-summary.json. It predates overlay draft recovery.
 
 

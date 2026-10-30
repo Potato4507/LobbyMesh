@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-30",
+  "result": "SSH_READONLY_VERIFIED",
+  "freshSetup": true,
+  "model": "Raspberry Pi 5 Model B Rev 1.0",
+  "architecture": "aarch64",
+  "os": "Debian GNU/Linux 13 (trixie)",
+  "kernel": "Linux 6.18.50+rpt-rpi-2712",
+  "memoryMiB": 8058,
+  "tools": {
+    "ip": true,
+    "nft": false,
+    "tc": false,
+    "node": false,
+    "pnpm": false
+  },
+  "networkNamespacesSupported": true,
+  "remoteWrites": false,
+  "credentialsOrTargetsRecorded": false,
+  "nativeDependenciesVerified": false,
+  "physicalLANProtocolVerified": false,
+  "privilegedNamespaceAuthorized": false,
+  "userLocalRuntimeApproval": "pending"
+}

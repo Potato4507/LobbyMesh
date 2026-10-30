@@ -1,5 +1,13 @@
 # Active checkpoint — 2026-10-30
 
+2026-10-30 local verify:windows runner added: clean-source/repository preflight, owned exclusive lock, fixed sequential type/lint/Node/build/desktop/send-recovery/voice/independent-voice/package/pinned-integrity stages, source recheck and retained per-stage logs/summary. Preflight preservation test1/1 plus typecheck/lint207 pass; full clean-source run pending until this checkpoint commits. Latest Pi reimaged setup is reachable with updated credentials from authorized recent chat; read-only inventory Pi5/ARM64/Debian13/8058MiB, Node/pnpm/nft/tc absent. Runtime setup approval requested; no remote writes. See evidence/pi-readonly-inventory-summary.json. Goal ACTIVE. Next run source-clean verify:windows once and retain any real native failure; while approval is pending, prepare only local Pi bundle/transfer capability.
+
+Branch codex/lobbymesh-pi-lab-and-reliability, parent803e8b9. Next: inspect git and commit owned runner/evidence; run verify:windows from clean source; inspect stage summary and continue Pi setup only after approval arrives. Prepared local peer bundle in ignored dist/pi-lab-staging-1793395192161 starts/stops successfully; no Pi deployment yet. Updated connection/credential belongs to private prior-chat/local protected setup, never repository. Historical unavailable-target records are obsolete for the fresh hostname.
+
+---
+
+# Active checkpoint — 2026-10-30
+
 2026-10-30 native desktop screenshot output defaults to exclusive dist/desktop-evidence-PID-time, retained on failure, with explicit --update-evidence for canonical screenshots. Fixed image names/absolute destinations validated; unknown/duplicate/conflicting options reject before artifacts/Electron. Focused3/3/full221/221/typecheck/lint206 and five native Windows processes pass; actual full run writes13 PNGs and no tracked image changes. See evidence/native-evidence-isolation.md. Goal ACTIVE. Next implement local verify:windows source-pinned staged checks/summary, preserving dirty work and recording failures rather than enabling extra paid-hosted jobs.
 
 Branch codex/lobbymesh-pi-lab-and-reliability; parenta61c2dddab47dfbac6e12f3ebbfadb38150d3f52. Next: inspect git; implement local Windows verification preflight/stage runner; test dirty-source rejection, commit and run source-clean pipeline once. Preserve any failed native evidence; no deadline/assertion changes. Historical checkpoints retained.

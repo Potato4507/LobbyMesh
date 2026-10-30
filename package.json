@@ -30,7 +30,8 @@
     "lab:doctor": "tsx scripts/lab-doctor.ts",
     "smoke:public-pair": "node scripts/public-pair-smoke.mjs",
     "simulate:overlay": "tsx scripts/simulate-overlay.ts",
-    "test:contact-recovery": "node scripts/independent-voice-smoke.mjs --contact-recovery"
+    "test:contact-recovery": "node scripts/independent-voice-smoke.mjs --contact-recovery",
+    "verify:windows": "pwsh -NoProfile -File scripts/verify-windows.ps1"
   },
   "dependencies": {
     "hyperdht": "6.35.0",
