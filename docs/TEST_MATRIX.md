@@ -8,6 +8,8 @@ Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reop
 
 # Test matrix
 
+2026-10-29 confirmed binding retention: before regression discovered:false after120001ms with routing view omitted; repaired independent confirmed map. Focused messaging/pairing18/18, messaging/expiry/native16/16, full177/177/typecheck/lint180/build; native authenticated media and full desktop suite pass. Real two-process signed pairing/Noise text with simulated clock/view confirms ACK; not physical wait or cross-host. See evidence/approved-binding-retention.md.
+
 2026-10-29 session visibility: parser/presentation12/12/full175/175/typecheck/lint179/build and native desktop main/conversation/session-status/protected reopen pass. Fixed status/details, no-player vs pending-log, empty/incomplete/detected/stale/ambiguous/unavailable/recovery/disabled, no network/microphone grant, no raw session IDs in status. Final focused process after wording/spacing passes; reviewed synthetic screenshot. Live read-only aggregate1 player/1 eligible log/0 expected markers/no session is a negative source observation, not actual-game acceptance. See evidence/session-source-visibility.md.
 
 2026-10-29 scanner opt-out: first held open reproduced2 vs1 opens after withdrawal; fix yields one, closes handle, supports new-generation re-enable. Directory-open race closes without enumeration. Focused11/11/full174/174/typecheck/lint177/build and native desktop main/conversation/protected reopen pass. Existing bounded parsing/trust tests retained; see evidence/session-scan-optout.md.

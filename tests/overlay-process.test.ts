@@ -494,6 +494,37 @@ test(
       JSON.stringify(deniedInbound).includes("must remain undelivered"),
       false,
     );
+    const retained = (await a.command("expire-message-hints")) as {
+      peerId: string;
+      discovered: boolean;
+    }[];
+    await b.command("expire-message-hints");
+    assert.equal(
+      retained.find((contact) => contact.peerId === infoB.id)?.discovered,
+      true,
+    );
+    const recovered = (await a.command("direct-send", {
+      peerId: infoB.id,
+      text: "paired binding after transient expiry",
+    })) as { status: string };
+    assert.equal(recovered.status, "acknowledged");
+    const afterExpiry = (await b.command("direct-history", {
+      peerId: infoA.id,
+    })) as { text: string }[];
+    assert.equal(
+      afterExpiry.at(-1)?.text,
+      "paired binding after transient expiry",
+    );
+    t.diagnostic(
+      JSON.stringify({
+        nativePairedBindingRetention: {
+          routingViewOmitted: true,
+          clockAdvancedMs: 120001,
+          acknowledged: true,
+          physicalWait: false,
+        },
+      }),
+    );
     for (const peer of [b, a])
       assert.equal(await peer.command("stop"), "stopped");
     await bootstrap.command("stop").catch(() => {});

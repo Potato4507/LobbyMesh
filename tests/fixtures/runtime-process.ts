@@ -13,6 +13,8 @@ import { VoiceSignaling } from "../../packages/voice/src/signaling.js";
 const directory = await mkdtemp(path.join(tmpdir(), "lobbymesh-runtime-"));
 let messenger: DesktopMessaging;
 let voice: VoiceSignaling;
+let omitMessageRouting = false,
+  messageClockOffset = 0;
 const authorized = new Set<string>();
 const runtime = await createOverlayRuntime(directory, {
   ...(process.argv[2] === "public"
@@ -42,10 +44,13 @@ messenger = new DesktopMessaging(
     allowed: () => [...authorized],
   },
   () =>
-    runtime.overlay.authenticatedContacts().map((peer) => ({
-      id: peer.id,
-      transportKey: Buffer.from(peer.publicKey).toString("hex"),
-    })),
+    (omitMessageRouting ? [] : runtime.overlay.authenticatedContacts()).map(
+      (peer) => ({
+        id: peer.id,
+        transportKey: Buffer.from(peer.publicKey).toString("hex"),
+      }),
+    ),
+  () => Date.now() + messageClockOffset,
 );
 await runtime.start();
 const provider = new MockSessionProvider();
@@ -123,6 +128,10 @@ process.on(
           return true;
         case "diagnostics":
           return runtime.overlay.diagnostics();
+        case "expire-message-hints":
+          omitMessageRouting = true;
+          messageClockOffset += 120001;
+          return messenger.contacts();
         case "inbound-diagnostics":
           return runtime.inboundDiagnostics();
         case "direct-allow":

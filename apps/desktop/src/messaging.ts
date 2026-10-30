@@ -42,6 +42,9 @@ export class DesktopMessaging {
     string,
     { contact: DirectContact; expiresAt: number }
   >();
+  // Confirmed by local signed pairing + authenticated handshake, not incidental
+  // inbound traffic. Memory-only; lifetime ends with permission or this network.
+  private readonly approvedBindings = new Map<string, DirectContact>();
   private readonly pending = new Map<
     string,
     { peerId: string; controller: AbortController }
@@ -101,6 +104,9 @@ export class DesktopMessaging {
       )
         this.incomingContacts.delete(id);
       else next = Math.min(next, value.expiresAt);
+    for (const id of this.approvedBindings.keys())
+      if (!this.policy.authorized(id) || this.policy.blocked(id))
+        this.approvedBindings.delete(id);
     this.expiry.schedule(next, now);
   }
   private reserve(peerId: string): MessageView[] {
@@ -175,6 +181,7 @@ export class DesktopMessaging {
       this.authenticatedContacts().map((contact) => contact.id),
     );
     for (const id of this.incomingContacts.keys()) known.add(id);
+    for (const id of this.approvedBindings.keys()) known.add(id);
     return this.policy
       .allowed()
       .filter((id) => this.policy.authorized(id) && !this.policy.blocked(id))
@@ -183,21 +190,21 @@ export class DesktopMessaging {
   }
   rememberContact(contact: { id: string; transportKey: string }): void {
     this.permit(parsePeerId(contact.id));
-    if (!/^[a-f0-9]{64}$/.test(contact.transportKey))
+    if (
+      typeof contact.transportKey !== "string" ||
+      !/^[a-f0-9]{64}$/.test(contact.transportKey)
+    )
       throw new Error("INVALID_CONTACT");
     this.prune();
     if (
-      !this.incomingContacts.has(contact.id) &&
-      this.incomingContacts.size >= 256
+      !this.approvedBindings.has(contact.id) &&
+      this.approvedBindings.size >= 256
     )
       throw new Error("CONTACT_QUOTA");
-    const now = this.now(),
-      expiresAt = now + 120_000;
-    this.incomingContacts.set(contact.id, {
-      contact: { ...contact },
-      expiresAt,
+    this.approvedBindings.set(contact.id, {
+      id: contact.id,
+      transportKey: contact.transportKey,
     });
-    this.expiry.include(expiresAt, now);
   }
   history(peerId: string): MessageView[] {
     this.permit(peerId);
@@ -269,7 +276,9 @@ export class DesktopMessaging {
     const contact =
       this.authenticatedContacts().find(
         (candidate) => candidate.id === peerId,
-      ) ?? this.incomingContacts.get(peerId)?.contact;
+      ) ??
+      this.incomingContacts.get(peerId)?.contact ??
+      this.approvedBindings.get(peerId);
     if (!contact) throw new Error("CONTACT_NOT_DISCOVERED");
     return { ...contact };
   }
@@ -278,6 +287,7 @@ export class DesktopMessaging {
     for (const value of this.pending.values())
       if (value.peerId === peerId) value.controller.abort("permission-changed");
     this.incomingContacts.delete(peerId);
+    this.approvedBindings.delete(peerId);
     this.negotiated.delete(peerId);
     if (this.policy.blocked(peerId)) {
       this.conversations.delete(peerId);
@@ -315,6 +325,7 @@ export class DesktopMessaging {
     this.messenger.close();
     this.conversations.clear();
     this.incomingContacts.clear();
+    this.approvedBindings.clear();
     this.negotiated.clear();
   }
 }

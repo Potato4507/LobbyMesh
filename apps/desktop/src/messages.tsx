@@ -317,7 +317,9 @@ export function Messages({
             {contacts.map((contact) => (
               <option key={contact.peerId} value={contact.peerId}>
                 App contact {contact.peerId.slice(0, 12)} ·{" "}
-                {contact.discovered ? "Discovered" : "Not discovered"}
+                {contact.discovered
+                  ? "Connection details known"
+                  : "Waiting for discovery"}
               </option>
             ))}
           </select>
@@ -460,8 +462,8 @@ export function Messages({
             </div>
             {!discovered && (
               <p className="hint">
-                This saved contact has not been discovered. Your draft will stay
-                here while you wait.
+                This contact's connection details are not known yet. Your draft
+                will stay here while discovery continues.
               </p>
             )}
           </form>

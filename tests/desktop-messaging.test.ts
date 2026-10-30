@@ -27,6 +27,106 @@ function policy(ids = [b]) {
   };
   return { allowed, blocked, value };
 }
+test("confirmed pairings remain usable when transient hints expire outside the routing view", async () => {
+  let now = 1000;
+  const permits = policy();
+  const remote = new DirectMessenger(b, async () => null, {
+    authorized: () => true,
+    now: () => now,
+  });
+  const service = new DesktopMessaging(
+    a,
+    (_contact, request, signal) => remote.handle(peerA, request, signal),
+    permits.value,
+    () => [],
+    () => now,
+  );
+  try {
+    const confirmed = {
+      id: b,
+      transportKey: key,
+      extra: "private details must not be retained",
+    };
+    service.rememberContact(confirmed);
+    confirmed.transportKey = "e".repeat(64);
+    now += 120001;
+    assert.deepEqual(service.contacts(), [{ peerId: b, discovered: true }]);
+    assert.deepEqual(service.resolveContact(b), { id: b, transportKey: key });
+    assert.equal(
+      (await service.send(b, "confirmed contact after hint expiry")).status,
+      "acknowledged",
+    );
+    permits.allowed.delete(b);
+    service.policyChanged(b);
+    permits.allowed.add(b);
+    assert.deepEqual(service.contacts(), [{ peerId: b, discovered: false }]);
+    assert.throws(() => service.resolveContact(b), /CONTACT_NOT_DISCOVERED/);
+  } finally {
+    service.close();
+    remote.close();
+  }
+});
+test("confirmed bindings are bounded, revocable and network-lifetime only; incidental hints still expire", async () => {
+  let now = 1000;
+  const ids = Array.from({ length: 257 }, (_, n) =>
+    (n + 1).toString(16).padStart(64, "0"),
+  );
+  const permits = policy(ids);
+  const service = new DesktopMessaging(
+    a,
+    async () => null,
+    permits.value,
+    () => [],
+    () => now,
+  );
+  try {
+    for (const id of ids.slice(0, 256))
+      service.rememberContact({ id, transportKey: key });
+    const extra = ids[256];
+    assert.ok(extra);
+    assert.throws(
+      () => service.rememberContact({ id: extra, transportKey: key }),
+      /CONTACT_QUOTA/,
+    );
+    const first = ids[0];
+    assert.ok(first);
+    service.rememberContact({ id: first, transportKey: "e".repeat(64) });
+    assert.equal(service.resolveContact(first).transportKey, "e".repeat(64));
+    permits.blocked.add(first);
+    service.policyChanged(first);
+    permits.blocked.delete(first);
+    assert.throws(
+      () => service.resolveContact(first),
+      /CONTACT_NOT_DISCOVERED/,
+    );
+    service.rememberContact({ id: extra, transportKey: key });
+    assert.equal(service.resolveContact(extra).transportKey, key);
+    service.close();
+    assert.deepEqual(service.contacts(), []);
+  } finally {
+    service.close();
+  }
+  const incidental = new DesktopMessaging(
+    a,
+    async () => null,
+    policy().value,
+    () => [],
+    () => now,
+  );
+  try {
+    await incidental.handle(
+      peerB,
+      { namespace: DIRECT_NAMESPACE, version: 1, type: "ping" },
+      new AbortController().signal,
+    );
+    assert.equal(incidental.contacts()[0]?.discovered, true);
+    now += 120001;
+    assert.equal(incidental.contacts()[0]?.discovered, false);
+    assert.throws(() => incidental.resolveContact(b), /CONTACT_NOT_DISCOVERED/);
+  } finally {
+    incidental.close();
+  }
+});
 test("desktop messages show actual send acknowledgments and deduplicated incoming text only for authorized contacts", async () => {
   let now = 1000;
   const permits = policy();
