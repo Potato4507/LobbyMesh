@@ -139,6 +139,7 @@ async function run() {
     policy = value;
     const remote = new DirectMessenger(allowed, async () => null, {
       authorized: (id) => id === self,
+      now: () => Date.now() + messageClockAdvance,
     });
     const service = new DesktopMessaging(
       self,
@@ -957,7 +958,7 @@ async function run() {
       messageClockAdvance = 120001;
       await draft("retained during contact discovery");
       await until(
-        "document.querySelector('#contactSelect')?.selectedOptions[0]?.textContent.includes('Waiting for discovery') && document.querySelector('#sendMessage').disabled",
+        "document.querySelector('#contactSelect')?.selectedOptions[0]?.textContent.includes('Waiting for discovery') && !document.querySelector('#sendMessage').disabled",
       );
       assert.equal(
         await execute(
@@ -972,7 +973,7 @@ async function run() {
       );
       assert.equal(
         await execute("document.querySelector('#sendMessage').disabled"),
-        true,
+        false,
       );
       searchOutcome = "not-located";
       messageClockAdvance += 5000;
@@ -982,8 +983,43 @@ async function run() {
       );
       assert.equal(
         await execute("document.querySelector('#sendMessage').disabled"),
-        true,
+        false,
       );
+      messageClockAdvance += 5000;
+      holdContactSearch = true;
+      const beforeLookupSend = messaging.history(allowed).length;
+      await execute(
+        "document.querySelector('#messagesPanel form').requestSubmit()",
+      );
+      await until("document.querySelector('[data-cancel-send]') !== null");
+      assert.equal(searchSignal?.aborted, false);
+      await execute("document.querySelector('[data-cancel-send]').click()");
+      await until(
+        "document.querySelector('#messageNotice')?.textContent.includes('The peer may already have received') && document.querySelector('#sendMessage')?.textContent === 'Send'",
+      );
+      assert.equal(searchSignal?.aborted, true);
+      assert.equal(messaging.history(allowed).length, beforeLookupSend + 1);
+      assert.equal(
+        messaging.history(allowed).at(-1)?.failure?.reason,
+        "canceled",
+      );
+      assert.equal(messaging.contacts()[0]?.discovered, false);
+      assert.equal(
+        await execute("document.querySelector('#messageDraft').value"),
+        "retained during contact discovery",
+      );
+      holdContactSearch = false;
+      searchOutcome = "found";
+      messageClockAdvance += 5000;
+      await execute(
+        "document.querySelector('#messagesPanel form').requestSubmit()",
+      );
+      await until(
+        "document.querySelector('#messageDraft')?.value === '' && document.querySelector('#sendMessage')?.textContent === 'Send'",
+      );
+      assert.equal(messaging.history(allowed).at(-1)?.status, "acknowledged");
+      assert.equal(messaging.contacts()[0]?.discovered, true);
+      await draft("retained during contact discovery");
       searchOutcome = "found";
       messageClockAdvance += 5000;
       await execute("document.querySelector('#findContact').click()");
@@ -1026,6 +1062,7 @@ async function run() {
             "reading-position-retained-explicit-jump-and-focused-scroll-region",
           contactSearch:
             "incomplete-not-located-found-draft-retained-and-block-canceled",
+          automaticSendLookup: "stop-cancels-owned-search-then-found-ACK",
           microphone: false,
         }),
       );

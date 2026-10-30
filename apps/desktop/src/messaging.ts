@@ -234,7 +234,17 @@ export class DesktopMessaging {
     if (!validText(text)) throw new Error("INVALID_TEXT");
     if (this.pending.size >= 16) throw new Error("SEND_QUEUE_QUOTA");
     this.prune();
-    const contact = this.resolveContact(peerId);
+    let contact: DirectContact | undefined;
+    try {
+      contact = this.resolveContact(peerId);
+    } catch (error) {
+      if (
+        !this.lookupContact ||
+        !(error instanceof Error) ||
+        error.message !== "CONTACT_NOT_DISCOVERED"
+      )
+        throw error;
+    }
     const localId = randomBytes(16).toString("hex"),
       controller = new AbortController();
     const message: MessageView = {
@@ -251,6 +261,16 @@ export class DesktopMessaging {
     this.pending.set(localId, { peerId, controller });
     let stage: DeliveryFailure["stage"] = "connection";
     try {
+      if (!contact) {
+        // Lookup belongs to this explicit send. Clear/cancel/permission changes
+        // end it before any protocol request can carry the draft to the peer.
+        const result = await this.rediscover(peerId, controller.signal);
+        if (controller.signal.aborted)
+          throw new Error("CONTACT_SEARCH_CANCELED");
+        this.permit(peerId);
+        if (result.state !== "found") throw new Error("CONTACT_NOT_DISCOVERED");
+        contact = this.resolveContact(peerId);
+      }
       if (this.negotiated.get(peerId) !== contact.transportKey) {
         await this.messenger.negotiate(contact, controller.signal);
         await this.messenger.heartbeat(contact, controller.signal);
@@ -294,8 +314,12 @@ export class DesktopMessaging {
     if (!contact) throw new Error("CONTACT_NOT_DISCOVERED");
     return { ...contact };
   }
-  async rediscover(peerId: string): Promise<ContactSearchResult> {
+  async rediscover(
+    peerId: string,
+    signal?: AbortSignal,
+  ): Promise<ContactSearchResult> {
     this.permit(peerId);
+    if (signal?.aborted) throw new Error("CONTACT_SEARCH_CANCELED");
     const lookup = this.lookupContact;
     if (!lookup) throw new Error("CONTACT_SEARCH_UNAVAILABLE");
     if (this.search) throw new Error("CONTACT_SEARCH_BUSY");
@@ -343,6 +367,10 @@ export class DesktopMessaging {
         ),
       );
     owner.controller.signal.addEventListener("abort", onAbort, { once: true });
+    // Attach only after acquiring the search slot: a busy caller must never
+    // acquire cancellation rights over another caller's lookup.
+    const cancelOwner = () => owner.controller.abort("canceled");
+    signal?.addEventListener("abort", cancelOwner, { once: true });
     const timer = setTimeout(() => owner.controller.abort("timeout"), 5000);
     try {
       const result = await Promise.race([work, aborted]);
@@ -387,6 +415,7 @@ export class DesktopMessaging {
       return { state: "incomplete" };
     } finally {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", cancelOwner);
       owner.controller.signal.removeEventListener("abort", onAbort);
       owner.controller.abort();
       returned = true;

@@ -1,3 +1,11 @@
+# Active checkpoint — 2026-10-30
+
+2026-10-30 explicit Send now looks up a missing approved-contact binding with the existing authenticated resolver before dispatch. Each send owns cancellation through Stop/Clear/withdrawal/shutdown; busy/manual lookup and cooldown remain bounded, late results cannot bind/send, and failed delivery retains draft. Focused22/22/full212/212/typecheck/lint200/build and Windows desktop five-process suite pass. See evidence/send-contact-lookup.md. Prior57f8e46 Ubuntu41081853549 succeeds. Goal ACTIVE. Next add and run independent production-transport full-client-restart automatic Send recovery, keeping manual Find coverage and all strict protocol/consent assertions.
+
+Branch codex/lobbymesh-pi-lab-and-reliability; source parent57f8e46c4a40f3104b00a7df21d74ebd80008732. Owned send-lookup source/tests/evidence follow. Next: inspect live status/HEAD; add independent automatic-send recovery mode; run it and retain actual ACK/default-off/cleanup evidence. Historical checkpoints below remain history.
+
+---
+
 # Active resumed checkpoint — 2026-10-30
 
 The user/app resumed the sustained goal after usageLimited; current status is ACTIVE. Preserve the historical checkpoint below as history, not an instruction to stop current work. Branch codex/lobbymesh-pi-lab-and-reliability, source parent91ef4d07c068513ebddb903d3b821a9a7dfb4960 pushed; only owned restart-guard/recovery edits followed.

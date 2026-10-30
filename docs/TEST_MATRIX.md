@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+2026-10-30 explicit Send now looks up a missing approved-contact binding with the existing authenticated resolver before dispatch. Each send owns cancellation through Stop/Clear/withdrawal/shutdown; busy/manual lookup and cooldown remain bounded, late results cannot bind/send, and failed delivery retains draft. Focused22/22/full212/212/typecheck/lint200/build and Windows desktop five-process suite pass. See evidence/send-contact-lookup.md. Prior57f8e46 Ubuntu41081853549 succeeds. Goal ACTIVE. Next add and run independent production-transport full-client-restart automatic Send recovery, keeping manual Find coverage and all strict protocol/consent assertions.
+
+
 2026-10-30 resumed active goal: shared headless restart owner checks lifetime before work and after both await boundaries, blocks replacement after cleanup failure, confirms online after startup and projects fixed private-error-free failures. Real-lifecycle held-cleanup/startup, failure/manual-recovery and no-implicit-retry cases pass; focused13/13/full206/206/typecheck/lint/build. Native headless restart/ACK/revocation/cleanup checks retained. See evidence/headless-restart-guards.md. Prior91ef4d0 Ubuntu41055537182 succeeds. Next implement automatic approved-contact lookup on explicit Send when a binding is missing, retaining bounded ownership, Stop send/clear/block cancellation and default-off permissions. Goal remains ACTIVE.
 
 

@@ -125,7 +125,6 @@ export function Messages({
     event.preventDefault();
     if (
       !selected ||
-      !discovered ||
       !draft.trim() ||
       bytes > 4096 ||
       sending.includes(selected) ||
@@ -523,7 +522,6 @@ export function Messages({
                 type="submit"
                 disabled={
                   !selected ||
-                  !discovered ||
                   !draft.trim() ||
                   bytes > 4096 ||
                   sending.includes(selected) ||
@@ -548,7 +546,8 @@ export function Messages({
             {!discovered && (
               <p className="hint">
                 This contact's connection details are not known yet. Your draft
-                will stay here while discovery continues.
+                stays here if delivery is not confirmed. Sending first looks for
+                this approved contact.
               </p>
             )}
           </form>
