@@ -274,7 +274,23 @@ try {
       level: value.inputLevel,
       peak: value.inputClipping,
     });
-    const inputActivityUnity = activity((await a.command("snapshot")).voice);
+    const inputActivityView = (await a.command("snapshot")).voice;
+    const inputActivityUnity = activity(inputActivityView);
+    if (!(inputActivityUnity.level > 0.1)) {
+      const view = inputActivityView;
+      console.log(
+        JSON.stringify({
+          nativeInputActivityFailure: {
+            phase: view.phase,
+            capturing: view.capturing,
+            transmitting: view.transmitting,
+            inputGain: view.inputGain,
+            inputLevel: view.inputLevel,
+            inputClipping: view.inputClipping,
+          },
+        }),
+      );
+    }
     assert.ok(inputActivityUnity.level > 0.1);
     await until(
       async () => (await b.command("snapshot")).voice.quality.jitterMs !== null,

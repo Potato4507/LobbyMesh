@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+2026-10-30 PTT renewal meter bug reproduced null vs0.25 and repaired: distinct activity scope epoch retains fresh samples across unchanged lease renewal while command-order transmission guard stays strict; press/release/repress/device-switch negatives retained. Focused23/23/full198/198/typecheck/lint189/build, native authenticated media and staged desktop five-process suite pass. Independent native full voice passes input assertion then fails hangup; no end-to-end reliability claim. First desktop30s timeout retained; fixed stage timing added, subsequent main final stages around24.5s with same bound. See evidence/ptt-renewal-activity.md. Goal ACTIVE. Next commit/push verified source and refresh artifact/CI; continue with explicit terminal-call result projection so local teardown and uncertain peer notification are distinguishable without weakening failure semantics.
+
+
 Persistent overlay microphone header implemented independently of optional widgets; unknown capture never becomes off, and sticky header remains visible after scrolling. Full197/197/typecheck/lint188/build and native desktop five-process suite pass; final focused sticky visibility/on-unknown-off pass and synthetic screenshot reviewed. See evidence/persistent-overlay-capture.md. Added isolated scenario keeps existing30s per-process bound and all previous checks. Goal ACTIVE. Next commit/push, create clean Windows artifact/CI checkpoint, then investigate the strict native media input-level failure using existing status/PTT ownership diagnostics rather than relaxing assertions.
 
 

@@ -50,6 +50,7 @@ interface OwnedMedia {
   transmitting: boolean;
   polling: boolean;
   talkRevision: number;
+  activityRevision: number;
   talkDesired: boolean;
   outputVolume: number;
   outputMuted: boolean;
@@ -254,6 +255,7 @@ export class VoiceCalls {
       transmitting: false,
       polling: false,
       talkRevision: 0,
+      activityRevision: 0,
       talkDesired: false,
       outputVolume: 1,
       outputMuted: false,
@@ -365,6 +367,7 @@ export class VoiceCalls {
       this.timer = undefined;
       owner.polling = true;
       const talkRevision = owner.talkRevision;
+      const activityRevision = owner.activityRevision;
       void this.media(owner, () => owner.media.status()).then(
         (status) => {
           owner.polling = false;
@@ -374,6 +377,8 @@ export class VoiceCalls {
           owner.mediaPhase = status.phase;
           if (talkRevision === owner.talkRevision) {
             owner.transmitting = status.transmitting;
+          }
+          if (activityRevision === owner.activityRevision) {
             const input = {
               inputLevel: status.inputLevel ?? null,
               inputClipping: status.inputClipping ?? null,
@@ -383,8 +388,8 @@ export class VoiceCalls {
               : unknownInputActivity();
             owner.inputActivityAt = performance.now();
           } else {
-            // This status was requested before a newer local PTT command.
-            // Keep its confirmed talk state and discard the older meter sample.
+            // Press/release or device replacement changed the sample's scope.
+            // Lease renewals alone must not discard a fresh activity sample.
             owner.inputActivity = unknownInputActivity();
             owner.inputActivityAt = 0;
           }
@@ -518,6 +523,7 @@ export class VoiceCalls {
     )
       throw new Error("VOICE_NOT_CONNECTED");
     const revision = ++owner.talkRevision;
+    if (owner.talkDesired !== value) owner.activityRevision++;
     owner.talkDesired = value;
     try {
       await this.media(owner, () => owner.media.setTalking(value));
@@ -623,6 +629,7 @@ export class VoiceCalls {
       throw new Error("INPUT_CHANGE_PENDING");
     owner.inputSwitching = true;
     owner.talkRevision++;
+    owner.activityRevision++;
     owner.talkDesired = false;
     owner.inputActivity = unknownInputActivity();
     owner.inputActivityAt = 0;

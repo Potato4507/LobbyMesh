@@ -67,7 +67,12 @@ try {
       });
       const timer = setTimeout(() => {
         child.kill();
-        reject(new Error(`DESKTOP_SMOKE_TIMEOUT ${diagnostic}`));
+        const stage =
+          output
+            .split(/\r?\n/)
+            .filter((line) => line.startsWith('{"desktopStage":'))
+            .at(-1) ?? "no-stage";
+        reject(new Error(`DESKTOP_SMOKE_TIMEOUT ${stage} ${diagnostic}`));
       }, 30_000);
       child.on("error", (error) => {
         clearTimeout(timer);

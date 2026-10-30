@@ -30,6 +30,14 @@ import { WindowsLogSessionProvider } from "../../packages/session/src/windows-lo
 import { VoiceCalls } from "../../packages/voice/src/calls.js";
 
 async function run() {
+  const startedAt = performance.now();
+  const stage = (name: string) =>
+    console.log(
+      JSON.stringify({
+        desktopStage: name,
+        elapsedMs: Math.round(performance.now() - startedAt),
+      }),
+    );
   assert.equal(typeof createOverlayRuntime, "function");
   console.log("desktop stage: starting");
   const directory = process.argv[2];
@@ -1370,6 +1378,7 @@ async function run() {
       receiver?.history(self)[0]?.envelope.text,
       "native UI message",
     );
+    stage("overlay-start");
     if (process.platform === "win32") {
       await navigate("overlay");
       await execute("document.querySelector('#overlayEnabled').click()");
@@ -1666,6 +1675,7 @@ async function run() {
       assert.equal(overlayWindow.isDestroyed(), true);
       await navigate("messages");
     }
+    stage("overlay-complete");
     assert.ok(messaging);
     const incoming: TextEnvelope = {
       namespace: DIRECT_NAMESPACE,
@@ -1801,6 +1811,7 @@ async function run() {
         "window.companion.updatePreferences({unexpected: true}).then(() => false, () => true)",
       ),
     );
+    stage("safety-start");
     // A safety action must work while unrelated preference edits are dirty,
     // during a call, and with all ordinary IPC slots occupied by sends.
     await execute(
@@ -1882,6 +1893,7 @@ async function run() {
       "Array.from(document.querySelectorAll('button')).some(b => b.textContent === 'Unblock' && !b.disabled)",
     );
     console.log("desktop safety: blocked under load; draft retained and saved");
+    stage("safety-complete");
     await until(
       "Array.from(document.querySelectorAll('button')).some(b => b.textContent === 'Unblock')",
     );
@@ -1906,6 +1918,7 @@ async function run() {
       "document.querySelector('#networkControl')?.textContent === 'Enable peer discovery'",
     );
     assert.equal(stops, 3);
+    stage("foreign-sender-start");
     foreign = new BrowserWindow({
       show: false,
       webPreferences: {

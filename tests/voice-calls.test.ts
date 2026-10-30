@@ -712,3 +712,53 @@ test("a delayed status reply cannot overwrite newer PTT activation or release", 
     await left.hangup();
   }
 });
+
+test("PTT renewal keeps a fresh meter sample while command ordering and changed input scopes stay strict", async (t) => {
+  for (const action of ["renew", "repress", "switch"]) {
+    for (const reported of [true, false]) {
+      const { left, right, media } = fixture(t);
+      left.setConsent(true);
+      right.setConsent(true);
+      const id = await left.dial({ id: b, transportKey: keyB }, true);
+      await right.answer(id, true);
+      await delay(10);
+      await left.setTalking(true);
+      const local = media[0];
+      assert.ok(local);
+      const original = local.status.bind(local);
+      let complete: () => void = () => {},
+        entered: () => void = () => {};
+      const started = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      local.status = async () => {
+        const previous = await original();
+        return new Promise((resolve) => {
+          complete = () =>
+            resolve({
+              ...previous,
+              transmitting: reported,
+              inputLevel: reported ? 0.25 : 0,
+              inputClipping: false,
+            });
+          entered();
+        });
+      };
+      await started;
+      if (action === "switch") await left.switchInput("system-default", true);
+      else {
+        if (action === "repress") await left.setTalking(false);
+        await left.setTalking(true);
+      }
+      local.status = () => new Promise(() => {});
+      complete();
+      await delay(5);
+      assert.equal(left.status().transmitting, action !== "switch");
+      assert.equal(
+        left.status().inputLevel,
+        action === "renew" ? (reported ? 0.25 : 0) : null,
+      );
+      await left.hangup();
+    }
+  }
+});

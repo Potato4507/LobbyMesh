@@ -1,0 +1,27 @@
+{
+  "result": "authenticated-media-passed",
+  "nativeNoise": true,
+  "runtimes": 2,
+  "electronMainProcesses": 1,
+  "forward": [
+    0.7046718774609455,
+    0.000002336051101031902
+  ],
+  "silence": [
+    0,
+    0.000002336051101031902
+  ],
+  "reverse": [
+    0,
+    0.7037309263108161
+  ],
+  "quality": {
+    "roundTripMs": 0,
+    "jitterMs": 0,
+    "packetsLost": 0
+  },
+  "outlivedNegotiation": true,
+  "microphone": false,
+  "audibleOutput": false,
+  "crossNat": false
+}
