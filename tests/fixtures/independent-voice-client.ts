@@ -18,13 +18,16 @@ async function run() {
   assert.ok(app.requestSingleInstanceLock());
   app.on("window-all-closed", () => {});
   await app.whenReady();
+  let nativeNetwork:
+    | Awaited<ReturnType<typeof createDesktopNetwork>>
+    | undefined;
   const desktop = await createDesktop(
     path.join(directory, "preferences"),
     path.resolve("dist"),
     false,
     {
-      networkFactory: (signal, policy, sessions) =>
-        createDesktopNetwork(
+      networkFactory: async (signal, policy, sessions) => {
+        nativeNetwork = await createDesktopNetwork(
           path.join(directory, "network"),
           signal,
           policy,
@@ -32,7 +35,9 @@ async function run() {
           (context) =>
             new DesktopMediaHost(mediaAssets, { permitted: context.permitted }),
           { bootstrap: [bootstrap] },
-        ),
+        );
+        return nativeNetwork;
+      },
     },
   );
   const execute = <T>(code: string): Promise<T> =>
@@ -61,6 +66,21 @@ async function run() {
   );
   const credentials = await loadDesktopCredentials(
     path.join(directory, "network"),
+  );
+  assert.ok(nativeNetwork);
+  const diagnostic = nativeNetwork.diagnostics();
+  assert.deepEqual(Object.keys(diagnostic).sort(), ["inbound", "outgoing"]);
+  assert.ok(diagnostic.outgoing.recent.length <= 32);
+  assert.ok(diagnostic.inbound.recentFailures.length <= 16);
+  assert.equal(
+    JSON.stringify(diagnostic).includes(credentials.identity.peerId),
+    false,
+  );
+  assert.equal(
+    JSON.stringify(diagnostic).includes(
+      credentials.transportKeys.publicKey.toString("hex"),
+    ),
+    false,
   );
   let renewal: ReturnType<typeof setInterval> | undefined,
     callId: string | undefined,
@@ -237,12 +257,32 @@ async function run() {
             },
           );
         },
-        (error: unknown) =>
+        (error: unknown) => {
+          let diagnostics: unknown;
+          try {
+            const voice = nativeNetwork?.voice?.status();
+            diagnostics = {
+              transport: nativeNetwork?.diagnostics(),
+              local: voice
+                ? {
+                    phase: voice.phase,
+                    capturing: voice.capturing,
+                    transmitting: voice.transmitting,
+                    controlPresent: voice.callId !== null,
+                    error: voice.error,
+                  }
+                : null,
+            };
+          } catch {
+            /* Diagnostic failure cannot change the original result. */
+          }
           process.send?.({
             id: message.id,
             error:
               error instanceof Error ? error.message : "CLIENT_COMMAND_FAILED",
-          }),
+            diagnostics,
+          });
+        },
       );
     },
   );

@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "date": "2026-10-30",
+  "source": {
+    "revision": "725eb02c1f0908cd61c594fc1269901217f04f29",
+    "dirty": true
+  },
+  "scenario": "independent-native-hangup",
+  "proofTier": "SAME_HOST",
+  "result": "FAILED",
+  "operation": "hangup",
+  "diagnostics": {
+    "transport": {
+      "outgoing": {
+        "queued": 0,
+        "total": 13,
+        "outcomes": {
+          "success": 8,
+          "remote-rejected": 2,
+          "timeout": 2,
+          "aborted": 1
+        },
+        "recent": [
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.07,
+            "transactionMs": 54.01
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.02,
+            "transactionMs": 462.32
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.02,
+            "transactionMs": 44.75
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.01,
+            "transactionMs": 120.16
+          },
+          {
+            "operation": "direct",
+            "outcome": "remote-rejected",
+            "phase": "response",
+            "queueMs": 0.02,
+            "transactionMs": 154.48
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.01,
+            "transactionMs": 4.82
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.03,
+            "transactionMs": 28.76
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.01,
+            "transactionMs": 4.23
+          },
+          {
+            "operation": "direct",
+            "outcome": "timeout",
+            "phase": "hello",
+            "queueMs": 0.02,
+            "transactionMs": 1506.66
+          },
+          {
+            "operation": "direct",
+            "outcome": "remote-rejected",
+            "phase": "response",
+            "queueMs": 0,
+            "transactionMs": 310.21
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.01,
+            "transactionMs": 6.44
+          },
+          {
+            "operation": "direct",
+            "outcome": "timeout",
+            "phase": "hello",
+            "queueMs": 0.02,
+            "transactionMs": 1505.75
+          },
+          {
+            "operation": "direct",
+            "outcome": "aborted",
+            "phase": "response",
+            "queueMs": 0,
+            "transactionMs": 496.91
+          }
+        ],
+        "recentFailures": [
+          {
+            "operation": "direct",
+            "outcome": "remote-rejected",
+            "phase": "response",
+            "queueMs": 0.02,
+            "transactionMs": 154.48
+          },
+          {
+            "operation": "direct",
+            "outcome": "timeout",
+            "phase": "hello",
+            "queueMs": 0.02,
+            "transactionMs": 1506.66
+          },
+          {
+            "operation": "direct",
+            "outcome": "remote-rejected",
+            "phase": "response",
+            "queueMs": 0,
+            "transactionMs": 310.21
+          },
+          {
+            "operation": "direct",
+            "outcome": "timeout",
+            "phase": "hello",
+            "queueMs": 0.02,
+            "transactionMs": 1505.75
+          },
+          {
+            "operation": "direct",
+            "outcome": "aborted",
+            "phase": "response",
+            "queueMs": 0,
+            "transactionMs": 496.91
+          }
+        ]
+      },
+      "inbound": {
+        "active": 0,
+        "admission": {
+          "accepted": 5,
+          "disabled": 0,
+          "closed": 0,
+          "quota": 0
+        },
+        "queued": 0,
+        "total": 5,
+        "outcomes": {
+          "success": 5
+        },
+        "recent": [
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 276.68
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 1.8
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 69.97
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 701.71
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 28.46
+          }
+        ],
+        "recentFailures": []
+      }
+    },
+    "local": {
+      "phase": "idle",
+      "capturing": false,
+      "transmitting": false,
+      "controlPresent": false,
+      "error": null
+    }
+  }
+}

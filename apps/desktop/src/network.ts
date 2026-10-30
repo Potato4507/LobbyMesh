@@ -10,7 +10,14 @@ import { DesktopPairing } from "./pairing.js";
 import { type DesktopSessionOptions, DesktopSessions } from "./sessions.js";
 
 export type ContactPolicy = MessagingPolicy;
+type OverlayRuntime = Awaited<ReturnType<typeof createOverlayRuntime>>;
+export interface DesktopNetworkDiagnostics {
+  outgoing: ReturnType<OverlayRuntime["overlay"]["diagnostics"]>;
+  inbound: ReturnType<OverlayRuntime["inboundDiagnostics"]>;
+}
 export interface DesktopManagedNetwork extends ManagedNetwork {
+  // Trusted owner/developer API only; never registered as renderer IPC.
+  diagnostics(): DesktopNetworkDiagnostics;
   messaging: DesktopMessaging;
   sessions?: DesktopSessions;
   pairing?: DesktopPairing;
@@ -93,6 +100,10 @@ export async function createDesktopNetwork(
     (contact) => messaging.rememberContact(contact),
   );
   return {
+    diagnostics: () => ({
+      outgoing: runtime.overlay.diagnostics(),
+      inbound: runtime.inboundDiagnostics(),
+    }),
     messaging,
     pairing,
     voice,

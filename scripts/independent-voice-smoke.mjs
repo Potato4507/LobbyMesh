@@ -80,9 +80,12 @@ function client(directory, address, assets) {
     if (!item) return;
     pending.delete(message.id);
     clearTimeout(item.timer);
-    if (message.error)
-      item.reject(new Error(`CLIENT_COMMAND ${item.op} ${message.error}`));
-    else item.resolve(message.result);
+    if (message.error) {
+      const error = new Error(`CLIENT_COMMAND ${item.op} ${message.error}`);
+      error.operation = item.op;
+      error.diagnostics = message.diagnostics;
+      item.reject(error);
+    } else item.resolve(message.result);
   });
   return {
     child,
@@ -244,7 +247,28 @@ try {
     await a.command("enable-voice");
     await assert.rejects(
       a.command("call", { peerId: infoB.peerId }),
-      /VOICE_ACTION_FAILED/,
+      (error) => {
+        assert.match(error.message, /VOICE_ACTION_FAILED/);
+        assert.equal(error.operation, "call");
+        const diagnostic = error.diagnostics;
+        assert.deepEqual(Object.keys(diagnostic.transport).sort(), [
+          "inbound",
+          "outgoing",
+        ]);
+        assert.ok(diagnostic.transport.outgoing.recent.length <= 32);
+        assert.ok(
+          diagnostic.transport.outgoing.recentFailures.some(
+            (entry) => entry.outcome === "remote-rejected",
+          ),
+        );
+        assert.equal(diagnostic.local.capturing, false);
+        assert.equal(diagnostic.local.controlPresent, false);
+        const encoded = JSON.stringify(diagnostic);
+        assert.equal(encoded.includes(infoA.peerId), false);
+        assert.equal(encoded.includes(infoB.peerId), false);
+        assert.equal(encoded.includes("v=0"), false);
+        return true;
+      },
     );
     assert.equal((await a.command("samples")).hosts, 0);
     await b.command("enable-voice");
@@ -478,6 +502,17 @@ try {
       }),
     );
   }
+} catch (error) {
+  if (error?.diagnostics)
+    console.error(
+      JSON.stringify({
+        nativeClientFailure: {
+          operation: error.operation,
+          diagnostics: error.diagnostics,
+        },
+      }),
+    );
+  throw error;
 } finally {
   await Promise.all(
     clients.map(async (value) => {
