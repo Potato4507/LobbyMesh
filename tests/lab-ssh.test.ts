@@ -162,6 +162,7 @@ test("missing askpass provider fails pair preflight without starting a peer or l
       const result = JSON.parse(error.stdout.trim());
       assert.equal(result.result, "failed");
       assert.equal(result.failureReason, "LAB_ASKPASS_REQUIRED");
+      assert.equal(result.failureStage, "preflight");
       assert.equal(result.attempted, 0);
       assert.equal(result.cleanupVerified, true);
       assert.equal(error.stdout.includes(target), false);
