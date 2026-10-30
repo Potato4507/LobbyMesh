@@ -1,5 +1,8 @@
 # Continuation — 2026-10-29 UTC
 
+2026-10-30 clean runtimedadd424e175d57185523c68e78397e3b74b97904 Windows artifact dist/LobbyMesh-win32-x64-1793337646325/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415667493 bytes, NotSigned. Retained digest/limits: evidence/windows-call-end-package-summary.json. Ubuntu41007919069 fails199/200 on existing strict native burst timeout vs exhausted; A hello1501ms, B hello1500.44ms then abort1402.63ms after queue1597.77ms and queued aborts~3s; inboundA8/B18 all success, no admission rejects. Tests unchanged. Goal ACTIVE. Next expose existing redacted outbound/inbound diagnostics only through trusted desktop network owner to the independent native fixture, attach them to unexpected control failures and inspect the next hangup failure without altering its error/deadline/ACK contract.
+
+
 2026-10-30 End call now projects fixed local-ended/peer-notification-unconfirmed vs local-cleanup-unconfirmed from actual false/false/null capture/transmission/control facts. Only attempted valid call-bound actions classify; stale IDs and foreign callers retain existing denial. Low-level signaling/ACK/deadlines unchanged. Focused3/3/full200/200/typecheck/lint191/build and native desktop five-process suite pass, including main+overlay failed-notification UI while simulated remote remains active and failed-local-teardown negative. Synthetic screenshot reviewed. See evidence/voice-end-outcomes.md. Sourcef88cbb5 Ubuntu41007126001 succeeds after formatting repair; independent native hangup is still unresolved. Goal ACTIVE. Next commit/push this verified increment, refresh clean Windows artifact and CI, then continue the next unblocked reliability/usability behavior.
 
 
