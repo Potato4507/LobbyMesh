@@ -377,6 +377,90 @@ async function run() {
       );
       if (!visible) window.hide();
     }
+    if (process.argv[3] === "overlay-capture-only") {
+      assert.equal(process.platform, "win32");
+      desktop.window.show();
+      desktop.window.focus();
+      await until("document.hasFocus()");
+      await execute("window.companion.network(true)");
+      await until("window.companion.status().then(s=>s.network==='online')");
+      await execute(
+        "window.companion.preferences().then(p=>window.companion.updatePreferences({overlay:{...p.overlay,enabled:true,widgets:['session']}}))",
+      );
+      const overlay = desktop.overlay.getWindow();
+      assert.ok(overlay);
+      const overlayExecute = <T>(code: string): Promise<T> =>
+        overlay.webContents.executeJavaScript(code);
+      const indicator = async (text: string) => {
+        for (let n = 0; n < 250; n++) {
+          if (
+            await overlayExecute(
+              `document.querySelector('#overlayCaptureStatus')?.textContent === ${JSON.stringify(text)}`,
+            )
+          )
+            return;
+          await delay(20);
+        }
+        throw new Error("PERSISTENT_CAPTURE_STATUS_TIMEOUT");
+      };
+      await indicator("LobbyMesh microphone off");
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('[data-overlay-widget=network]') === null && document.querySelector('[data-overlay-widget=voice]') === null",
+        ),
+        true,
+      );
+      await execute(
+        "window.companion.voiceAction({action:'consent',enabled:true})",
+      );
+      const call = await execute<{ callId: string }>(
+        `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true})`,
+      );
+      assert.ok(remoteVoice);
+      await remoteVoice.answer(call.callId, true);
+      await indicator("LobbyMesh microphone on");
+      failVoiceClose = true;
+      await execute(
+        "window.companion.voiceAction({action:'consent',enabled:false})",
+      );
+      await indicator("LobbyMesh microphone state unknown");
+      await overlayExecute(
+        "(() => {const label=document.createElement('p'); label.className='eyebrow'; label.textContent='SYNTHETIC STATUS · NO MICROPHONE'; document.querySelector('header > div').prepend(label); window.scrollTo(0,document.body.scrollHeight);})()",
+      );
+      overlay.showInactive();
+      await delay(200);
+      assert.equal(
+        await overlayExecute(
+          "(() => { const view=document.querySelector('#overlayCaptureStatus').getBoundingClientRect(); return window.scrollY > 0 && view.top >= 0 && view.bottom <= innerHeight; })()",
+        ),
+        true,
+      );
+      await writeFile(
+        path.resolve("docs/evidence/lobbymesh-overlay-capture-test.png"),
+        (await overlay.webContents.capturePage()).toPNG(),
+      );
+      overlay.hide();
+      failVoiceClose = false;
+      await execute(
+        "window.companion.voiceAction({action:'consent',enabled:false})",
+      );
+      await indicator("LobbyMesh microphone off");
+      assert.equal(
+        await execute("window.companion.status().then(s=>s.network)"),
+        "online",
+      );
+      console.log(
+        JSON.stringify({
+          result: "overlay-capture-passed",
+          optionalCaptureWidgets: false,
+          indicatorVisibleAfterScroll: true,
+          states: ["off", "on", "unknown", "off"],
+          microphone: false,
+          physicalAudio: false,
+        }),
+      );
+      return;
+    }
     if (process.argv[3] === "session-status-only") {
       desktop.window.show();
       desktop.window.focus();
@@ -1339,6 +1423,12 @@ async function run() {
       await untilOverlay(
         "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone off'",
       );
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('#overlayCaptureStatus')?.textContent",
+        ),
+        "LobbyMesh microphone off",
+      );
       await execute("document.querySelector('[data-widget=voice]').click()");
       await until(
         "window.companion.preferences().then(p => p.overlay.widgets.includes('voice'))",
@@ -1375,6 +1465,12 @@ async function run() {
       await remoteVoice.answer(overlayVoice.callId, true);
       await untilOverlay(
         "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone on'",
+      );
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('#overlayCaptureStatus')?.textContent",
+        ),
+        "LobbyMesh microphone on",
       );
       await untilOverlay(
         "document.querySelector('#overlayCallPhase')?.textContent === 'Connected'",
@@ -1419,6 +1515,12 @@ async function run() {
       await overlayExecute("document.querySelector('#overlayEndCall').click()");
       await untilOverlay(
         "document.querySelector('#overlayMicrophoneStatus')?.textContent === 'Microphone state unknown'",
+      );
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('#overlayCaptureStatus')?.textContent",
+        ),
+        "LobbyMesh microphone state unknown",
       );
       failVoiceClose = false;
       await execute(

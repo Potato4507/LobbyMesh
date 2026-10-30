@@ -521,6 +521,10 @@ textarea:focus-visible {
   width: 100%;
 }
 .overlay-shell header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #0c1320;
   gap: 8px;
   align-items: center;
   margin-bottom: 14px;

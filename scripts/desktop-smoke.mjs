@@ -22,9 +22,15 @@ try {
   const executable = createRequire(import.meta.url)("electron"),
     environment = { ...process.env };
   delete environment.ELECTRON_RUN_AS_NODE;
+  const focusedModes = [
+    "conversation-clear-only",
+    "session-status-only",
+    "overlay-capture-only",
+  ];
   for (const mode of [
     "--conversation-clear-only",
     "--session-status-only",
+    "--overlay-capture-only",
   ].includes(process.argv[2])
     ? [process.argv[2].slice(2)]
     : process.platform === "win32"
@@ -32,6 +38,7 @@ try {
           "",
           "conversation-clear-only",
           "session-status-only",
+          "overlay-capture-only",
           "credentials-only",
         ]
       : ["", "conversation-clear-only", "session-status-only"])
@@ -40,9 +47,7 @@ try {
         executable,
         [
           entry,
-          ["conversation-clear-only", "session-status-only"].includes(mode)
-            ? path.join(directory, mode)
-            : directory,
+          focusedModes.includes(mode) ? path.join(directory, mode) : directory,
           ...(mode ? [mode] : []),
         ],
         {
@@ -73,13 +78,15 @@ try {
         if (
           code === 0 &&
           output.includes(
-            mode === "session-status-only"
-              ? '"result":"session-status-passed"'
-              : mode === "conversation-clear-only"
-                ? '"result":"conversation-clear-passed"'
-                : mode
-                  ? '"result":"credential-reload-passed"'
-                  : '"result":"passed"',
+            mode === "overlay-capture-only"
+              ? '"result":"overlay-capture-passed"'
+              : mode === "session-status-only"
+                ? '"result":"session-status-passed"'
+                : mode === "conversation-clear-only"
+                  ? '"result":"conversation-clear-passed"'
+                  : mode
+                    ? '"result":"credential-reload-passed"'
+                    : '"result":"passed"',
           )
         )
           resolve();

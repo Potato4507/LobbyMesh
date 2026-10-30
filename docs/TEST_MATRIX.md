@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+Persistent overlay microphone header implemented independently of optional widgets; unknown capture never becomes off, and sticky header remains visible after scrolling. Full197/197/typecheck/lint188/build and native desktop five-process suite pass; final focused sticky visibility/on-unknown-off pass and synthetic screenshot reviewed. See evidence/persistent-overlay-capture.md. Added isolated scenario keeps existing30s per-process bound and all previous checks. Goal ACTIVE. Next commit/push, create clean Windows artifact/CI checkpoint, then investigate the strict native media input-level failure using existing status/PTT ownership diagnostics rather than relaxing assertions.
+
+
 Discovery owner cancellation reproduced/fixed across backend pending next(), buffered hints and search-owned deadlines. Optional source factory carries internal search abort into PublicDiscovery; no pre-canceled backend query/factory, normal quotas unchanged. Focused21/21/full197/197/typecheck/lint187/build and independent native restart/contact/text smoke pass. See evidence/discovery-owner-cancellation.md. Source d81821f Ubuntu41004841981 succeeded; historical native media/burst failures remain open. Goal ACTIVE. Next commit/push verified source, checkpoint clean Windows package/CI, then continue another unblocked product improvement.
 
 

@@ -177,6 +177,15 @@ function Overlay() {
               ? "Interaction mode · Esc to return"
               : "Click-through · Ctrl + Shift + Space"}
           </span>
+          <p className="hint">
+            <output id="overlayCaptureStatus" aria-live="polite">
+              {status?.microphone === "capturing"
+                ? "LobbyMesh microphone on"
+                : status?.microphone === "off"
+                  ? "LobbyMesh microphone off"
+                  : "LobbyMesh microphone state unknown"}
+            </output>
+          </p>
         </div>
         {overlay?.interactive && (
           <button
