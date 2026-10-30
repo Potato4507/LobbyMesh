@@ -1,5 +1,8 @@
 # Active checkpoint — 2026-10-29, session detection lifecycle and visibility
 
+2026-10-30: clean runtimea8d45ca544cf72174e46b08db98fd839857d2815 artifact dist/LobbyMesh-win32-x64-1793336950886/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415664653 bytes, NotSigned. Retained digest/limits: evidence/windows-ptt-renewal-package-summary.json. Ubuntu41006774751 stopped at evidence JSON formatting before tests; formatter repair follows, no runtime CI acceptance inferred. Local198/198 and native/staged evidence retained. Goal ACTIVE. Next implement fixed terminal-call failure projection from actual local capture/control facts so confirmed local teardown is distinguishable from uncertain peer notification, retaining thrown errors and all strict transport assertions.
+
+
 2026-10-30 PTT renewal meter bug reproduced null vs0.25 and repaired: distinct activity scope epoch retains fresh samples across unchanged lease renewal while command-order transmission guard stays strict; press/release/repress/device-switch negatives retained. Focused23/23/full198/198/typecheck/lint189/build, native authenticated media and staged desktop five-process suite pass. Independent native full voice passes input assertion then fails hangup; no end-to-end reliability claim. First desktop30s timeout retained; fixed stage timing added, subsequent main final stages around24.5s with same bound. See evidence/ptt-renewal-activity.md. Goal ACTIVE. Next commit/push verified source and refresh artifact/CI; continue with explicit terminal-call result projection so local teardown and uncertain peer notification are distinguishable without weakening failure semantics.
 
 

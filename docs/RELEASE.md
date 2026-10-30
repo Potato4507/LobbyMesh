@@ -1,5 +1,8 @@
 # Release readiness
 
+2026-10-30: clean runtimea8d45ca544cf72174e46b08db98fd839857d2815 artifact dist/LobbyMesh-win32-x64-1793336950886/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415664653 bytes, NotSigned. Retained digest/limits: evidence/windows-ptt-renewal-package-summary.json. Ubuntu41006774751 stopped at evidence JSON formatting before tests; formatter repair follows, no runtime CI acceptance inferred. Local198/198 and native/staged evidence retained. Goal ACTIVE. Next implement fixed terminal-call failure projection from actual local capture/control facts so confirmed local teardown is distinguishable from uncertain peer notification, retaining thrown errors and all strict transport assertions.
+
+
 2026-10-30: clean runtime399252d1c6fdc451776f255c3c3c757c360fbe05 artifact dist/LobbyMesh-win32-x64-1793336387285/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415664405 bytes, NotSigned. Exact digest/limits: evidence/windows-overlay-capture-package-summary.json. Ubuntu41005923365 succeeded. Goal ACTIVE. Next reproduce whether unchanged PTT lease renewal unnecessarily invalidates a fresh input activity sample, retain strict command-order transmission guards and press/release/device scope negatives, then verify native media without relaxing its level assertion.
 
 

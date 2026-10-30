@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "date": "2026-10-30",
+  "artifactDirectory": "dist/LobbyMesh-win32-x64-1793336950886",
+  "source": {
+    "revision": "a8d45ca544cf72174e46b08db98fd839857d2815",
+    "dirty": false
+  },
+  "manifestSha256": "cdd60a805a55842611e760cb410e2769cdbe642b43b530447b4b96b83a8d904a",
+  "files": 656,
+  "bytes": 415664653,
+  "dependencyCopies": 56,
+  "smoke": {
+    "result": "passed",
+    "packaged": true,
+    "electron": "45.1.0",
+    "sandbox": true,
+    "contextIsolation": true,
+    "network": "offline",
+    "microphone": "off",
+    "credentials": "protected-reopen"
+  },
+  "features": [
+    "ptt-renewal-activity-scope",
+    "strict-command-order-transmission-state",
+    "press-release-and-device-sample-invalidation"
+  ],
+  "manifestPinnedIntegrity": "passed",
+  "authenticode": "NotSigned",
+  "sourceCI": {
+    "run": 41006774751,
+    "result": "failure",
+    "failure": "evidence-JSON-formatting-before-tests"
+  },
+  "limits": [
+    "no-physical-audio",
+    "no-packaged-pair",
+    "no-positive-actual-Roblox",
+    "no-LAN-or-NAT",
+    "no-installer-or-public-release"
+  ]
+}
