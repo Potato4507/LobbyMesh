@@ -1,5 +1,8 @@
 # Release readiness
 
+Clean runtime bf09b5fa9238e1ce252d9a00bf54a2b14ceb1291 Windows package dist/LobbyMesh-win32-x64-1793335903556/LobbyMesh.exe passes actual copied executable/default-off/protected reopen and pinned656-file integrity415663960 bytes, NotSigned. Exact digest/limits: evidence/windows-discovery-cancellation-package-summary.json. Ubuntu41005218575 succeeded. Fresh read-only local session probe remains waiting/no selected session/self-asserted, network off/no raw identifiers. Goal ACTIVE. Next make the overlay microphone/unknown-capture indicator visible independently of optional network/voice widget choices, with native positive/unknown/off checks.
+
+
 Clean source d81821fbe5bb7c9bba0a8c98058beb3fe8487dcf packaged at dist/LobbyMesh-win32-x64-1793335650700/LobbyMesh.exe. Copied executable/default-off/protected reopen and pinned656-file integrity415663119 bytes pass, NotSigned. Retained digest/limits: evidence/windows-bootstrap-recovery-package-summary.json. Source Ubuntu41004841981 in progress at checkpoint; prior UIe91d22c/41003831482 succeeded. Branch codex/lobbymesh-pi-lab-and-reliability, no unrelated dirty files. Goal ACTIVE. Next propagate owned discovery cancellation into pending backend queries, test timeout/withdrawal cleanup without weakening search bounds, then commit and continue.
 
 
