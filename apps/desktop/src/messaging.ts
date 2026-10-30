@@ -260,27 +260,60 @@ export class DesktopMessaging {
     this.append(peerId, message);
     this.pending.set(localId, { peerId, controller });
     let stage: DeliveryFailure["stage"] = "connection";
+    let searched = false;
+    const find = async (): Promise<DirectContact> => {
+      searched = true;
+      const result = await this.rediscover(peerId, controller.signal);
+      if (controller.signal.aborted) throw new Error("CONTACT_SEARCH_CANCELED");
+      this.permit(peerId);
+      if (result.state !== "found")
+        throw new Error(
+          result.state === "not-located"
+            ? "CONTACT_SEARCH_NOT_LOCATED"
+            : "CONTACT_SEARCH_INCOMPLETE",
+        );
+      // Use the exact newly authenticated binding, rather than an older
+      // routing snapshot that may still be retiring its failed transport.
+      const found = this.approvedBindings.get(peerId);
+      if (!found) throw new Error("CONTACT_NOT_DISCOVERED");
+      return { ...found };
+    };
+    const negotiate = async (target: DirectContact): Promise<void> => {
+      await this.messenger.negotiate(target, controller.signal);
+      await this.messenger.heartbeat(target, controller.signal);
+      this.permit(peerId);
+      if (controller.signal.aborted) throw new Error("DIRECT_ABORTED");
+      this.negotiated.set(peerId, target.transportKey);
+    };
     try {
       if (!contact) {
         // Lookup belongs to this explicit send. Clear/cancel/permission changes
         // end it before any protocol request can carry the draft to the peer.
-        const result = await this.rediscover(peerId, controller.signal);
-        if (controller.signal.aborted)
-          throw new Error("CONTACT_SEARCH_CANCELED");
-        this.permit(peerId);
-        if (result.state !== "found")
-          throw new Error(
-            result.state === "not-located"
-              ? "CONTACT_SEARCH_NOT_LOCATED"
-              : "CONTACT_SEARCH_INCOMPLETE",
-          );
-        contact = this.resolveContact(peerId);
+        contact = await find();
       }
       if (this.negotiated.get(peerId) !== contact.transportKey) {
-        await this.messenger.negotiate(contact, controller.signal);
-        await this.messenger.heartbeat(contact, controller.signal);
-        this.permit(peerId);
-        this.negotiated.set(peerId, contact.transportKey);
+        try {
+          await negotiate(contact);
+        } catch (error) {
+          // No draft has been dispatched. Only a changed authenticated key may
+          // recover a stale binding; unchanged keys and remote/protocol denials
+          // retain the original failure rather than adding transport retries.
+          if (
+            !this.lookupContact ||
+            searched ||
+            controller.signal.aborted ||
+            this.closed ||
+            !(error instanceof Error) ||
+            !["DIRECT_TIMEOUT", "RPC_TIMEOUT", "RPC_CLOSED"].includes(
+              error.message,
+            )
+          )
+            throw error;
+          const previous = contact.transportKey;
+          contact = await find();
+          if (contact.transportKey === previous) throw error;
+          await negotiate(contact);
+        }
       }
       stage = "delivery";
       const result = await this.messenger.sendText(

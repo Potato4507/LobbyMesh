@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+2026-10-30 pre-text stale-binding recovery implemented: only exact negotiation transport timeout/closed errors may run one owned authenticated refresh; a different verified key is required before new negotiation, and no text has yet been dispatched. Same-key, remote rejection, identity/protocol errors, cancellation and failed replacement do not loop. Existing text lost-ACK retry/dedupe unchanged; no lookup after ambiguous delivery. Focused21/21/full218/218/typecheck/lint203/build and independent production cold-binding Send restart pass. See evidence/send-binding-refresh.md. Prior5dd4382 Ubuntu41083854590 succeeds. Goal ACTIVE. Next reproduce voice status-poll rejection while capture is active and ensure missing renderer status never displays microphone off; preserve release/end controls and recover on a fresh read.
+
+
 2026-10-30 automatic Send now projects fixed connection-only lookup outcomes: not located in this attempt, incomplete, or deferred by existing single-flight/cooldown. Every label retains delivery unconfirmed; no offline assertion/raw exceptions/resend. Cancellation and permission changes take precedence. Focused25/25/full213/213/typecheck/lint202/build/native conversation pass, including all three rendered outcomes with draft retained and subsequent Stop/found/ACK/block checks. See evidence/send-lookup-outcomes.md. Packaged-sourcef941434 Ubuntu41083367572 succeeds. Goal ACTIVE. Next implement one bounded authenticated refresh after a known binding fails negotiation, only before any text dispatch; retain no automatic retry after ambiguous delivery.
 
 
