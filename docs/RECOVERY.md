@@ -1,5 +1,8 @@
 # Active checkpoint — 2026-10-29, session detection lifecycle and visibility
 
+Clean runtime76b2867 Windows artifact dist/LobbyMesh-win32-x64-1793334465911/LobbyMesh.exe: copied executable/default-off/protected reopen and pinned656-file integrity415659987 bytes pass, NotSigned. Includes native Escape, queued microphone-enumeration cancellation and session generation/membership cancellation. Exact digest/limits: evidence/windows-session-cancellation-package-summary.json. Source Ubuntu41003021282 still in progress at verification; preceding56c2684/41002740319 succeeded. Goal ACTIVE. Next improve conversation navigation so readers can keep position during incoming text and explicitly jump to latest, with native browser evidence and no message retention expansion.
+
+
 Membership cancellation now spans coordinator generations and queued/between-await update/find boundaries. Reproduced obsolete joins/epoch reads blocked; completed joined writes retained for later tombstone cleanup. Focused14/14/full190/190/typecheck/lint182/build and native desktop four-process suite pass. See evidence/session-membership-cancellation.md. Both authorized Pi targets again LAB_HOST_UNAVAILABLE with strict read-only doctor, no changes. Goal ACTIVE. Next commit/push verified source, build and pin-check a clean Windows package including overlay/device/session fixes, inspect CI, then continue the next unblocked production behavior.
 
 

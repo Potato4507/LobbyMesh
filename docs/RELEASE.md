@@ -1,5 +1,8 @@
 # Release readiness
 
+Clean runtime76b2867 Windows artifact dist/LobbyMesh-win32-x64-1793334465911/LobbyMesh.exe: copied executable/default-off/protected reopen and pinned656-file integrity415659987 bytes pass, NotSigned. Includes native Escape, queued microphone-enumeration cancellation and session generation/membership cancellation. Exact digest/limits: evidence/windows-session-cancellation-package-summary.json. Source Ubuntu41003021282 still in progress at verification; preceding56c2684/41002740319 succeeded. Goal ACTIVE. Next improve conversation navigation so readers can keep position during incoming text and explicitly jump to latest, with native browser evidence and no message retention expansion.
+
+
 Clean runtime c01992e Windows package dist/LobbyMesh-win32-x64-1793333811097/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415658657 bytes, NotSigned. Contains confirmed binding retention and approved authenticated rediscovery. Retained digest/limits: evidence/windows-contact-recovery-package-summary.json. Ubuntu41002009026 in progress at this checkpoint; no green CI claim yet. Goal ACTIVE; next add native Escape return-to-game for the interactive overlay, keeping capture/permissions unchanged, then inspect source CI.
 
 
