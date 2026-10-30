@@ -102,6 +102,7 @@ function App() {
   const [connection, setConnection] = useState<NetworkStatus | null>(null);
   const [detection, setDetection] = useState<DetectionStatus | null>(null);
   const [matching, setMatching] = useState<DesktopSessionStatus | null>(null);
+  const [statusFailed, setStatusFailed] = useState(false);
   const [microphone, setMicrophone] = useState("off");
   const [networkPending, setNetworkPending] = useState(false);
   const [networkNotice, setNetworkNotice] = useState("");
@@ -112,8 +113,12 @@ function App() {
   useEffect(() => {
     let active = true;
     void (async () => {
-      const status = await window.companion.status();
+      const status = await window.companion.status().catch((error) => {
+        if (active) setStatusFailed(true);
+        throw error;
+      });
       if (active) {
+        setStatusFailed(false);
         setConnection(status.connection);
         setDetection(status.detection);
         setMatching(status.matching);
@@ -145,6 +150,7 @@ function App() {
         .status()
         .then((status) => {
           if (active) {
+            setStatusFailed(false);
             setConnection(status.connection);
             setDetection(status.detection);
             setMatching(status.matching);
@@ -152,7 +158,7 @@ function App() {
           }
         })
         .catch(() => {
-          if (active) setNetworkNotice("Connection status is unavailable.");
+          if (active) setStatusFailed(true);
         })
         .finally(() => {
           busy = false;
@@ -182,10 +188,17 @@ function App() {
     }
   }
   const state = connection?.state;
-  const sessionView = sessionPresentation(detection);
+  const sessionView = statusFailed
+    ? {
+        label: "Session detection unavailable",
+        detail:
+          "Session status could not be checked. Fresh local observations are required before displaying session details again.",
+      }
+    : sessionPresentation(detection);
   const peers = connection?.peers ?? 0;
-  const matchingLabel =
-    !matching || matching.state === "offline"
+  const matchingLabel = statusFailed
+    ? "Session matching status is unavailable. Checking again automatically."
+    : !matching || matching.state === "offline"
       ? "Session matching is offline."
       : matching.state === "error"
         ? "Session matching is incomplete. Retrying automatically."
@@ -196,8 +209,9 @@ function App() {
             : matching.state === "ready"
               ? `${matching.participants} ${matching.participants === 1 ? "companion" : "companions"} found in this session. Contact permission is separate.`
               : "Waiting for supported session evidence.";
-  const networkLabel =
-    state === "online"
+  const networkLabel = statusFailed
+    ? "Connection status unavailable"
+    : state === "online"
       ? peers
         ? `${peers} authenticated ${peers === 1 ? "peer" : "peers"}`
         : "Discovering peers"
@@ -302,10 +316,12 @@ function App() {
         </nav>
         <div className="sidebar-status">
           <span
-            className={`connection-dot ${state === "online" ? "online" : ""}`}
+            className={`connection-dot ${!statusFailed && state === "online" ? "online" : ""}`}
             aria-hidden="true"
           />
-          <strong>{state === "online" ? "Connected" : networkLabel}</strong>
+          <strong>
+            {!statusFailed && state === "online" ? "Connected" : networkLabel}
+          </strong>
           <p>
             {microphone === "capturing"
               ? "Microphone on"
@@ -329,7 +345,7 @@ function App() {
             <p className="view-description">{views[view].description}</p>
           </div>
           <span className="badge">
-            {state === "online" ? "Connected" : networkLabel}
+            {!statusFailed && state === "online" ? "Connected" : networkLabel}
           </span>
         </header>
         <section className="status-grid" aria-label="Current connection status">
@@ -372,12 +388,13 @@ function App() {
                 disabled={
                   !preferences ||
                   !connection ||
+                  (statusFailed && !connection.enabled) ||
                   networkPending ||
                   state === "stopping"
                 }
                 onClick={() => {
                   void changeNetwork(
-                    connection?.error === "STOP_FAILED"
+                    statusFailed || connection?.error === "STOP_FAILED"
                       ? false
                       : state === "error"
                         ? true
@@ -385,15 +402,19 @@ function App() {
                   );
                 }}
               >
-                {connection?.error === "STOP_FAILED"
-                  ? "Retry disconnect"
-                  : state === "error"
-                    ? "Retry connection"
-                    : connection?.enabled
-                      ? "Disconnect"
-                      : "Enable peer discovery"}
+                {statusFailed
+                  ? connection?.enabled
+                    ? "Disconnect"
+                    : "Status unavailable"
+                  : connection?.error === "STOP_FAILED"
+                    ? "Retry disconnect"
+                    : state === "error"
+                      ? "Retry connection"
+                      : connection?.enabled
+                        ? "Disconnect"
+                        : "Enable peer discovery"}
               </button>
-              {state === "error" && connection?.enabled && (
+              {!statusFailed && state === "error" && connection?.enabled && (
                 <button
                   type="button"
                   className="secondary"
@@ -414,7 +435,9 @@ function App() {
               {matchingLabel}
             </p>
             <output id="networkNotice" className="notice" aria-live="polite">
-              {networkNotice ||
+              {(statusFailed
+                ? "Connection status is unavailable. Checking again automatically."
+                : networkNotice) ||
                 (connection?.error === "START_TIMEOUT"
                   ? "Connection timed out. Check your network and try again."
                   : connection?.error === "START_FAILED"

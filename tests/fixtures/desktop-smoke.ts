@@ -121,6 +121,7 @@ async function run() {
     failVoiceHangup = false,
     failVoiceQuality = true;
   let failVoiceRead = false,
+    failDashboardRead = false,
     failOverlayVoiceRead = false,
     holdVoiceRead = false,
     rejectHeldVoiceRead = false;
@@ -131,6 +132,8 @@ async function run() {
   // voice actions and the real synthetic media owner behind the original handler.
   ipcMain.handle = (channel, listener) => {
     registerHandler.call(ipcMain, channel, async (event, ...args) => {
+      if (channel === "companion:status" && failDashboardRead)
+        throw new Error("private synthetic dashboard read failure");
       if (channel === "companion:voice" && failVoiceRead)
         throw new Error("private synthetic status read failure");
       if (channel === "companion:overlay:voice" && failOverlayVoiceRead)
@@ -780,6 +783,15 @@ async function run() {
       await until(
         "document.querySelector('#sessionStatus')?.textContent === 'Local session detected' && document.querySelector('#sessionSourceNotice')?.textContent.includes('unverified evidence')",
       );
+      failDashboardRead = true;
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Session detection unavailable' && document.querySelector('#matchingStatus')?.textContent.includes('status is unavailable') && document.querySelector('#networkControl')?.disabled",
+      );
+      assert.equal(logProvider.status().state, "detected");
+      failDashboardRead = false;
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Local session detected' && document.querySelector('#networkControl')?.disabled === false && !document.querySelector('#networkNotice')?.textContent.includes('status is unavailable')",
+      );
       const rewrittenLog =
         "new log without supported session evidence\n".repeat(32);
       await writeFile(file, rewrittenLog);
@@ -848,6 +860,7 @@ async function run() {
         JSON.stringify({
           result: "session-status-passed",
           sameFileRewriteRecovered: true,
+          dashboardReadRecovery: true,
           states: [
             "player-not-running",
             "player-log-pending",
@@ -1231,6 +1244,20 @@ async function run() {
         "(() => {const label=document.createElement('p');label.className='eyebrow';label.textContent='SYNTHETIC CONTACT SEARCH · NO LIVE PEER';document.querySelector('#contactSelect').before(label);document.querySelector('#findContact').scrollIntoView({block:'center'});})()",
       );
       await captureDesktop("docs/evidence/lobbymesh-contact-search-test.png");
+      const lifecycleCounts = [starts, stops];
+      failDashboardRead = true;
+      await until(
+        "document.querySelector('.badge')?.textContent === 'Connection status unavailable' && document.querySelector('#networkControl')?.textContent === 'Disconnect' && !document.querySelector('#networkControl')?.disabled && !document.querySelector('.connection-dot')?.classList.contains('online')",
+      );
+      assert.equal(
+        await execute("document.querySelector('#messageDraft').value"),
+        "retained during contact discovery",
+      );
+      assert.deepEqual([starts, stops], lifecycleCounts);
+      failDashboardRead = false;
+      await until(
+        "document.querySelector('.badge')?.textContent === 'Connected' && !document.querySelector('#networkNotice')?.textContent.includes('status is unavailable')",
+      );
       messageClockAdvance += 5000;
       holdContactSearch = true;
       await execute("document.querySelector('#findContact').click()");
@@ -1253,6 +1280,8 @@ async function run() {
           pendingSendCanceled: true,
           clearUnderFullQuota: true,
           networkStayedOnline: true,
+          dashboardReadFailure:
+            "unavailable-retained-disconnect-and-draft-recovered",
           deliveryReasons: "bounded-unconfirmed-and-draft-retained",
           individualCancel: "one-row-draft-retained-and-priority-quota",
           historyNavigation:

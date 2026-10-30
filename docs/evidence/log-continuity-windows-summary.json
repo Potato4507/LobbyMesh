@@ -1,0 +1,80 @@
+{
+  "result": "passed",
+  "source": {
+    "dirty": false,
+    "revision": "ca935697fe73acde533b817fed0edf5a97b88b8a"
+  },
+  "steps": [
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "durationMs": 2122
+    },
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "durationMs": 539
+    },
+    {
+      "name": "tests",
+      "exitCode": 0,
+      "durationMs": 7726
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "durationMs": 496
+    },
+    {
+      "name": "desktop",
+      "exitCode": 0,
+      "durationMs": 63021
+    },
+    {
+      "name": "send-recovery",
+      "exitCode": 0,
+      "durationMs": 10366
+    },
+    {
+      "name": "voice-calls",
+      "exitCode": 0,
+      "durationMs": 6128
+    },
+    {
+      "name": "independent-voice",
+      "exitCode": 0,
+      "durationMs": 14060
+    },
+    {
+      "name": "package",
+      "exitCode": 0,
+      "durationMs": 3800
+    },
+    {
+      "name": "package-integrity",
+      "exitCode": 0,
+      "durationMs": 849
+    }
+  ],
+  "package": {
+    "directory": "LobbyMesh-win32-x64-1793398771776",
+    "manifestSha256": "ea123ef61d730dc0461d7600d1c538859840b11fb54fdc966f9466e6b8391b35",
+    "signature": "NotSigned",
+    "smoke": {
+      "result": "passed",
+      "packaged": true,
+      "electron": "45.1.0",
+      "sandbox": true,
+      "contextIsolation": true,
+      "network": "offline",
+      "microphone": "off",
+      "credentials": "protected-reopen"
+    }
+  },
+  "hardwareMicrophone": false,
+  "audibleOutput": false,
+  "crossDeviceProtocol": false,
+  "virtualNat": false,
+  "actualRoblox": false,
+  "releaseReady": false
+}
