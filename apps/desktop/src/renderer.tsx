@@ -136,10 +136,11 @@ function App() {
       });
       if (active) {
         setStatusFailed(false);
-        if (connectionRevision === connectionObservation.current)
+        if (connectionRevision === connectionObservation.current) {
           setConnection(status.connection);
+          setMatching(status.matching);
+        }
         setDetection(status.detection);
-        setMatching(status.matching);
         if (microphoneRevision === microphoneObservation.current)
           setMicrophone(status.microphone);
       }
@@ -172,10 +173,11 @@ function App() {
         .then((status) => {
           if (active) {
             setStatusFailed(false);
-            if (connectionRevision === connectionObservation.current)
+            if (connectionRevision === connectionObservation.current) {
               setConnection(status.connection);
+              setMatching(status.matching);
+            }
             setDetection(status.detection);
-            setMatching(status.matching);
             // A newer voice action/read owns capture feedback. An older
             // dashboard snapshot cannot restore its previous microphone state.
             if (microphoneRevision === microphoneObservation.current)
@@ -196,6 +198,7 @@ function App() {
   }, []);
   async function changeNetwork(enabled: boolean) {
     connectionObservation.current++;
+    setMatching(null);
     setNetworkPending(true);
     setNetworkNotice("");
     try {
@@ -226,17 +229,21 @@ function App() {
   const peers = connection?.peers ?? 0;
   const matchingLabel = statusFailed
     ? "Session matching status is unavailable. Checking again automatically."
-    : !matching || matching.state === "offline"
+    : state !== "online"
       ? "Session matching is offline."
-      : matching.state === "error"
-        ? "Session matching is incomplete. Retrying automatically."
-        : matching.state === "matching"
-          ? "Finding opted-in companions in this session…"
-          : matching.state === "consent-required"
-            ? "Enable session presence to find companions."
-            : matching.state === "ready"
-              ? `${matching.participants} ${matching.participants === 1 ? "companion" : "companions"} found in this session. Contact permission is separate.`
-              : "Waiting for supported session evidence.";
+      : !matching
+        ? "Checking session matching…"
+        : matching.state === "offline"
+          ? "Session matching is offline."
+          : matching.state === "error"
+            ? "Session matching is incomplete. Retrying automatically."
+            : matching.state === "matching"
+              ? "Finding opted-in companions in this session…"
+              : matching.state === "consent-required"
+                ? "Enable session presence to find companions."
+                : matching.state === "ready"
+                  ? `${matching.participants} ${matching.participants === 1 ? "companion" : "companions"} found in this session. Contact permission is separate.`
+                  : "Waiting for supported session evidence.";
   const networkLabel = statusFailed
     ? "Connection status unavailable"
     : state === "online"

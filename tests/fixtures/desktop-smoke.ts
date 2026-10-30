@@ -2344,6 +2344,10 @@ async function run() {
       "document.querySelector('#networkControl')?.textContent === 'Enable peer discovery'",
     );
     assert.equal(stops, 3);
+    assert.equal(
+      await execute("document.querySelector('#matchingStatus')?.textContent"),
+      "Session matching is offline.",
+    );
     await execute(
       "(() => {window.staleConnectionRestored=false;window.connectionObserver=new MutationObserver(()=>{if(document.querySelector('.badge')?.textContent === 'Connected' || document.querySelector('#networkControl')?.textContent === 'Disconnect')window.staleConnectionRestored=true;});window.connectionObserver.observe(document.querySelector('.workspace'),{childList:true,characterData:true,subtree:true});})()",
     );
@@ -2357,6 +2361,10 @@ async function run() {
       false,
     );
     await until("window.companion.status().then(s => s.network === 'offline')");
+    assert.equal(
+      await execute("document.querySelector('#matchingStatus')?.textContent"),
+      "Session matching is offline.",
+    );
     stage("foreign-sender-start");
     foreign = new BrowserWindow({
       show: false,
