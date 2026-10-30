@@ -607,7 +607,7 @@ async function run() {
       await remote.hangup().catch(() => {});
       const overlayCall = await startCall();
       await execute(
-        "window.companion.preferences().then(p=>window.companion.updatePreferences({overlay:{...p.overlay,widgets:['voice']}}))",
+        "window.companion.preferences().then(p=>window.companion.updatePreferences({overlay:{...p.overlay,widgets:['voice','chat']}}))",
       );
       await execute("window.companion.overlayMode(true)");
       for (let n = 0; n < 250; n++) {
@@ -625,6 +625,19 @@ async function run() {
         ),
         true,
       );
+      for (let n = 0; n < 250; n++) {
+        if (
+          await overlayExecute(
+            "document.querySelector('#messageDraft') !== null",
+          )
+        )
+          break;
+        await delay(20);
+      }
+      await overlayExecute(
+        "(() => {const input=document.querySelector('#messageDraft');window.retainedOverlayChat=input.closest('[data-overlay-widget=chat]');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'unsent overlay recovery draft');input.dispatchEvent(new Event('input',{bubbles:true}));})()",
+      );
+      const draftHistoryCount = messaging?.history(allowed).length;
       failOverlayVoiceRead = true;
       for (let n = 0; n < 250; n++) {
         if (
@@ -642,6 +655,12 @@ async function run() {
         true,
       );
       assert.equal(localVoiceOwner.status().capturing, true);
+      assert.equal(
+        await overlayExecute(
+          "Boolean(document.querySelector('[data-overlay-widget=chat]')?.closest('[hidden]')) && document.querySelectorAll('#overlayEndCall').length === 1",
+        ),
+        true,
+      );
       await overlayExecute("document.querySelector('#overlayEndCall').click()");
       for (let n = 0; n < 250; n++) {
         if (
@@ -667,6 +686,25 @@ async function run() {
       );
       failOverlayVoiceRead = false;
       await indicator("LobbyMesh microphone off");
+      // Contact selection resumes asynchronously after the trusted connection
+      // snapshot. Wait for that existing poll, not just the header repaint.
+      for (let n = 0; n < 250; n++) {
+        if (
+          await overlayExecute(
+            "document.querySelector('#messageDraft')?.value === 'unsent overlay recovery draft'",
+          )
+        )
+          break;
+        await delay(20);
+      }
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('[data-overlay-widget=chat]') === window.retainedOverlayChat && document.querySelector('#messageDraft')?.value === 'unsent overlay recovery draft'",
+        ),
+        true,
+        "OVERLAY_DRAFT_REMOUNTED_OR_LOST_ON_QUERY_RECOVERY",
+      );
+      assert.equal(messaging?.history(allowed).length, draftHistoryCount);
       assert.equal(remote.status().capturing, true);
       failVoiceHangup = false;
       assert.equal(
@@ -694,6 +732,8 @@ async function run() {
             "unknown-retained-stop-and-peer-notification-notice",
           actionObservation:
             "immediate-End-result-late-snapshot-and-rejection-discarded",
+          overlayDraftRecovery:
+            "same-owner-retained-unsent-and-hidden-on-failure",
           microphone: false,
           physicalAudio: false,
         }),

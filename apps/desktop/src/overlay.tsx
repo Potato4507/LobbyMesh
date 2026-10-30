@@ -166,11 +166,11 @@ function Overlay() {
               ? "Not transmitting"
               : "Transmission unknown"}
         </p>
-        {endControl}
+        {!failed && endControl}
         <p>
           <small>Start, answer and hold to talk in the main window.</small>
         </p>
-        {callError && (
+        {!failed && callError && (
           <p id="overlayCallError" role="alert">
             {callError}
           </p>
@@ -214,7 +214,7 @@ function Overlay() {
           </button>
         )}
       </header>
-      {failed ? (
+      {failed && (
         <section aria-label="Unavailable companion status">
           <p role="alert">Companion status unavailable.</p>
           {endControl}
@@ -224,11 +224,15 @@ function Overlay() {
             </p>
           )}
         </section>
-      ) : (
-        overlay?.preferences.widgets.map((widget) => (
-          <div key={widget}>{widgets[widget]()}</div>
-        ))
       )}
+      {/* Keep drafts in their existing component owner through a transient
+          status failure. Null status still suspends chat; hidden widgets grant
+          no stale interaction or activity presentation. */}
+      <div hidden={failed}>
+        {overlay?.preferences.widgets.map((widget) => (
+          <div key={widget}>{widgets[widget]()}</div>
+        ))}
+      </div>
     </main>
   );
 }

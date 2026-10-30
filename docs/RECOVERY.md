@@ -1,5 +1,13 @@
 # Active checkpoint — 2026-10-30
 
+2026-10-30 transient overlay query failure now keeps the chat component owner mounted and hidden; null trusted connection still suspends the composer, draft returns after contact recovery and no text is sent. Native verifies same chat owner/draft, hidden widgets, one stop control and retained End/unknown/peer-notification behavior. Typecheck/lint203/build and five Windows desktop processes pass; Node218/218 retained from preceding runtime checkpoint. See evidence/overlay-draft-recovery.md. Clean7bcc86f Windows artifact dist/LobbyMesh-win32-x64-1793376289516 passes executable/off/protected reopen and pinned656-file integrity415672838 bytes, NotSigned; summary retained. Its Ubuntu41086591545 succeeds. Latest real session probe waiting/no selection/network off/self-asserted. Goal ACTIVE. Next isolate native screenshot outputs per run so unattended Windows verification preserves a clean tree; extra hosted Windows CI blocked on unverified private-repo billing under no-paid-infrastructure constraint.
+
+Branch codex/lobbymesh-pi-lab-and-reliability; parent7bcc86fb1e467fb889163484d7cdfe81a3cc8d9d. Next: inspect git; implement safe per-run native evidence destination; verify isolated screenshots and unchanged tracked sources, then local Windows acceptance orchestration. Historical checkpoints retained.
+
+---
+
+# Active checkpoint — 2026-10-30
+
 2026-10-30 successful voice action snapshots now update renderer immediately; a separate observation revision discards polls started before action completion and obsolete errors. Native held-capturing snapshot regression failed before repair, then both late snapshot/rejection cases pass: End confirms off before held read settles and MutationObserver sees no stale call/capture restoration. Existing unknown-read, PTT release/no-auto-resume, overlay End and peer uncertainty cases retained. Full218/218/typecheck/lint203/build and five Windows desktop processes pass. See evidence/voice-action-observations.md. Goal ACTIVE. Next refresh clean Windows artifact, then preserve overlay draft state across transient dashboard query failure without exposing stale controls.
 
 Branch codex/lobbymesh-pi-lab-and-reliability; parent9ff8e28. Next: check live git; package/verify clean runtime; reproduce/fix overlay draft loss across failed polling. Historical checkpoints retained below.

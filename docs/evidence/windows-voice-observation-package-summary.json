@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-30",
+  "source": {
+    "revision": "7bcc86fb1e467fb889163484d7cdfe81a3cc8d9d",
+    "dirty": false
+  },
+  "artifact": {
+    "directory": "D:\\LobbyMesh\\dist\\LobbyMesh-win32-x64-1793376289516",
+    "executable": "D:\\LobbyMesh\\dist\\LobbyMesh-win32-x64-1793376289516\\LobbyMesh.exe",
+    "source": {
+      "revision": "7bcc86fb1e467fb889163484d7cdfe81a3cc8d9d",
+      "dirty": false
+    },
+    "manifest": "D:\\LobbyMesh\\dist\\LobbyMesh-win32-x64-1793376289516\\manifest.json"
+  },
+  "files": 656,
+  "bytes": 415672838,
+  "dependencyCopies": 56,
+  "smoke": {
+    "result": "passed",
+    "packaged": true,
+    "electron": "45.1.0",
+    "sandbox": true,
+    "contextIsolation": true,
+    "network": "offline",
+    "microphone": "off",
+    "credentials": "protected-reopen"
+  },
+  "manifestSha256": "e46e51742c2b828d5a56a5d369dd7e03df670693ff1f2b64b959f58fdcd15a24",
+  "integrity": "passed-pinned-manifest",
+  "authenticode": "NotSigned",
+  "releaseReady": false,
+  "sessionProbe": {
+    "state": "waiting",
+    "selected": false,
+    "networkStarted": false,
+    "verification": "self-asserted",
+    "rawIdentifiersPrinted": false
+  },
+  "ci": {
+    "run": 41086591545,
+    "conclusion": "success"
+  }
+}
