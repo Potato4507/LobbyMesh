@@ -25,6 +25,7 @@ export function VoiceControls({
     [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false),
     [held, setHeld] = useState(false);
+  const [pollFailed, setPollFailed] = useState(false);
   const current = useRef(voice);
   current.current = voice;
   const starting = useRef(false);
@@ -52,6 +53,7 @@ export function VoiceControls({
       try {
         const value = await window.companion.voice();
         if (live) {
+          setPollFailed(false);
           setVoice(value);
           onMicrophone?.(
             value.capturing === null
@@ -64,7 +66,10 @@ export function VoiceControls({
       } catch {
         if (live) {
           release();
-          setVoice(null);
+          // Retain only the last call's controls so End/consent-off remain
+          // reachable. Its capture/activity facts are no longer current.
+          setPollFailed(true);
+          onMicrophone?.("unknown");
         }
       } finally {
         busy = false;
@@ -159,7 +164,7 @@ export function VoiceControls({
         setPending(false);
     }
   }
-  const phase = voice?.phase ?? "unavailable",
+  const phase = pollFailed ? "unavailable" : (voice?.phase ?? "unavailable"),
     connected = phase === "connected";
   const idle = ["idle", "failed"].includes(phase);
   const inCall = [
@@ -169,7 +174,7 @@ export function VoiceControls({
     "negotiating",
     "connected",
     "reconnecting",
-  ].includes(phase);
+  ].includes(voice?.phase ?? "unavailable");
   const permissionDenied =
     voice?.microphonePermission === "denied" ||
     voice?.microphonePermission === "restricted";
@@ -204,7 +209,9 @@ export function VoiceControls({
             id="voiceConsent"
             type="checkbox"
             checked={voice?.enabled ?? false}
-            disabled={!online || !voice?.supported}
+            disabled={
+              !online || !voice?.supported || (pollFailed && !voice.enabled)
+            }
             onChange={(event) => {
               void act({ action: "consent", enabled: event.target.checked });
             }}
@@ -319,19 +326,23 @@ export function VoiceControls({
         )}
       </div>
       <p id="voiceCapture" className="hint" aria-live="polite">
-        {voice?.capturing === null
-          ? voice.error === "MEDIA_TEARDOWN_FAILED"
-            ? "Microphone state unknown. Disconnect cleanup could not be confirmed."
-            : "Microphone state is being checked."
-          : voice?.capturing
-            ? voice.transmitting
-              ? "Microphone on · transmitting"
-              : "Microphone on · transmission muted"
-            : "Microphone off"}
+        {pollFailed || !voice
+          ? "Microphone state unknown. Call status is unavailable."
+          : voice.capturing === null
+            ? voice.error === "MEDIA_TEARDOWN_FAILED"
+              ? "Microphone state unknown. Disconnect cleanup could not be confirmed."
+              : "Microphone state is being checked."
+            : voice?.capturing
+              ? voice.transmitting
+                ? "Microphone on · transmitting"
+                : "Microphone on · transmission muted"
+              : "Microphone off"}
       </p>
-      {voice?.callId && (connected || voice.phase === "preparing") && (
-        <CallDevices key={`devices-${voice.callId}`} voice={voice} />
-      )}
+      {!pollFailed &&
+        voice?.callId &&
+        (connected || voice.phase === "preparing") && (
+          <CallDevices key={`devices-${voice.callId}`} voice={voice} />
+        )}
       {connected && voice && (
         <CallInput key={`input-${voice.callId}`} voice={voice} />
       )}
@@ -372,9 +383,11 @@ export function VoiceControls({
       )}
       <output id="voiceNotice" className="notice" aria-live="polite">
         {notice ||
-          (voice?.error
-            ? "The call ended because media or connection state could not be confirmed."
-            : "")}
+          (pollFailed
+            ? "Call status is unavailable. Check microphone status or end the call."
+            : voice?.error
+              ? "The call ended because media or connection state could not be confirmed."
+              : "")}
       </output>
     </section>
   );

@@ -1,5 +1,13 @@
 # Active checkpoint — 2026-10-30
 
+2026-10-30 native voice-read regression reproduced and fixed: rejected status reads formerly displayed microphone off and removed End while capture continued. Renderer now projects unknown/unavailable, releases PTT, retains End/consent-off, hides stale activity controls and recovers on fresh read without resuming transmission. Synthetic native assertions verify actual owner capturing true/transmitting false, End while reads fail, local off and existing peer-notification uncertainty. Full218/218/typecheck/lint203/build and all five Windows desktop processes pass, original30s bounds. See evidence/voice-status-read-failure.md. Priorc66eb13 Ubuntu41084479480 succeeds. Goal ACTIVE. Next verify/fix main app status-read failure so a stale microphone-off header never survives missing trusted observations, while preserving fresh call-panel evidence and recovery.
+
+Branch codex/lobbymesh-pi-lab-and-reliability; parentc66eb1324aaadd14d46a69b2f52a89b2a00834b6. Next: inspect git; reproduce main status-read failure; fix bounded honest microphone projection and verify native recovery. Latest clean package remains f941434 and predates later lookup/voice fixes. Historical checkpoints retained.
+
+---
+
+# Active checkpoint — 2026-10-30
+
 2026-10-30 pre-text stale-binding recovery implemented: only exact negotiation transport timeout/closed errors may run one owned authenticated refresh; a different verified key is required before new negotiation, and no text has yet been dispatched. Same-key, remote rejection, identity/protocol errors, cancellation and failed replacement do not loop. Existing text lost-ACK retry/dedupe unchanged; no lookup after ambiguous delivery. Focused21/21/full218/218/typecheck/lint203/build and independent production cold-binding Send restart pass. See evidence/send-binding-refresh.md. Prior5dd4382 Ubuntu41083854590 succeeds. Goal ACTIVE. Next reproduce voice status-poll rejection while capture is active and ensure missing renderer status never displays microphone off; preserve release/end controls and recover on a fresh read.
 
 Branch codex/lobbymesh-pi-lab-and-reliability; parent5dd43828c71d986022aff387432917c458198fbd. Next: inspect git state; reproduce renderer voice-poll error under synthetic capture; implement honest unknown projection and verify fresh recovery/controls. Clean Windows artifact remains f941434, predating lookup labels/refresh. Historical checkpoints retained.

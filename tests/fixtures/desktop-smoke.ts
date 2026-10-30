@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, readFile, utimes, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { app, BrowserWindow, powerMonitor } from "electron";
+import { app, BrowserWindow, ipcMain, powerMonitor } from "electron";
 import { loadDesktopCredentials } from "../../apps/desktop/src/credentials.js";
 import { createDesktop } from "../../apps/desktop/src/desktop.js";
 import { DesktopMessaging } from "../../apps/desktop/src/messaging.js";
@@ -106,13 +106,25 @@ async function run() {
     holdContactSearch = false;
   let searchOutcome: "found" | "not-located" | "incomplete" = "found";
   let searchSignal: AbortSignal | undefined;
-  let remoteVoice: VoiceCalls | undefined,
+  let localVoiceOwner: VoiceCalls | undefined,
+    remoteVoice: VoiceCalls | undefined,
     localMediaStarts = 0,
     holdVoiceMute = false,
     holdVoiceInput = false;
   let failVoiceClose = false,
     failVoiceHangup = false,
     failVoiceQuality = true;
+  let failVoiceRead = false;
+  const registerHandler = ipcMain.handle;
+  // Fault only the renderer status read. Keep production sender validation,
+  // voice actions and the real synthetic media owner behind the original handler.
+  ipcMain.handle = (channel, listener) => {
+    registerHandler.call(ipcMain, channel, (event, ...args) => {
+      if (channel === "companion:voice" && failVoiceRead)
+        throw new Error("private synthetic status read failure");
+      return listener(event, ...args);
+    });
+  };
   let inputActivityMode: "unknown" | "measured" | "peaking" = "unknown";
   let mediaConnectionState: ((phase: string) => void) | undefined;
   const networkFactory: DesktopNetworkFactory = async (
@@ -293,6 +305,7 @@ async function run() {
       { authorized: (id) => id === self, createMedia: () => makeMedia(false) },
     );
     otherVoice.setConsent(true);
+    localVoiceOwner = localVoice;
     remoteVoice = otherVoice;
     const pairing = new DesktopPairing(
       createIdentity(),
@@ -353,6 +366,7 @@ async function run() {
         logProvider,
       },
     );
+    ipcMain.handle = registerHandler;
     console.log("desktop stage: loaded");
     let contents = desktop.window.webContents;
     const execute = <T>(code: string): Promise<T> =>
@@ -490,11 +504,41 @@ async function run() {
       await until(
         "document.querySelector('#hangupCall') && !document.querySelector('#hangupCall').disabled",
       );
+      await until("document.querySelector('#pushToTalk') !== null");
+      await execute(
+        "(() => {const talk=document.querySelector('#pushToTalk'); talk.focus(); talk.dispatchEvent(new KeyboardEvent('keydown',{code:'Space',bubbles:true}));})()",
+      );
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      failVoiceRead = true;
+      await until(
+        "document.querySelector('#voiceCapture')?.textContent.includes('Microphone state unknown') && document.querySelector('#hangupCall') !== null && document.querySelector('#pushToTalk') === null",
+      );
+      assert.ok(localVoiceOwner);
+      assert.equal(localVoiceOwner.status().capturing, true);
+      assert.equal(localVoiceOwner.status().transmitting, false);
+      assert.equal(remote.status().capturing, true);
+      assert.equal(
+        await execute(
+          "document.querySelector('#voicePanel').textContent.includes('private synthetic')",
+        ),
+        false,
+      );
+      failVoiceRead = false;
+      await until(
+        "document.querySelector('#voiceCapture')?.textContent.includes('Microphone on') && document.querySelector('#pushToTalk')?.getAttribute('aria-pressed') === 'false'",
+      );
+      assert.equal(localVoiceOwner.status().transmitting, false);
+      failVoiceRead = true;
+      await until(
+        "document.querySelector('#voiceCapture')?.textContent.includes('Microphone state unknown') && document.querySelector('#hangupCall') !== null",
+      );
       failVoiceHangup = true;
       await execute("document.querySelector('#hangupCall').click()");
       await until(
         "document.querySelector('#voiceNotice')?.textContent.includes('Call ended on this computer. Peer notification was not confirmed')",
       );
+      assert.equal(localVoiceOwner.status().capturing, false);
+      failVoiceRead = false;
       await indicator("LobbyMesh microphone off");
       assert.equal(remote.status().capturing, true);
       assert.equal(
@@ -579,6 +623,8 @@ async function run() {
           states: ["off", "on", "unknown", "off"],
           endFailureProjection:
             "main-and-overlay-local-off-peer-notification-unconfirmed",
+          statusReadFailure:
+            "unknown-release-PTT-retain-End-recover-without-transmission",
           microphone: false,
           physicalAudio: false,
         }),
@@ -2305,6 +2351,7 @@ async function run() {
     console.error(error);
     process.exitCode = 1;
   } finally {
+    ipcMain.handle = registerHandler;
     foreign?.destroy();
     desktop?.window.destroy();
     await desktop?.close();
