@@ -62,6 +62,7 @@ export interface LabCommand {
   id: number;
   op:
     | "status"
+    | "restart"
     | "code"
     | "preview"
     | "approve"
@@ -99,6 +100,7 @@ export function parseLabCommand(value: unknown): LabCommand {
     (o.id as number) < 1 ||
     ![
       "status",
+      "restart",
       "code",
       "preview",
       "approve",

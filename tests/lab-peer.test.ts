@@ -3,6 +3,8 @@ import { createSocket } from "node:dgram";
 import test from "node:test";
 import { launchLabPeer } from "../scripts/lab/client.js";
 import { parseLabCommand, parseLabOptions } from "../scripts/lab/options.js";
+import { parseLabPairOptions } from "../scripts/lab/pair-options.js";
+import { exerciseLabRestart } from "../scripts/lab/restart-scenario.js";
 import { exerciseLabVoice } from "../scripts/lab/voice-scenario.js";
 
 test("lab options require explicit endpoints, bounded lifetime and exact control commands", () => {
@@ -26,6 +28,10 @@ test("lab options require explicit endpoints, bounded lifetime and exact control
     id: 1,
     op: "status",
   });
+  assert.deepEqual(parseLabCommand({ id: 2, op: "restart" }), {
+    id: 2,
+    op: "restart",
+  });
   for (const command of [
     null,
     {},
@@ -37,11 +43,47 @@ test("lab options require explicit endpoints, bounded lifetime and exact control
     { id: 1, op: "voice-enable", value: "true" },
     { id: 1, op: "voice-answer" },
     { id: 1, op: "voice-capture" },
+    { id: 1, op: "restart", value: "new-identity" },
+    { id: 1, op: "restart", shell: "arbitrary" },
   ])
     assert.throws(() => parseLabCommand(command), /INVALID_LAB_COMMAND/);
   assert.throws(
     () => launchLabPeer([], { target: "-oProxyCommand=bad", root: "/tmp" }),
     /INVALID_LAB_REMOTE/,
+  );
+});
+
+test("pair restart scenario is explicit and preserves bounded counts and paired SSH options", () => {
+  assert.equal(
+    parseLabPairOptions(["--bootstrap", "127.0.0.1:1234"]).scenario,
+    "baseline",
+  );
+  assert.equal(
+    parseLabPairOptions([
+      "--bootstrap",
+      "127.0.0.1:1234",
+      "--scenario",
+      "restart",
+    ]).scenario,
+    "restart",
+  );
+  for (const tail of [
+    ["--scenario", "reset-host"],
+    ["--scenario", "restart", "--scenario", "baseline"],
+    ["--count", "9"],
+    ["--count", "Infinity"],
+    ["--ssh-target", "worker"],
+    ["--remote-root", "/repo"],
+    ["--scenario"],
+    ["--unknown", "x"],
+  ])
+    assert.throws(
+      () => parseLabPairOptions(["--bootstrap", "127.0.0.1:1234", ...tail]),
+      /INVALID_LAB_PAIR_OPTIONS/,
+    );
+  assert.throws(
+    () => parseLabPairOptions(["--scenario", "restart"]),
+    /INVALID_LAB_OPTIONS/,
   );
 });
 
@@ -87,6 +129,7 @@ test(
     ]);
     children.push(bootstrap);
     await bootstrap.ready;
+    await assert.rejects(bootstrap.request("restart"));
     const args = ["--bootstrap", `127.0.0.1:${port}`];
     const a = launchLabPeer(args);
     children.push(a);
@@ -121,6 +164,15 @@ test(
       1,
     );
     assert.ok(infoA.peerId);
+    assert.ok(infoB.peerId);
+    const restarted = await exerciseLabRestart(
+      a,
+      b,
+      infoA.peerId,
+      infoB.peerId,
+    );
+    assert.equal(restarted.result, "passed");
+    t.diagnostic(JSON.stringify({ headlessNetworkRestart: restarted }));
     assert.deepEqual(await exerciseLabVoice(a, b, infoA.peerId), {
       result: "passed",
       syntheticSignalingOnly: true,
@@ -128,6 +180,20 @@ test(
     });
     await assert.rejects(
       a.request("send", "revoked synthetic text"),
+      /LAB_COMMAND_SEND_FAILED/,
+    );
+    const revokedRestart = (await b.request("restart")) as {
+      approved: number;
+      voiceAvailable: boolean;
+    };
+    assert.equal(revokedRestart.approved, 0);
+    assert.equal(revokedRestart.voiceAvailable, false);
+    await assert.rejects(
+      b.request("history", infoA.peerId),
+      /LAB_COMMAND_HISTORY_FAILED/,
+    );
+    await assert.rejects(
+      a.request("send", "revoked contact after network restart"),
       /LAB_COMMAND_SEND_FAILED/,
     );
     const denied = (await a.request("history", infoB.peerId)) as {

@@ -1,40 +1,12 @@
 import assert from "node:assert/strict";
 import { launchLabPeer } from "./lab/client.js";
-import { parseLabOptions } from "./lab/options.js";
+import { parseLabPairOptions } from "./lab/pair-options.js";
+import { exerciseLabRestart } from "./lab/restart-scenario.js";
 import { exerciseLabVoice } from "./lab/voice-scenario.js";
 
 // Explicit operator invocation. SSH never installs packages or changes the host.
-const fields = new Map<string, string>();
-const args = process.argv.slice(2);
-for (let i = 0; i < args.length; i += 2) {
-  const key = args[i],
-    value = args[i + 1];
-  if (
-    !key ||
-    !["--bootstrap", "--ssh-target", "--remote-root", "--count"].includes(
-      key,
-    ) ||
-    !value ||
-    fields.has(key)
-  )
-    throw new Error("INVALID_LAB_PAIR_OPTIONS");
-  fields.set(key, value);
-}
-const options = parseLabOptions([
-  "--bootstrap",
-  fields.get("--bootstrap") ?? "",
-]);
-const countText = fields.get("--count") ?? "4",
-  count = Number(countText);
-if (
-  !/^\d+$/.test(countText) ||
-  count < 1 ||
-  count > 8 ||
-  fields.has("--ssh-target") !== fields.has("--remote-root")
-)
-  throw new Error("INVALID_LAB_PAIR_OPTIONS");
-const target = fields.get("--ssh-target"),
-  root = fields.get("--remote-root");
+const options = parseLabPairOptions(process.argv.slice(2));
+const { count, target, root } = options;
 const peers: ReturnType<typeof launchLabPeer>[] = [];
 const latencies: number[] = [];
 let succeeded = 0,
@@ -42,6 +14,8 @@ let succeeded = 0,
   cleanupVerified = false,
   passed = false;
 let voiceSignaling: Awaited<ReturnType<typeof exerciseLabVoice>> | null = null;
+let networkRestart: Awaited<ReturnType<typeof exerciseLabRestart>> | null =
+  null;
 const started = performance.now();
 try {
   const peerArgs = [
@@ -101,6 +75,9 @@ try {
     );
   }
   assert.ok(infoA.peerId);
+  assert.ok(infoB.peerId);
+  if (options.scenario === "restart")
+    networkRestart = await exerciseLabRestart(a, b, infoA.peerId, infoB.peerId);
   voiceSignaling = await exerciseLabVoice(a, b, infoA.peerId);
   await assert.rejects(a.request("send", "revocation negative check"));
   passed = true;
@@ -122,7 +99,13 @@ try {
       : null;
   console.log(
     JSON.stringify({
-      scenario: "headless-pair-text-revocation",
+      scenario:
+        options.scenario === "restart"
+          ? "headless-pair-text-network-restart-revocation"
+          : "headless-pair-text-revocation",
+      messageMetricScope: "baseline-text",
+      networkRestartRequested: options.scenario === "restart",
+      networkRestart,
       dateUtc: new Date().toISOString(),
       platform: process.platform,
       proofTier: target ? "REMOTE_UNCLASSIFIED" : "SAME_HOST",

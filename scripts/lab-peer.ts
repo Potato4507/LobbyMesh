@@ -1,11 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
-import { DesktopMessaging } from "../apps/desktop/src/messaging.js";
-import { DesktopPairing } from "../apps/desktop/src/pairing.js";
-import { createOverlayRuntime } from "../packages/app-dht/src/runtime.js";
+import { NetworkLifecycle } from "../packages/app-dht/src/lifecycle.js";
 import { createIdentity } from "../packages/identity/src/index.js";
 import type { KeyPair } from "../packages/public-discovery/src/hyperdht.js";
-import { VoiceSignaling } from "../packages/voice/src/signaling.js";
+import { createLabNetwork, type LabNetwork } from "./lab/network.js";
 import { parseLabCommand, parseLabOptions } from "./lab/options.js";
 
 // JSONL control channel, suitable for local pipes or an authorized SSH stdio
@@ -75,55 +73,57 @@ try {
       blocked: () => false,
       allowed: () => [...authorized],
     };
-    let messaging: DesktopMessaging;
-    let voice: VoiceSignaling;
-    const runtime = await createOverlayRuntime("", {
-      credentials: { identity, transportKeys: keys },
-      bootstrap: [options.bootstrap],
-      signal: controller.signal,
-      directHandler: (peer, request, signal) =>
-        request &&
-        typeof request === "object" &&
-        "type" in request &&
-        request.type === "voice"
-          ? voice.handle(peer, request, signal)
-          : messaging.handle(peer, request, signal),
-    });
-    // Synthetic control-plane adapter only. No browser, mediaConnected transition,
-    // capture device or audio path exists in this process.
-    voice = new VoiceSignaling(
-      runtime.peerId,
-      (peer, request, signal) =>
-        runtime.overlay.directRequest(peer, request, signal),
-      { authorized: policy.authorized, mediaAvailable: () => true },
-    );
-    messaging = new DesktopMessaging(
-      runtime.peerId,
-      (peer, request, signal) =>
-        runtime.overlay.directRequest(peer, request, signal),
-      policy,
-      () =>
-        runtime.overlay.authenticatedContacts().map((peer) => ({
-          id: peer.id,
-          transportKey: Buffer.from(peer.publicKey).toString("hex"),
-        })),
-    );
-    const pairing = new DesktopPairing(
-      identity,
-      runtime.transportKey,
-      policy,
-      (peer, signal) => runtime.overlay.authenticateContact(peer, signal),
-      () => "synthetic lab peer",
-      (peer) => messaging.rememberContact(peer),
+    const lifecycle = new NetworkLifecycle(
+      (signal) =>
+        createLabNetwork(
+          identity,
+          keys,
+          policy,
+          options.bootstrap,
+          AbortSignal.any([controller.signal, signal]),
+        ),
+      { startupMs: 10000, shutdownMs: 3000, maxAttempts: 1 },
     );
     cleanup = async () => {
-      voice.close();
-      messaging.close();
-      await Promise.all([pairing.close(), runtime.stop()]);
-      keys.secretKey.fill(0);
+      try {
+        await lifecycle.close();
+      } finally {
+        keys.secretKey.fill(0);
+      }
     };
-    await runtime.start();
+    const online = () => {
+      if (lifecycle.status().state !== "online")
+        throw new Error("LAB_NETWORK_UNAVAILABLE");
+      return lifecycle.using((runtime) => runtime as LabNetwork);
+    };
+    lifecycle.setEnabled(true);
+    await lifecycle.settled();
+    online();
     command = async (op, value) => {
+      if (op === "restart") {
+        lifecycle.setEnabled(false);
+        await lifecycle.settled();
+        if (
+          stopped ||
+          controller.signal.aborted ||
+          lifecycle.status().error === "STOP_FAILED"
+        )
+          throw new Error("LAB_NETWORK_UNAVAILABLE");
+        lifecycle.setEnabled(true);
+        await lifecycle.settled();
+        const fresh = online();
+        return {
+          networkRestarted: true,
+          processRestart: false,
+          identityPreserved: fresh.runtime.peerId === identity.peerId,
+          transportPreserved:
+            fresh.runtime.transportKey === keys.publicKey.toString("hex"),
+          approved: authorized.size,
+          voiceAvailable: fresh.voice.status().available,
+          microphone: "off",
+        };
+      }
+      const { runtime, messaging, voice, pairing } = online();
       switch (op) {
         case "voice-enable":
         case "voice-disable":
@@ -190,7 +190,7 @@ try {
           throw new Error("LAB_OPERATION_DENIED");
       }
     };
-    write({ ready: true, role: "peer", peerId: runtime.peerId });
+    write({ ready: true, role: "peer", peerId: identity.peerId });
   }
   let input = Buffer.alloc(0),
     busy = false;

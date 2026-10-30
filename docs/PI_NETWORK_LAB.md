@@ -1,5 +1,7 @@
 # Raspberry Pi + one-house LobbyMesh verification lab
 
+Headless recovery extension (2026-10-30): `pnpm lab:pair --bootstrap LAB_INTERFACE_IPV4:49737 --scenario restart` exercises production network-instance replacement, identity/permission retention, voice default-off, fresh text ACKs and revocation with existing optional authorized SSH worker fields. Local SAME_HOST proof only; no Pi/namespace execution or privilege claim. See evidence/headless-network-restart.md.
+
 ## Design goal
 
 One Windows computer and one Raspberry Pi on the **same home LAN** are sufficient for real cross-device protocol verification. The Pi can also provide a safe, self-contained Linux virtual-network lab for NAT and traffic impairment. These tests complement, but cannot replace, genuine remote-network trials. This lab is optional: an unavailable Pi never blocks unrelated engineering work.
