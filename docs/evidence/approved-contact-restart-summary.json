@@ -1,0 +1,15 @@
+{
+  "result": "independent-contact-recovery-passed",
+  "electronMainProcesses": 2,
+  "clientLaunches": 3,
+  "fullProcessRestart": true,
+  "identityPreserved": true,
+  "approvedPermissionPreserved": true,
+  "revokedRediscoveryDenied": true,
+  "authenticatedRediscovery": true,
+  "initialAuthenticatedPeers": 1,
+  "acknowledgedText": true,
+  "voice": "off",
+  "microphone": false,
+  "physicalNetwork": false
+}

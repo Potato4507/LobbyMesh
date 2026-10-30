@@ -28,7 +28,8 @@
     "lab:pair": "tsx scripts/lab-pair.ts",
     "lab:doctor": "tsx scripts/lab-doctor.ts",
     "smoke:public-pair": "node scripts/public-pair-smoke.mjs",
-    "simulate:overlay": "tsx scripts/simulate-overlay.ts"
+    "simulate:overlay": "tsx scripts/simulate-overlay.ts",
+    "test:contact-recovery": "node scripts/independent-voice-smoke.mjs --contact-recovery"
   },
   "dependencies": {
     "hyperdht": "6.35.0",

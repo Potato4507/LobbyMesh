@@ -72,16 +72,7 @@ export async function createDesktopNetwork(
     async (peerId, searchSignal) => {
       if (!policy.authorized(peerId) || policy.blocked(peerId))
         throw new Error("CONTACT_NOT_AUTHORIZED");
-      const result = await runtime.overlay.findNodes(
-        peerId,
-        undefined,
-        searchSignal,
-      );
-      return {
-        contact:
-          result.authenticated.find((contact) => contact.id === peerId) ?? null,
-        complete: result.state === "exhausted",
-      };
+      return runtime.recoverContact(peerId, searchSignal);
     },
   );
   const sessions = sessionOptions

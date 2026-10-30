@@ -1,5 +1,8 @@
 # Continuation — 2026-10-29 UTC
 
+Bootstrap-assisted approved contact recovery implemented after native full-restart zero-route failure. Existing graph first, bounded public-entrypoint authentication if missing, exact requested authenticated target only; existing5s caller/slot/cooldown/public quotas unchanged. Focused10/10/full194/194/typecheck/lint185/build and new explicit independent native contact-recovery scenario pass (two processes,three launches, real IPC/Noise/ACK, approved identity+permission retained, voice off). Final positive startup peers1; cold-path UNIT and earlier native cold failure documented without overstating proof. See evidence/contact-bootstrap-recovery.md. Existing full native media failures retained; strict default voice/crash assertions unchanged. Goal ACTIVE. Next commit/push verified runtime, refresh clean Windows package and source CI, then continue an unblocked integration/reliability increment.
+
+
 Conversation Jump to latest and labelled keyboard-scrollable history implemented. Native PageDown/Home plus incoming-text retention, explicit bottom/focus and draft retention pass; main/overlay share component. Full190/190/typecheck/lint183/build and four native desktop modes pass. See evidence/conversation-history-navigation.md. Runtime76b2867 Ubuntu41003021282 succeeded; its clean unsigned package is historical for this newer renderer. Goal ACTIVE. Next extend independent native clients to verify approved-contact rediscovery and acknowledged text after whole-client restart through production desktop IPC, preserving revoked-contact/default-off voice checks.
 
 

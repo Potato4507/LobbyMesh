@@ -23,6 +23,7 @@ const entry = path.resolve(
 );
 const clients = [];
 const crashMode = process.argv.includes("--crash");
+const contactRecoveryMode = process.argv.includes("--contact-recovery");
 let crashCleanupMs = null;
 const crashTrace = [];
 let bootstrap;
@@ -80,7 +81,7 @@ function client(directory, address, assets) {
     pending.delete(message.id);
     clearTimeout(item.timer);
     if (message.error)
-      item.reject(new Error(`CLIENT_COMMAND ${message.error}`));
+      item.reject(new Error(`CLIENT_COMMAND ${item.op} ${message.error}`));
     else item.resolve(message.result);
   });
   return {
@@ -94,7 +95,7 @@ function client(directory, address, assets) {
           pending.delete(id);
           reject(new Error(`CLIENT_COMMAND_TIMEOUT ${op} ${diagnostics}`));
         }, 15_000);
-        pending.set(id, { resolve, reject, timer });
+        pending.set(id, { op, resolve, reject, timer });
         child.send({ id, op, ...args });
       });
     },
@@ -160,220 +161,307 @@ try {
   );
   await a.command("approve", { code: codeB.code });
   await b.command("approve", { code: codeA.code });
-  await a.command("enable-voice");
-  await assert.rejects(
-    a.command("call", { peerId: infoB.peerId }),
-    /VOICE_ACTION_FAILED/,
-  );
-  assert.equal((await a.command("samples")).hosts, 0);
-  await b.command("enable-voice");
-  const offering = await a.command("call", { peerId: infoB.peerId });
-  const ringing = await b.command("snapshot");
-  assert.equal(ringing.voice.phase, "ringing");
-  assert.deepEqual(ringing.voice.quality, {
-    roundTripMs: null,
-    jitterMs: null,
-    packetsLost: null,
-  });
-  assert.equal((await b.command("samples")).hosts, 0);
-  await b.command("answer", { callId: offering.callId });
-  await until(
-    async () =>
-      (
-        await Promise.all(clients.map((value) => value.command("snapshot")))
-      ).every((value) => value.voice.phase === "connected"),
-    "connected",
-  );
-  await a.command("talk");
-  await delay(1000);
-  const forward = await b.command("samples");
-  assert.equal(forward.hosts, 1);
-  assert.ok(forward.rms[0] > 0.01);
-  const activity = (value) => ({
-    level: value.inputLevel,
-    peak: value.inputClipping,
-  });
-  const inputActivityUnity = activity((await a.command("snapshot")).voice);
-  assert.ok(inputActivityUnity.level > 0.1);
-  await until(
-    async () => (await b.command("snapshot")).voice.quality.jitterMs !== null,
-    "native call quality",
-  );
-  const quality = (await b.command("snapshot")).voice.quality;
-  assert.equal(typeof quality.roundTripMs, "number");
-  assert.equal(typeof quality.packetsLost, "number");
-  assert.equal(
-    Object.keys(quality).sort().join(","),
-    "jitterMs,packetsLost,roundTripMs",
-  );
-  await b.command("output", { volume: 0.25, muted: false });
-  await delay(200);
-  const quiet = await b.command("samples");
-  assert.ok(
-    quiet.outputRms[0] / forward.outputRms[0] > 0.18 &&
-      quiet.outputRms[0] / forward.outputRms[0] < 0.32,
-  );
-  await b.command("output", { volume: 0.25, muted: true });
-  await delay(200);
-  const deafened = await b.command("samples");
-  assert.ok(deafened.outputRms[0] < 0.00001 && deafened.rms[0] > 0.01);
-  assert.equal((await a.command("snapshot")).voice.transmitting, true);
-  assert.equal((await b.command("snapshot")).voice.capturing, true);
-  await b.command("output", { volume: 1, muted: false });
-  await a.command("input-gain", { gain: 0.25 });
-  await delay(400);
-  const quarterInput = await b.command("samples");
-  const inputActivityQuarter = activity((await a.command("snapshot")).voice);
-  assert.ok(
-    inputActivityQuarter.level / inputActivityUnity.level > 0.18 &&
-      inputActivityQuarter.level / inputActivityUnity.level < 0.32,
-  );
-  assert.equal(inputActivityQuarter.peak, false);
-  assert.ok(
-    quarterInput.rms[0] / forward.rms[0] > 0.18 &&
-      quarterInput.rms[0] / forward.rms[0] < 0.32,
-  );
-  await a.command("input-gain", { gain: 2 });
-  await delay(300);
-  const inputActivityHigh = activity((await a.command("snapshot")).voice);
-  assert.equal(inputActivityHigh.peak, true);
-  assert.equal(inputActivityHigh.level, 1);
-  await a.command("input-gain", { gain: 0 });
-  await delay(400);
-  const zeroInput = await b.command("samples");
-  assert.ok(zeroInput.rms[0] < 0.00001);
-  assert.equal((await a.command("snapshot")).voice.capturing, true);
-  assert.equal((await a.command("snapshot")).voice.inputLevel, 0);
-  assert.equal((await a.command("snapshot")).voice.inputClipping, false);
-  await a.command("input-gain", { gain: 1 });
-  await delay(400);
-  assert.ok((await b.command("samples")).rms[0] > 0.1);
-  await a.command("release");
-  await delay(400);
-  const silence = await b.command("samples");
-  assert.ok(silence.rms[0] < 0.00001);
-  await b.command("talk");
-  await delay(1000);
-  const reverse = await a.command("samples");
-  assert.ok(reverse.rms[0] > 0.01);
-  await b.command("release");
-  await a.command("hangup");
-  await until(
-    async () =>
-      (
-        await Promise.all(clients.map((value) => value.command("samples")))
-      ).every((value) => value.hosts === 0),
-    "hangup cleanup",
-  );
-  const second = await a.command("call", { peerId: infoB.peerId });
-  await b.command("answer", { callId: second.callId });
-  await b.command("revoke", { peerId: infoA.peerId });
-  assert.equal((await b.command("samples")).hosts, 0);
-  await a.command("hangup").catch(() => {});
-  assert.equal((await b.command("stop")).windows, 0);
-  assert.equal(await b.exited, 0);
-  b = client(path.join(root, "b"), `127.0.0.1:${port}`, assets);
-  clients.push(b);
-  const restarted = await b.ready;
-  assert.notEqual(restarted.pid, infoB.pid);
-  assert.equal(restarted.pid, b.child.pid);
-  assert.equal(restarted.peerId, infoB.peerId);
-  assert.equal((await b.command("snapshot")).voice.enabled, false);
-  assert.equal(await b.command("permission", { peerId: infoA.peerId }), false);
-  const freshCodeA = await a.command("code");
-  await b.command("approve", { code: freshCodeA.code });
-  await b.command("enable-voice");
-  const reopened = await a.command("call", { peerId: infoB.peerId });
-  await b.command("answer", { callId: reopened.callId });
-  await until(
-    async () => (await b.command("snapshot")).voice.phase === "connected",
-    "reopened protected client connected",
-  );
-  if (crashMode) {
-    const started = performance.now();
-    b.child.kill();
-    await b.exited;
-    console.log(
-      "independent voice: peer process terminated; observing surviving call",
+  if (contactRecoveryMode) {
+    assert.deepEqual(
+      await a.command("baseline-text", { peerId: infoB.peerId }),
+      { status: "acknowledged" },
     );
-    let previous = "";
-    while (performance.now() - started < 45_000) {
-      const snapshot = await a.command("snapshot"),
-        sample = await a.command("samples");
-      const state = JSON.stringify({
-        phase: snapshot.voice.phase,
-        capturing: snapshot.voice.capturing,
-        hosts: sample.hosts,
-      });
-      if (state !== previous) {
-        previous = state;
-        const entry = {
-          elapsedMs: Math.round(performance.now() - started),
-          ...JSON.parse(state),
-        };
-        crashTrace.push(entry);
-        console.log(JSON.stringify({ crashObservation: entry }));
-      }
-      if (sample.hosts === 0 && snapshot.voice.capturing === false) {
-        crashCleanupMs = Math.round(performance.now() - started);
-        break;
-      }
-      await delay(200);
+    await b.command("revoke", { peerId: infoA.peerId });
+    await assert.rejects(
+      b.command("rediscover", { peerId: infoA.peerId }),
+      /CONTACT_NOT_AUTHORIZED/,
+    );
+    assert.equal((await a.command("stop")).windows, 0);
+    assert.equal(await a.exited, 0);
+    const restored = client(path.join(root, "a"), `127.0.0.1:${port}`, assets);
+    clients.push(restored);
+    const next = await restored.ready;
+    assert.notEqual(next.pid, infoA.pid);
+    assert.equal(next.pid, restored.child.pid);
+    assert.equal(next.peerId, infoA.peerId);
+    assert.equal(
+      await restored.command("permission", { peerId: infoB.peerId }),
+      true,
+    );
+    const beforeLookup = await restored.command("recovery-state");
+    // Startup already consumes the shared public-discovery query quota (1s).
+    // Let that existing quota reopen; this does not extend the search deadline.
+    await delay(1100);
+    const recovered = await restored.command("rediscover", {
+      peerId: infoB.peerId,
+    });
+    if (recovered.state !== "found")
+      console.log(
+        JSON.stringify({
+          contactRestartLookup: {
+            result: recovered,
+            before: beforeLookup,
+            after: await restored.command("recovery-state"),
+          },
+        }),
+      );
+    assert.deepEqual(recovered, { state: "found" });
+    const freshCode = await restored.command("code");
+    await b.command("approve", { code: freshCode.code });
+    assert.equal(
+      await b.command("received-recovery-text", { peerId: infoA.peerId }),
+      false,
+    );
+    assert.deepEqual(
+      await restored.command("recovery-text", { peerId: infoB.peerId }),
+      { status: "acknowledged" },
+    );
+    assert.equal(
+      await b.command("received-recovery-text", { peerId: infoA.peerId }),
+      true,
+    );
+    for (const value of [restored, b]) {
+      const snapshot = await value.command("snapshot");
+      assert.equal(snapshot.voice.enabled, false);
+      assert.equal(snapshot.microphone, "off");
+      assert.equal((await value.command("samples")).hosts, 0);
+      assert.equal((await value.command("stop")).windows, 0);
+      assert.equal(await value.exited, 0);
     }
-    assert.notEqual(
-      crashCleanupMs,
-      null,
-      `CRASH_CAPTURE_STILL_ACTIVE ${JSON.stringify(crashTrace)}`,
+    console.log(
+      JSON.stringify({
+        result: "independent-contact-recovery-passed",
+        electronMainProcesses: 2,
+        clientLaunches: 3,
+        fullProcessRestart: true,
+        identityPreserved: true,
+        approvedPermissionPreserved: true,
+        revokedRediscoveryDenied: true,
+        authenticatedRediscovery: true,
+        initialAuthenticatedPeers: beforeLookup.connection.peers,
+        acknowledgedText: true,
+        voice: "off",
+        microphone: false,
+        physicalNetwork: false,
+      }),
     );
-  } else await a.command("hangup");
-  for (const name of ["a", "b"]) {
-    const encryptedIdentity = await readFile(
-      path.join(root, name, "network", "identity", "identity-os-v1.bin"),
+  } else {
+    await a.command("enable-voice");
+    await assert.rejects(
+      a.command("call", { peerId: infoB.peerId }),
+      /VOICE_ACTION_FAILED/,
     );
+    assert.equal((await a.command("samples")).hosts, 0);
+    await b.command("enable-voice");
+    const offering = await a.command("call", { peerId: infoB.peerId });
+    const ringing = await b.command("snapshot");
+    assert.equal(ringing.voice.phase, "ringing");
+    assert.deepEqual(ringing.voice.quality, {
+      roundTripMs: null,
+      jitterMs: null,
+      packetsLost: null,
+    });
+    assert.equal((await b.command("samples")).hosts, 0);
+    await b.command("answer", { callId: offering.callId });
+    await until(
+      async () =>
+        (
+          await Promise.all(clients.map((value) => value.command("snapshot")))
+        ).every((value) => value.voice.phase === "connected"),
+      "connected",
+    );
+    await a.command("talk");
+    await delay(1000);
+    const forward = await b.command("samples");
+    assert.equal(forward.hosts, 1);
+    assert.ok(forward.rms[0] > 0.01);
+    const activity = (value) => ({
+      level: value.inputLevel,
+      peak: value.inputClipping,
+    });
+    const inputActivityUnity = activity((await a.command("snapshot")).voice);
+    assert.ok(inputActivityUnity.level > 0.1);
+    await until(
+      async () => (await b.command("snapshot")).voice.quality.jitterMs !== null,
+      "native call quality",
+    );
+    const quality = (await b.command("snapshot")).voice.quality;
+    assert.equal(typeof quality.roundTripMs, "number");
+    assert.equal(typeof quality.packetsLost, "number");
+    assert.equal(
+      Object.keys(quality).sort().join(","),
+      "jitterMs,packetsLost,roundTripMs",
+    );
+    await b.command("output", { volume: 0.25, muted: false });
+    await delay(200);
+    const quiet = await b.command("samples");
     assert.ok(
-      encryptedIdentity.length > 0 && encryptedIdentity.length <= 16_384,
+      quiet.outputRms[0] / forward.outputRms[0] > 0.18 &&
+        quiet.outputRms[0] / forward.outputRms[0] < 0.32,
     );
-    assert.equal(encryptedIdentity.includes(Buffer.from("PRIVATE KEY")), false);
+    await b.command("output", { volume: 0.25, muted: true });
+    await delay(200);
+    const deafened = await b.command("samples");
+    assert.ok(deafened.outputRms[0] < 0.00001 && deafened.rms[0] > 0.01);
+    assert.equal((await a.command("snapshot")).voice.transmitting, true);
+    assert.equal((await b.command("snapshot")).voice.capturing, true);
+    await b.command("output", { volume: 1, muted: false });
+    await a.command("input-gain", { gain: 0.25 });
+    await delay(400);
+    const quarterInput = await b.command("samples");
+    const inputActivityQuarter = activity((await a.command("snapshot")).voice);
+    assert.ok(
+      inputActivityQuarter.level / inputActivityUnity.level > 0.18 &&
+        inputActivityQuarter.level / inputActivityUnity.level < 0.32,
+    );
+    assert.equal(inputActivityQuarter.peak, false);
+    assert.ok(
+      quarterInput.rms[0] / forward.rms[0] > 0.18 &&
+        quarterInput.rms[0] / forward.rms[0] < 0.32,
+    );
+    await a.command("input-gain", { gain: 2 });
+    await delay(300);
+    const inputActivityHigh = activity((await a.command("snapshot")).voice);
+    assert.equal(inputActivityHigh.peak, true);
+    assert.equal(inputActivityHigh.level, 1);
+    await a.command("input-gain", { gain: 0 });
+    await delay(400);
+    const zeroInput = await b.command("samples");
+    assert.ok(zeroInput.rms[0] < 0.00001);
+    assert.equal((await a.command("snapshot")).voice.capturing, true);
+    assert.equal((await a.command("snapshot")).voice.inputLevel, 0);
+    assert.equal((await a.command("snapshot")).voice.inputClipping, false);
+    await a.command("input-gain", { gain: 1 });
+    await delay(400);
+    assert.ok((await b.command("samples")).rms[0] > 0.1);
+    await a.command("release");
+    await delay(400);
+    const silence = await b.command("samples");
+    assert.ok(silence.rms[0] < 0.00001);
+    await b.command("talk");
+    await delay(1000);
+    const reverse = await a.command("samples");
+    assert.ok(reverse.rms[0] > 0.01);
+    await b.command("release");
+    await a.command("hangup");
+    await until(
+      async () =>
+        (
+          await Promise.all(clients.map((value) => value.command("samples")))
+        ).every((value) => value.hosts === 0),
+      "hangup cleanup",
+    );
+    const second = await a.command("call", { peerId: infoB.peerId });
+    await b.command("answer", { callId: second.callId });
+    await b.command("revoke", { peerId: infoA.peerId });
+    assert.equal((await b.command("samples")).hosts, 0);
+    await a.command("hangup").catch(() => {});
+    assert.equal((await b.command("stop")).windows, 0);
+    assert.equal(await b.exited, 0);
+    b = client(path.join(root, "b"), `127.0.0.1:${port}`, assets);
+    clients.push(b);
+    const restarted = await b.ready;
+    assert.notEqual(restarted.pid, infoB.pid);
+    assert.equal(restarted.pid, b.child.pid);
+    assert.equal(restarted.peerId, infoB.peerId);
+    assert.equal((await b.command("snapshot")).voice.enabled, false);
+    assert.equal(
+      await b.command("permission", { peerId: infoA.peerId }),
+      false,
+    );
+    const freshCodeA = await a.command("code");
+    await b.command("approve", { code: freshCodeA.code });
+    await b.command("enable-voice");
+    const reopened = await a.command("call", { peerId: infoB.peerId });
+    await b.command("answer", { callId: reopened.callId });
+    await until(
+      async () => (await b.command("snapshot")).voice.phase === "connected",
+      "reopened protected client connected",
+    );
+    if (crashMode) {
+      const started = performance.now();
+      b.child.kill();
+      await b.exited;
+      console.log(
+        "independent voice: peer process terminated; observing surviving call",
+      );
+      let previous = "";
+      while (performance.now() - started < 45_000) {
+        const snapshot = await a.command("snapshot"),
+          sample = await a.command("samples");
+        const state = JSON.stringify({
+          phase: snapshot.voice.phase,
+          capturing: snapshot.voice.capturing,
+          hosts: sample.hosts,
+        });
+        if (state !== previous) {
+          previous = state;
+          const entry = {
+            elapsedMs: Math.round(performance.now() - started),
+            ...JSON.parse(state),
+          };
+          crashTrace.push(entry);
+          console.log(JSON.stringify({ crashObservation: entry }));
+        }
+        if (sample.hosts === 0 && snapshot.voice.capturing === false) {
+          crashCleanupMs = Math.round(performance.now() - started);
+          break;
+        }
+        await delay(200);
+      }
+      assert.notEqual(
+        crashCleanupMs,
+        null,
+        `CRASH_CAPTURE_STILL_ACTIVE ${JSON.stringify(crashTrace)}`,
+      );
+    } else await a.command("hangup");
+    for (const name of ["a", "b"]) {
+      const encryptedIdentity = await readFile(
+        path.join(root, name, "network", "identity", "identity-os-v1.bin"),
+      );
+      assert.ok(
+        encryptedIdentity.length > 0 && encryptedIdentity.length <= 16_384,
+      );
+      assert.equal(
+        encryptedIdentity.includes(Buffer.from("PRIVATE KEY")),
+        false,
+      );
+    }
+    for (const value of [a, b]) {
+      if (value.child.exitCode !== null || value.child.signalCode) continue;
+      const stopped = await value.command("stop");
+      assert.equal(stopped.windows, 0);
+      assert.equal(await value.exited, 0);
+    }
+    console.log(
+      JSON.stringify({
+        result: "independent-voice-passed",
+        electronMainProcesses: 2,
+        clientLaunches: 3,
+        restartedIdentityPreserved: true,
+        voiceConsentReset: true,
+        revokedContactPersisted: true,
+        distinctProfiles: true,
+        distinctAppIdentities: true,
+        protectedCredentials: true,
+        mutualSignedPairing: true,
+        forward: forward.rms[0],
+        silence: silence.rms[0],
+        reverse: reverse.rms[0],
+        quarterOutput: quiet.outputRms[0],
+        quarterInput: quarterInput.rms[0],
+        inputActivity: {
+          unity: inputActivityUnity,
+          quarter: inputActivityQuarter,
+          high: inputActivityHigh,
+        },
+        zeroInput: zeroInput.rms[0],
+        mutedOutput: deafened.outputRms[0],
+        recipientNoCaptureBeforeAnswer: true,
+        microphone: false,
+        audibleOutput: false,
+        crossNat: false,
+        crashCleanupMs,
+        crashTrace,
+        quality,
+      }),
+    );
   }
-  for (const value of [a, b]) {
-    if (value.child.exitCode !== null || value.child.signalCode) continue;
-    const stopped = await value.command("stop");
-    assert.equal(stopped.windows, 0);
-    assert.equal(await value.exited, 0);
-  }
-  console.log(
-    JSON.stringify({
-      result: "independent-voice-passed",
-      electronMainProcesses: 2,
-      clientLaunches: 3,
-      restartedIdentityPreserved: true,
-      voiceConsentReset: true,
-      revokedContactPersisted: true,
-      distinctProfiles: true,
-      distinctAppIdentities: true,
-      protectedCredentials: true,
-      mutualSignedPairing: true,
-      forward: forward.rms[0],
-      silence: silence.rms[0],
-      reverse: reverse.rms[0],
-      quarterOutput: quiet.outputRms[0],
-      quarterInput: quarterInput.rms[0],
-      inputActivity: {
-        unity: inputActivityUnity,
-        quarter: inputActivityQuarter,
-        high: inputActivityHigh,
-      },
-      zeroInput: zeroInput.rms[0],
-      mutedOutput: deafened.outputRms[0],
-      recipientNoCaptureBeforeAnswer: true,
-      microphone: false,
-      audibleOutput: false,
-      crossNat: false,
-      crashCleanupMs,
-      crashTrace,
-      quality,
-    }),
-  );
 } finally {
   await Promise.all(
     clients.map(async (value) => {

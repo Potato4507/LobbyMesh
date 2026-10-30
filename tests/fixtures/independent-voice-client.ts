@@ -103,6 +103,26 @@ async function run() {
             return execute(
               `window.companion.preferences().then(p=>p.allowedPeers.includes(${JSON.stringify(message.peerId)}))`,
             );
+          case "rediscover":
+            return execute(
+              `window.companion.rediscoverContact(${JSON.stringify(message.peerId)})`,
+            );
+          case "recovery-state":
+            return execute(
+              "window.companion.status().then(s=>({connection:s.connection,microphone:s.microphone}))",
+            );
+          case "baseline-text":
+            return execute(
+              `window.companion.sendText(${JSON.stringify(message.peerId)},'synthetic baseline before restart').then(row=>({status:row.status}))`,
+            );
+          case "recovery-text":
+            return execute(
+              `window.companion.sendText(${JSON.stringify(message.peerId)},'synthetic contact recovery after restart').then(row=>({status:row.status}))`,
+            );
+          case "received-recovery-text":
+            return execute(
+              `window.companion.messages(${JSON.stringify(message.peerId)}).then(rows=>rows.some(row=>row.direction==='incoming'&&row.text==='synthetic contact recovery after restart'))`,
+            );
           case "approve":
             return execute(
               `window.companion.previewPairingCode(${JSON.stringify(message.code)}).then(p=>window.companion.approvePairing(p.ticket,true)).then(()=>true)`,

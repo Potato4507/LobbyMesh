@@ -9,6 +9,7 @@ import {
   loadTransportKeys,
 } from "../../public-discovery/src/hyperdht.js";
 import { PublicDiscovery } from "../../public-discovery/src/index.js";
+import { recoverContact } from "./contact-recovery.js";
 import {
   RpcDiagnostics,
   type RpcOperation,
@@ -154,6 +155,8 @@ export async function createOverlayRuntime(
     identity,
     peerId: identity.peerId,
     transportKey: keys.publicKey.toString("hex"),
+    recoverContact: (peerId: string, signal: AbortSignal) =>
+      recoverContact(peerId, overlay, discovery, signal),
     start(): Promise<MaintenanceReport> {
       if (closed) return Promise.reject(new Error("RUNTIME_CLOSED"));
       starting ??= overlay
