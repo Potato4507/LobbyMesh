@@ -129,6 +129,7 @@ async function run() {
   const heldDashboardReads: (() => void)[] = [];
   let holdDashboardRead = false;
   let heldDashboardMicrophone: unknown;
+  let heldDashboardConnection: unknown;
   let heldCapture: unknown;
   const registerHandler = ipcMain.handle;
   // Fault only the renderer status read. Keep production sender validation,
@@ -144,6 +145,8 @@ async function run() {
       const value = await listener(event, ...args);
       if (channel === "companion:status" && holdDashboardRead) {
         heldDashboardMicrophone = (value as { microphone: unknown }).microphone;
+        heldDashboardConnection = (value as { connection: { state: unknown } })
+          .connection.state;
         await new Promise<void>((resolve) => heldDashboardReads.push(resolve));
       }
       if (channel === "companion:voice" && holdVoiceRead) {
@@ -2332,12 +2335,28 @@ async function run() {
       [[], []],
     );
     await navigate("overview");
+    holdDashboardRead = true;
+    for (let n = 0; n < 250 && !heldDashboardReads.length; n++) await delay(20);
+    assert.ok(heldDashboardReads.length);
+    assert.equal(heldDashboardConnection, "online");
     await execute("document.querySelector('#networkControl').click()");
-    await until("window.companion.status().then(s => s.network === 'offline')");
     await until(
       "document.querySelector('#networkControl')?.textContent === 'Enable peer discovery'",
     );
     assert.equal(stops, 3);
+    await execute(
+      "(() => {window.staleConnectionRestored=false;window.connectionObserver=new MutationObserver(()=>{if(document.querySelector('.badge')?.textContent === 'Connected' || document.querySelector('#networkControl')?.textContent === 'Disconnect')window.staleConnectionRestored=true;});window.connectionObserver.observe(document.querySelector('.workspace'),{childList:true,characterData:true,subtree:true});})()",
+    );
+    holdDashboardRead = false;
+    for (const finish of heldDashboardReads.splice(0)) finish();
+    await delay(400);
+    assert.equal(
+      await execute(
+        "window.connectionObserver.disconnect(); window.staleConnectionRestored",
+      ),
+      false,
+    );
+    await until("window.companion.status().then(s => s.network === 'offline')");
     stage("foreign-sender-start");
     foreign = new BrowserWindow({
       show: false,

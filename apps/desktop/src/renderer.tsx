@@ -106,6 +106,7 @@ function App() {
   const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [notice, setNotice] = useState("Loading your preferences…");
   const [connection, setConnection] = useState<NetworkStatus | null>(null);
+  const connectionObservation = useRef(0);
   const [detection, setDetection] = useState<DetectionStatus | null>(null);
   const [matching, setMatching] = useState<DesktopSessionStatus | null>(null);
   const [statusFailed, setStatusFailed] = useState(false);
@@ -128,13 +129,15 @@ function App() {
     let active = true;
     void (async () => {
       const microphoneRevision = microphoneObservation.current;
+      const connectionRevision = connectionObservation.current;
       const status = await window.companion.status().catch((error) => {
         if (active) setStatusFailed(true);
         throw error;
       });
       if (active) {
         setStatusFailed(false);
-        setConnection(status.connection);
+        if (connectionRevision === connectionObservation.current)
+          setConnection(status.connection);
         setDetection(status.detection);
         setMatching(status.matching);
         if (microphoneRevision === microphoneObservation.current)
@@ -163,12 +166,14 @@ function App() {
       if (busy) return;
       busy = true;
       const microphoneRevision = microphoneObservation.current;
+      const connectionRevision = connectionObservation.current;
       void window.companion
         .status()
         .then((status) => {
           if (active) {
             setStatusFailed(false);
-            setConnection(status.connection);
+            if (connectionRevision === connectionObservation.current)
+              setConnection(status.connection);
             setDetection(status.detection);
             setMatching(status.matching);
             // A newer voice action/read owns capture feedback. An older
@@ -190,6 +195,7 @@ function App() {
     };
   }, []);
   async function changeNetwork(enabled: boolean) {
+    connectionObservation.current++;
     setNetworkPending(true);
     setNetworkNotice("");
     try {
@@ -204,6 +210,8 @@ function App() {
           : "Could not save the startup preference. Check connection status before reopening LobbyMesh.",
       );
     } finally {
+      // Reads begun before or during the action cannot undo its outcome.
+      connectionObservation.current++;
       setNetworkPending(false);
     }
   }
