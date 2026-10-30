@@ -1,14 +1,29 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Readable, Writable } from "node:stream";
+import { type LabSshAuth, labSshArguments, validLabSshTarget } from "./ssh.js";
 
 export function labSshTarget(args: string[]): string {
-  if (
-    args.length !== 2 ||
-    args[0] !== "--ssh-target" ||
-    !/^[a-zA-Z0-9_][a-zA-Z0-9_.@:-]{0,253}$/.test(args[1] ?? "")
-  )
+  return labDoctorOptions(args).target;
+}
+export function labDoctorOptions(args: string[]) {
+  const fields = new Map<string, string>();
+  for (let i = 0; i < args.length; i += 2) {
+    const key = args[i],
+      value = args[i + 1];
+    if (
+      !key ||
+      !["--ssh-target", "--ssh-auth"].includes(key) ||
+      !value ||
+      fields.has(key)
+    )
+      throw new Error("INVALID_LAB_DOCTOR_OPTIONS");
+    fields.set(key, value);
+  }
+  const target = fields.get("--ssh-target") ?? "",
+    auth = fields.get("--ssh-auth") ?? "batch";
+  if (!validLabSshTarget(target) || !["batch", "askpass"].includes(auth))
     throw new Error("INVALID_LAB_DOCTOR_OPTIONS");
-  return args[1] as string;
+  return { target, auth: auth as LabSshAuth };
 }
 
 // Deliberately discard raw model/OS/kernel strings and unrecognized output.
@@ -92,28 +107,17 @@ export function labHostFacts(output: string) {
   };
 }
 
-export async function inspectLabHost(target: string, script: string) {
+export async function inspectLabHost(
+  target: string,
+  script: string,
+  auth: LabSshAuth = "batch",
+) {
   labSshTarget(["--ssh-target", target]);
   return collectLabFacts(
-    spawn(
-      "ssh",
-      [
-        "-T",
-        "-o",
-        "BatchMode=yes",
-        "-o",
-        "StrictHostKeyChecking=yes",
-        "-o",
-        "ConnectTimeout=5",
-        target,
-        "bash",
-        "-s",
-      ],
-      {
-        stdio: ["pipe", "pipe", "ignore"],
-        windowsHide: true,
-      },
-    ),
+    spawn("ssh", labSshArguments(target, ["bash", "-s"], auth), {
+      stdio: ["pipe", "pipe", "ignore"],
+      windowsHide: true,
+    }),
     script,
   );
 }

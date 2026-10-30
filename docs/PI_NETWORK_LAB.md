@@ -1,5 +1,8 @@
 # Raspberry Pi + one-house LobbyMesh verification lab
 
+Portable SSH worker: after approved setup supplies an absolute private lab root containing `runtime/bin/node`, `lab-peer.mjs` and copied dependencies, use `--remote-layout bundle` with existing `--remote-root`/`--ssh-target`. Default source layout and batch authentication remain. Password-only authorized hosts can opt into `--ssh-auth askpass` with an external secure SSH_ASKPASS provider and SSH_ASKPASS_REQUIRE=force; the provider retrieves credentials outside the repo. No password argument/input field is accepted, host checking stays strict and one prompt is allowed. The same auth option is available on lab:doctor; an actual read-only inventory passed. Neither command installs anything. Physical LAN/ARM64 execution remains pending user-local runtime setup approval.
+
+
 2026-10-30 fresh Pi setup is SSH reachable; read-only Pi5/ARM64/Debian13/8058MiB inventory retained in evidence/pi-readonly-inventory-summary.json. Node/pnpm/nft/tc absent. User-local Node setup approval is pending; no remote installation or physical protocol test yet. `pnpm lab:package` prepares a standalone peer and exact production dependency tree locally, with Linux ARM64 native files inventoried and a verified local bootstrap smoke. The current SSH pair source-layout path still requires a checkout/tsx; portable-layout launch is the next increment. See evidence/portable-headless-package.md.
 
 

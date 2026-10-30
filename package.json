@@ -32,7 +32,7 @@
     "simulate:overlay": "tsx scripts/simulate-overlay.ts",
     "test:contact-recovery": "node scripts/independent-voice-smoke.mjs --contact-recovery",
     "verify:windows": "pwsh -NoProfile -File scripts/verify-windows.ps1",
-    "lab:package": "node scripts/package-lab.mjs"
+    "lab:package": "node --import tsx scripts/package-lab.mjs"
   },
   "dependencies": {
     "hyperdht": "6.35.0",

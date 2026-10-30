@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { launchLabPeer } from "./lab/client.js";
 import { parseLabPairOptions } from "./lab/pair-options.js";
 import { exerciseLabRestart } from "./lab/restart-scenario.js";
+import { labRemoteArguments } from "./lab/ssh.js";
 import { exerciseLabVoice } from "./lab/voice-scenario.js";
 
 // Explicit operator invocation. SSH never installs packages or changes the host.
@@ -13,6 +14,7 @@ let succeeded = 0,
   attempted = 0,
   cleanupVerified = false,
   passed = false;
+let failureReason: string | null = null;
 let voiceSignaling: Awaited<ReturnType<typeof exerciseLabVoice>> | null = null;
 let networkRestart: Awaited<ReturnType<typeof exerciseLabRestart>> | null =
   null;
@@ -24,13 +26,15 @@ try {
     "--duration-ms",
     "120000",
   ];
+  const remote =
+    target && root
+      ? { target, root, layout: options.layout, auth: options.auth }
+      : undefined;
+  if (remote) labRemoteArguments(remote, peerArgs);
   const a = launchLabPeer(peerArgs);
   peers.push(a);
   const infoA = await a.ready;
-  const b = launchLabPeer(
-    peerArgs,
-    target && root ? { target, root } : undefined,
-  );
+  const b = launchLabPeer(peerArgs, remote);
   peers.push(b);
   const infoB = await b.ready;
   assert.notEqual(infoA.peerId, infoB.peerId);
@@ -81,8 +85,21 @@ try {
   voiceSignaling = await exerciseLabVoice(a, b, infoA.peerId);
   await assert.rejects(a.request("send", "revocation negative check"));
   passed = true;
-} catch {
+} catch (error) {
   // No raw native/SSH errors or control-channel content in exported metrics.
+  failureReason =
+    error instanceof Error &&
+    [
+      "LAB_ASKPASS_REQUIRED",
+      "INVALID_LAB_REMOTE",
+      "LAB_READY_TIMEOUT",
+      "LAB_PROCESS_EXIT",
+      "LAB_COMMAND_TIMEOUT",
+      "LAB_REMOTE_REJECTED",
+      "LAB_CLIENT_UNAVAILABLE",
+    ].includes(error.message)
+      ? error.message
+      : "LAB_RUN_FAILED";
   process.exitCode = 1;
 } finally {
   const cleanup = await Promise.allSettled(
@@ -119,6 +136,7 @@ try {
       p95AckMs: percentile(0.95),
       cleanupVerified,
       result: passed && cleanupVerified ? "passed" : "failed",
+      failureReason,
       physicalAudio: false,
       voiceSignaling,
       actualRoblox: false,

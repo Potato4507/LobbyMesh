@@ -13,6 +13,8 @@ export function parseLabPairOptions(args: string[]) {
         "--remote-root",
         "--count",
         "--scenario",
+        "--remote-layout",
+        "--ssh-auth",
       ].includes(key) ||
       !value ||
       fields.has(key)
@@ -26,13 +28,19 @@ export function parseLabPairOptions(args: string[]) {
   ]);
   const text = fields.get("--count") ?? "4",
     count = Number(text),
-    scenario = fields.get("--scenario") ?? "baseline";
+    scenario = fields.get("--scenario") ?? "baseline",
+    layout = fields.get("--remote-layout") ?? "source",
+    auth = fields.get("--ssh-auth") ?? "batch";
   if (
     !/^\d+$/.test(text) ||
     count < 1 ||
     count > 8 ||
     fields.has("--ssh-target") !== fields.has("--remote-root") ||
-    !["baseline", "restart"].includes(scenario)
+    !["baseline", "restart"].includes(scenario) ||
+    !["source", "bundle"].includes(layout) ||
+    !["batch", "askpass"].includes(auth) ||
+    ((fields.has("--remote-layout") || fields.has("--ssh-auth")) &&
+      !fields.has("--ssh-target"))
   )
     throw new Error("INVALID_LAB_PAIR_OPTIONS");
   return {
@@ -41,5 +49,7 @@ export function parseLabPairOptions(args: string[]) {
     scenario: scenario as "baseline" | "restart",
     target: fields.get("--ssh-target"),
     root: fields.get("--remote-root"),
+    layout: layout as "source" | "bundle",
+    auth: auth as "batch" | "askpass",
   };
 }

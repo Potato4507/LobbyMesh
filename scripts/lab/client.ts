@@ -2,41 +2,21 @@ import { type ChildProcess, spawn } from "node:child_process";
 import type { Readable, Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import type { LabCommand } from "./options.js";
+import { type LabRemote, labRemoteArguments } from "./ssh.js";
 
 export interface LabReady {
   ready: true;
   role: "peer" | "bootstrap";
   peerId?: string;
 }
-export function launchLabPeer(
-  args: string[],
-  remote?: { target: string; root: string },
-) {
-  const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
-  if (
-    remote &&
-    (!/^[a-zA-Z0-9_][a-zA-Z0-9_.@:-]{0,253}$/.test(remote.target) ||
-      !remote.root ||
-      /[\r\n\0]/.test(remote.root))
-  )
-    throw new Error("INVALID_LAB_REMOTE");
+export function launchLabPeer(args: string[], remote?: LabRemote) {
+  const remoteArgs = remote ? labRemoteArguments(remote, args) : undefined;
   const script = fileURLToPath(new URL("../lab-peer.ts", import.meta.url));
   const child = remote
-    ? spawn(
-        "ssh",
-        [
-          "-T",
-          "-o",
-          "BatchMode=yes",
-          "-o",
-          "StrictHostKeyChecking=yes",
-          "-o",
-          "ConnectTimeout=5",
-          remote.target,
-          `cd ${quote(remote.root)} && node --import tsx scripts/lab-peer.ts ${args.map(quote).join(" ")}`,
-        ],
-        { stdio: ["pipe", "pipe", "ignore"], windowsHide: true },
-      )
+    ? spawn("ssh", remoteArgs ?? [], {
+        stdio: ["pipe", "pipe", "ignore"],
+        windowsHide: true,
+      })
     : spawn(process.execPath, ["--import", "tsx", script, ...args], {
         stdio: ["pipe", "pipe", "ignore"],
         windowsHide: true,
