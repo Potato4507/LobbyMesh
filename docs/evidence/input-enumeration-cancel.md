@@ -1,0 +1,5 @@
+# Queued microphone enumeration cancellation — 2026-10-29
+
+Reproduction: start InputRegistry.refresh(), synchronously invalidate or close its media owner before the queued enumeration runs. Existing code still calls enumerateDevices; new regression fails1 vs0 calls. Refresh now checks closed/epoch immediately before invoking the device enumerator. Existing post-await epoch/closed checks remain, and enumeration already in progress is not claimed abortable. The same bounded unavailable/default-choice result is returned, pending settles and an invalidated live owner can refresh successfully later; a closed owner cannot enumerate again.
+
+Windows Node24.22.1: focused device/protocol/action7/7, full184/184, typecheck, lint182 and build pass. Native Electron45.1.0 media-host smoke passes with opaque/rotating choices, stale choice rejection without call failure, same-call input switch muted until fresh PTT, measured synthetic gain/output, isolation/foreign rejection and cleanup. New cancellation regression is UNIT microtask scheduling proof, not physical device enumeration/hotplug/audio evidence. No new permissions, capture, IPC, protocol or persistent device IDs.

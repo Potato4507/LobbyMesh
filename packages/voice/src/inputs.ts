@@ -83,7 +83,11 @@ export class InputRegistry {
     this.pending = true;
     const epoch = this.epoch;
     const work = Promise.resolve()
-      .then(this.enumerate)
+      .then(() => {
+        if (this.closed || epoch !== this.epoch)
+          throw new Error("INPUT_ENUM_CANCELED");
+        return this.enumerate();
+      })
       .finally(() => {
         this.pending = false;
       });

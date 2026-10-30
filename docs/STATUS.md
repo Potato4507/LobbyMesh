@@ -1,5 +1,8 @@
 # Continuation — 2026-10-29 UTC
 
+Queued microphone enumeration cancellation reproduced1 vs0 calls, then fixed with closed/epoch check immediately before enumerator invocation; late-result checks remain and fresh refresh recovers. Focused7/7/full184/184/typecheck/lint182/build and native isolated media-host smoke pass. See evidence/input-enumeration-cancel.md. No physical audio/hotplug claim. Goal ACTIVE. Next inspect native connection handoff/stream ownership against paired failure evidence and add a justified bounded repair or focused instrumentation; do not expand retry/deadlines or change strict tests. Pi remains unavailable; c01992e package and CI failure are retained separately.
+
+
 Native overlay Escape keyDown now restores click-through/nonfocusable mode through owned main-process input handling; keyUp/other-key negatives, draft/network retention and existing button behavior verified. Full183/183/typecheck/lint182/build and native desktop four-process suite pass. See evidence/overlay-native-escape.md. Contact sourcec01992e Ubuntu41002009026 fails182/183 on historical native burst hello timeout/lookup budget, receiver admission clean; exact evidence in native-setup-abort.md, strict tests unchanged. Clean unsignedc01992e package remains valid local evidence, not CI/release acceptance. Goal ACTIVE. Next continue voice lifecycle/device-recovery behavior using production source and a focused regression; physical Pi/audio/game acceptance remains blocked/unverified.
 
 

@@ -101,3 +101,24 @@ test("enumeration failure and invalid tokens return bounded unavailable state an
   ])
     assert.equal(validInputOptions(value), false);
 });
+
+test("closing or invalidating an owner before queued enumeration prevents device access and allows a fresh refresh", async () => {
+  for (const closing of [false, true]) {
+    let calls = 0;
+    const registry = new InputRegistry(async () => {
+      calls++;
+      return [mic("private-device")];
+    }, tokens());
+    const pending = registry.refresh();
+    if (closing) registry.close();
+    else registry.invalidate();
+    const result = await pending;
+    assert.equal(calls, 0, "a stale owner must not enumerate devices");
+    assert.equal(result.available, false);
+    assert.ok(validInputOptions(result));
+    const fresh = await registry.refresh();
+    assert.equal(fresh.available, !closing);
+    assert.equal(calls, closing ? 0 : 1);
+    registry.close();
+  }
+});
