@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { open, opendir } from "node:fs/promises";
 import path from "node:path";
 import type {
@@ -31,6 +32,20 @@ export interface DetectionStatus {
 }
 const MAX_READ = 4 * 1024 * 1024;
 const MAX_LINE = 16 * 1024;
+const CHECKPOINT_BYTES = 256;
+interface LogCheckpoint {
+  length: number;
+  hash: string;
+}
+const checkpoint = (bytes: Buffer): LogCheckpoint => {
+  // At most three accepted lines plus two 256-byte continuity windows.
+  // A bounded UTF-16 line can occupy up to four times as many UTF-8 bytes.
+  if (bytes.length > MAX_LINE * 4 + 1) throw new Error("LOG_CHECKPOINT_QUOTA");
+  return {
+    length: bytes.length,
+    hash: createHash("sha256").update(bytes).digest("hex"),
+  };
+};
 const FRESH_MS = 120_000;
 const id = "([1-9][0-9]{0,19})";
 const join = new RegExp(
@@ -39,6 +54,7 @@ const join = new RegExp(
 const universe = new RegExp(
   `^\\[FLog::GameJoinLoadTime\\] Report game_join_loadtime:.*?\\buniverseid:${id}(?:,|\\s|$)`,
 );
+type SessionLogMarker = "join" | "universe" | "replicator" | "reset";
 
 // Only explicit engine log channels are accepted; CreatorOutput/script text cannot supply evidence.
 export class PlayerLogParser {
@@ -63,10 +79,14 @@ export class PlayerLogParser {
   state(): "waiting" | "incomplete" | "detected" {
     return this.value ? "detected" : this.pending ? "incomplete" : "waiting";
   }
-  line(line: string, now: number, processStartedAt?: number): void {
+  line(
+    line: string,
+    now: number,
+    processStartedAt?: number,
+  ): SessionLogMarker | undefined {
     if (line.length > MAX_LINE) {
       this.reset();
-      return;
+      return "reset";
     }
     const header =
       /^(\d{4}-\d{2}-\d{2}T[^,]{1,32}),[^\r\n]*? (\[FLog::[^\r\n]*)$/.exec(
@@ -92,7 +112,7 @@ export class PlayerLogParser {
     ) {
       this.pending = undefined;
       this.value = null;
-      return;
+      return "reset";
     }
     if (message.startsWith("[FLog::Output] ! Joining game")) {
       this.pending = undefined;
@@ -104,13 +124,19 @@ export class PlayerLogParser {
           placeId: match[2] ?? "",
           connected: false,
         };
-      return;
+      return match ? "join" : "reset";
     }
     if (!this.pending) return;
     const match = universe.exec(message);
-    if (match?.[1]) this.pending.universeId = match[1];
-    if (message.startsWith("[FLog::Network] Replicator created: "))
+    let marker: SessionLogMarker | undefined;
+    if (match?.[1]) {
+      this.pending.universeId = match[1];
+      marker = "universe";
+    }
+    if (message.startsWith("[FLog::Network] Replicator created: ")) {
       this.pending.connected = true;
+      marker = "replicator";
+    }
     if (this.pending.connected && this.pending.universeId)
       this.value = {
         universeId: this.pending.universeId,
@@ -119,6 +145,7 @@ export class PlayerLogParser {
         evidenceSource: "windows-log",
         verification: "self-asserted",
       };
+    return marker;
   }
 }
 
@@ -148,8 +175,14 @@ export class WindowsLogSessionProvider implements SessionProvider {
   private selected = "";
   private identity = "";
   private offset = 0;
-  private partial = "";
+  private partial = Buffer.alloc(0);
   private discardLine = false;
+  private prefix: LogCheckpoint | undefined;
+  private tail: LogCheckpoint | undefined;
+  private readonly evidence = new Map<
+    Exclude<SessionLogMarker, "reset">,
+    { position: number; value: LogCheckpoint }
+  >();
   private value: SessionIdentity | null = null;
   private view: DetectionState = "disabled";
   private reason: DetectionStatus["reason"] = null;
@@ -210,8 +243,11 @@ export class WindowsLogSessionProvider implements SessionProvider {
     this.selected = "";
     this.identity = "";
     this.offset = 0;
-    this.partial = "";
+    this.partial = Buffer.alloc(0);
     this.discardLine = false;
+    this.prefix = undefined;
+    this.tail = undefined;
+    this.evidence.clear();
   }
   async setEnabled(enabled: boolean): Promise<void> {
     if (typeof enabled !== "boolean") throw new Error("INVALID_LOG_PERMISSION");
@@ -355,41 +391,136 @@ export class WindowsLogSessionProvider implements SessionProvider {
         const stat = await handle.stat(),
           identity = `${stat.dev}:${stat.ino}:${stat.birthtimeMs}`;
         if (!valid()) return;
+        const rewind = () => {
+          this.reset();
+          this.selected = candidate.file;
+          this.identity = identity;
+          this.publish("waiting", null);
+        };
         if (
           this.selected !== candidate.file ||
           this.identity !== identity ||
           stat.size < this.offset
         ) {
-          this.reset();
-          this.selected = candidate.file;
-          this.identity = identity;
-          this.offset = 0;
-          this.discardLine = false;
-          this.publish("waiting", null);
+          rewind();
         }
+        // A truncate-and-rewrite can grow past the previous offset between
+        // polls without changing the file identity. Check bounded continuity
+        // windows before trusting the old parser state. Retain only hashes.
+        let previousTail = Buffer.alloc(0);
+        if (this.offset > 0 && this.prefix && this.tail) {
+          const windows = [
+            { position: 0, value: this.prefix, tail: false },
+            {
+              position: this.offset - this.tail.length,
+              value: this.tail,
+              tail: true,
+            },
+            ...[...this.evidence.values()].map((entry) => ({
+              ...entry,
+              tail: false,
+            })),
+          ];
+          for (const window of windows) {
+            const bytes = Buffer.alloc(window.value.length);
+            const read = await handle.read(
+              bytes,
+              0,
+              bytes.length,
+              window.position,
+            );
+            if (!valid()) return;
+            if (
+              read.bytesRead !== bytes.length ||
+              checkpoint(bytes).hash !== window.value.hash
+            ) {
+              rewind();
+              previousTail = Buffer.alloc(0);
+              break;
+            }
+            if (window.tail) previousTail = bytes;
+          }
+        }
+        // A source-withdrawal subscriber may revoke consent synchronously.
+        if (!valid()) return;
         const buffer = Buffer.alloc(
           Math.min(MAX_READ, Math.max(0, stat.size - this.offset)),
         );
         const result = await handle.read(buffer, 0, buffer.length, this.offset);
         if (!valid()) return;
         this.offset += result.bytesRead;
-        // Log markers are ASCII. Split UTF-8 codepoints in unrelated text cannot affect identifiers.
-        const lines = (
-          this.partial + buffer.subarray(0, result.bytesRead).toString("utf8")
-        ).split("\n");
-        this.partial = lines.pop() ?? "";
-        for (let line of lines) {
+        if (result.bytesRead > 0) {
+          if (!this.prefix)
+            this.prefix = checkpoint(
+              buffer.subarray(0, Math.min(CHECKPOINT_BYTES, result.bytesRead)),
+            );
+          const ending =
+            result.bytesRead >= CHECKPOINT_BYTES
+              ? buffer.subarray(
+                  result.bytesRead - CHECKPOINT_BYTES,
+                  result.bytesRead,
+                )
+              : Buffer.concat([
+                  previousTail,
+                  buffer.subarray(0, result.bytesRead),
+                ]).subarray(-CHECKPOINT_BYTES);
+          this.tail = checkpoint(ending);
+        }
+        // Byte framing preserves exact evidence offsets across UTF-8 and read
+        // boundaries. Persistent checkpoints contain hashes, never log text.
+        const chunkStart = this.offset - result.bytesRead - this.partial.length;
+        const combined = Buffer.concat([
+          this.partial,
+          buffer.subarray(0, result.bytesRead),
+        ]);
+        let start = 0,
+          newline = combined.indexOf(10),
+          evidenceChanged = false;
+        while (newline !== -1) {
+          const position = chunkStart + start;
+          const rawLine = combined.subarray(start, newline + 1);
+          let line = combined.subarray(start, newline).toString("utf8");
+          start = newline + 1;
+          newline = combined.indexOf(10, start);
           if (this.discardLine) {
             this.discardLine = false;
             continue;
           }
           if (line.endsWith("\r")) line = line.slice(0, -1);
-          this.parser.line(line, now, this.processStartedAt);
+          const marker = this.parser.line(line, now, this.processStartedAt);
+          if (marker === "reset" || marker === "join") this.evidence.clear();
+          if (marker && marker !== "reset") {
+            this.evidence.set(marker, { position, value: checkpoint(rawLine) });
+            evidenceChanged = true;
+          }
         }
-        if (this.partial.length > MAX_LINE) {
-          this.partial = "";
+        const remaining = combined.subarray(start);
+        if (remaining.toString("utf8").length > MAX_LINE) {
+          this.partial = Buffer.alloc(0);
           this.discardLine = true;
           this.parser.reset();
+          this.evidence.clear();
+        } else this.partial = Buffer.from(remaining);
+        if (evidenceChanged) {
+          // Revalidate completed evidence before publishing a line assembled
+          // across reads, including a writer racing the current scan.
+          for (const entry of this.evidence.values()) {
+            const bytes = Buffer.alloc(entry.value.length);
+            const read = await handle.read(
+              bytes,
+              0,
+              bytes.length,
+              entry.position,
+            );
+            if (!valid()) return;
+            if (
+              read.bytesRead !== bytes.length ||
+              checkpoint(bytes).hash !== entry.value.hash
+            ) {
+              rewind();
+              return;
+            }
+          }
         }
         if (this.offset < stat.size) this.publish("scanning", null);
         else this.publish(this.parser.state(), this.parser.session());

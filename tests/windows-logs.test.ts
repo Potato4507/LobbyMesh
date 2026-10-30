@@ -500,3 +500,389 @@ test("disabling while a process query is pending prevents late detection from re
   assert.equal(provider.status().state, "disabled");
   assert.equal(await provider.current(), null);
 });
+test("same-inode larger log rewrites withdraw the old session before reparsing current evidence", async () => {
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "lobbymesh-log-rewrite-"),
+  );
+  const file = path.join(directory, "0.1_Player_AAAA_last.log");
+  const writer = await fs.open(file, "w+");
+  const provider = new WindowsLogSessionProvider([directory], {
+    pollMs: 10000,
+  });
+  const events: (string | null)[] = [];
+  provider.subscribe((value) => events.push(value?.jobId ?? null));
+  try {
+    await writer.writeFile(joined());
+    await writer.sync();
+    const original = await writer.stat();
+    await provider.setEnabled(true);
+    assert.equal((await provider.current())?.jobId, job);
+    const rewrite = async (text: string) => {
+      await writer.truncate(0);
+      const data = Buffer.from(text);
+      assert.equal(
+        (await writer.write(data, 0, data.length, 0)).bytesWritten,
+        data.length,
+      );
+      await writer.sync();
+      const current = await writer.stat();
+      assert.deepEqual(
+        [current.dev, current.ino, current.birthtimeMs],
+        [original.dev, original.ino, original.birthtimeMs],
+      );
+      assert.ok(current.size >= original.size);
+    };
+    const unrelated = "current log without supported session evidence\n".repeat(
+      32,
+    );
+    await rewrite(unrelated);
+    await provider.refresh();
+    assert.equal(await provider.current(), null);
+    assert.equal(events.at(-1), null);
+    const nextJob = "87654321-dcba-4321-dcba-cba987654321";
+    await rewrite(joined().replaceAll(job, nextJob) + unrelated.repeat(2));
+    await provider.refresh();
+    assert.equal((await provider.current())?.jobId, nextJob);
+    assert.deepEqual(events, [job, null, nextJob]);
+  } finally {
+    await provider.stop();
+    await writer.close();
+    assert.equal(path.dirname(directory), path.resolve(tmpdir()));
+    assert.ok(path.basename(directory).startsWith("lobbymesh-log-rewrite-"));
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+test("rewritten engine evidence cannot keep an old session when prefix, tail and file length stay unchanged", async () => {
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "lobbymesh-log-evidence-rewrite-"),
+  );
+  const file = path.join(directory, "0.1_Player_AAAA_last.log");
+  const prefix = "startup record without session details\n".repeat(16),
+    tail = "quiet unchanged log suffix\n".repeat(32);
+  const provider = new WindowsLogSessionProvider([directory], {
+    pollMs: 10000,
+  });
+  try {
+    await writeFile(file, prefix + joined() + tail);
+    const original = await fs.stat(file);
+    await provider.setEnabled(true);
+    assert.equal((await provider.current())?.jobId, job);
+    const nextJob = "87654321-dcba-4321-dcba-cba987654321";
+    await writeFile(file, prefix + joined().replaceAll(job, nextJob) + tail);
+    const rewritten = await fs.stat(file);
+    assert.deepEqual(
+      [rewritten.dev, rewritten.ino, rewritten.birthtimeMs, rewritten.size],
+      [original.dev, original.ino, original.birthtimeMs, original.size],
+    );
+    await provider.refresh();
+    assert.equal((await provider.current())?.jobId, nextJob);
+  } finally {
+    await provider.stop();
+    assert.equal(path.dirname(directory), path.resolve(tmpdir()));
+    assert.ok(
+      path.basename(directory).startsWith("lobbymesh-log-evidence-rewrite-"),
+    );
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+test("short appends and quiet polls preserve a current session without spurious withdrawal", async () => {
+  const directory = await mkdtemp(
+      path.join(tmpdir(), "lobbymesh-log-continuity-"),
+    ),
+    file = path.join(directory, "0.1_Player_AAAA_last.log");
+  const provider = new WindowsLogSessionProvider([directory], {
+      pollMs: 10000,
+    }),
+    events: (string | null)[] = [];
+  provider.subscribe((value) => events.push(value?.jobId ?? null));
+  try {
+    await writeFile(file, joined());
+    await provider.setEnabled(true);
+    for (const text of [
+      "\n",
+      "x",
+      "\n",
+      line("[FLog::Output] unrelated current engine output"),
+    ]) {
+      await appendFile(file, text);
+      await provider.refresh();
+      assert.equal((await provider.current())?.jobId, job);
+    }
+    await provider.refresh();
+    assert.deepEqual(events, [job]);
+  } finally {
+    await provider.stop();
+    assert.equal(path.dirname(directory), path.resolve(tmpdir()));
+    assert.ok(path.basename(directory).startsWith("lobbymesh-log-continuity-"));
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+test("session evidence split through a UTF-8 codepoint at the read boundary retains exact byte ownership", async () => {
+  const directory = await mkdtemp(
+      path.join(tmpdir(), "lobbymesh-log-byte-boundary-"),
+    ),
+    file = path.join(directory, "0.1_Player_AAAA_last.log");
+  const provider = new WindowsLogSessionProvider([directory], {
+    pollMs: 10000,
+  });
+  try {
+    const joining = line(
+      `[FLog::Output] ! Joining game '${job}' place 123 at 127.0.0.1`,
+    );
+    const universePrefix = line(
+      "[FLog::GameJoinLoadTime] Report game_join_loadtime: universeid:456, label:",
+    ).trimEnd();
+    const prefixLength =
+      4 * 1024 * 1024 -
+      Buffer.byteLength(joining) -
+      Buffer.byteLength(universePrefix) -
+      1;
+    const prefix = Buffer.alloc(prefixLength, 32);
+    prefix[prefix.length - 1] = 10;
+    await writeFile(
+      file,
+      Buffer.concat([
+        prefix,
+        Buffer.from(
+          `${joining}${universePrefix}😀\n${line("[FLog::Network] Replicator created: serverId: 127.0.0.1|1")}`,
+        ),
+      ]),
+    );
+    await provider.setEnabled(true);
+    assert.equal(provider.status().state, "scanning");
+    assert.equal(await provider.current(), null);
+    await provider.refresh();
+    assert.equal((await provider.current())?.jobId, job);
+    await provider.refresh();
+    assert.equal((await provider.current())?.jobId, job);
+  } finally {
+    await provider.stop();
+    assert.equal(path.dirname(directory), path.resolve(tmpdir()));
+    assert.ok(
+      path.basename(directory).startsWith("lobbymesh-log-byte-boundary-"),
+    );
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+test(
+  "withdrawal during a continuity read closes the handle and prevents later evidence reads or publication",
+  { timeout: 5000 },
+  async (t) => {
+    const directory = await mkdtemp(
+        path.join(tmpdir(), "lobbymesh-log-checkpoint-stop-"),
+      ),
+      file = path.join(directory, "0.1_Player_AAAA_last.log");
+    const provider = new WindowsLogSessionProvider([directory], {
+      pollMs: 10000,
+    });
+    let reads = 0,
+      finish: () => void = () => {},
+      opened: () => void = () => {},
+      heldHandle: Awaited<ReturnType<typeof fs.open>> | undefined,
+      restore = () => {};
+    const gate = new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+      ready = new Promise<void>((resolve) => {
+        opened = resolve;
+      });
+    try {
+      await writeFile(file, joined());
+      await provider.setEnabled(true);
+      const originalOpen = fs.open;
+      const mocked = t.mock.method(
+        fs,
+        "open",
+        async (...args: Parameters<typeof fs.open>) => {
+          const handle = await originalOpen(...args);
+          if (String(args[0]) === file) {
+            const originalRead = handle.read.bind(handle);
+            handle.read = (async (
+              buffer: Buffer,
+              offset: number,
+              length: number,
+              position: number,
+            ) => {
+              const result = await originalRead(
+                buffer,
+                offset,
+                length,
+                position,
+              );
+              reads++;
+              if (reads === 1) {
+                heldHandle = handle;
+                opened();
+                await gate;
+              }
+              return result;
+            }) as typeof handle.read;
+          }
+          return handle;
+        },
+      );
+      syncBuiltinESMExports();
+      restore = () => {
+        mocked.mock.restore();
+        syncBuiltinESMExports();
+      };
+      const refreshing = provider.refresh();
+      await ready;
+      const stopping = provider.stop();
+      assert.equal(provider.status().state, "disabled");
+      assert.equal(await provider.current(), null);
+      finish();
+      await Promise.all([refreshing, stopping]);
+      assert.equal(reads, 1);
+      assert.equal(await provider.current(), null);
+      assert.ok(heldHandle);
+      await assert.rejects(heldHandle.stat(), /closed|EBADF/);
+    } finally {
+      finish();
+      restore();
+      await provider.stop();
+      assert.equal(path.dirname(directory), path.resolve(tmpdir()));
+      assert.ok(
+        path.basename(directory).startsWith("lobbymesh-log-checkpoint-stop-"),
+      );
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+test(
+  "evidence changed by a writer during the scan is rechecked before any session is published",
+  { timeout: 5000 },
+  async (t) => {
+    const directory = await mkdtemp(
+        path.join(tmpdir(), "lobbymesh-log-racing-writer-"),
+      ),
+      file = path.join(directory, "0.1_Player_AAAA_last.log");
+    const provider = new WindowsLogSessionProvider([directory], {
+        pollMs: 10000,
+      }),
+      nextJob = "87654321-dcba-4321-dcba-cba987654321",
+      events: (string | null)[] = [];
+    provider.subscribe((value) => events.push(value?.jobId ?? null));
+    let rewritten = false,
+      restore = () => {};
+    try {
+      await writeFile(file, joined());
+      const originalOpen = fs.open;
+      const mocked = t.mock.method(
+        fs,
+        "open",
+        async (...args: Parameters<typeof fs.open>) => {
+          const handle = await originalOpen(...args);
+          if (String(args[0]) === file) {
+            const originalRead = handle.read.bind(handle);
+            handle.read = (async (
+              buffer: Buffer,
+              offset: number,
+              length: number,
+              position: number,
+            ) => {
+              const result = await originalRead(
+                buffer,
+                offset,
+                length,
+                position,
+              );
+              if (!rewritten && result.bytesRead > 0) {
+                rewritten = true;
+                await writeFile(file, joined().replaceAll(job, nextJob));
+              }
+              return result;
+            }) as typeof handle.read;
+          }
+          return handle;
+        },
+      );
+      syncBuiltinESMExports();
+      restore = () => {
+        mocked.mock.restore();
+        syncBuiltinESMExports();
+      };
+      await provider.setEnabled(true);
+      assert.equal(rewritten, true);
+      assert.equal(await provider.current(), null);
+      assert.deepEqual(events, []);
+      await provider.refresh();
+      assert.equal((await provider.current())?.jobId, nextJob);
+      assert.deepEqual(events, [nextJob]);
+    } finally {
+      restore();
+      await provider.stop();
+      assert.equal(path.dirname(directory), path.resolve(tmpdir()));
+      assert.ok(
+        path.basename(directory).startsWith("lobbymesh-log-racing-writer-"),
+      );
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);
+test(
+  "a source-change subscriber can withdraw consent before rewritten contents are reparsed",
+  { timeout: 5000 },
+  async (t) => {
+    const directory = await mkdtemp(
+        path.join(tmpdir(), "lobbymesh-log-subscriber-stop-"),
+      ),
+      file = path.join(directory, "0.1_Player_AAAA_last.log");
+    const provider = new WindowsLogSessionProvider([directory], {
+      pollMs: 10000,
+    });
+    let armed = false,
+      reads = 0,
+      stopping: Promise<void> | undefined,
+      restore = () => {};
+    provider.subscribe((value) => {
+      if (armed && value === null) stopping = provider.stop();
+    });
+    try {
+      await writeFile(file, joined());
+      await provider.setEnabled(true);
+      await writeFile(file, "rewritten unrelated contents\n".repeat(32));
+      const originalOpen = fs.open;
+      const mocked = t.mock.method(
+        fs,
+        "open",
+        async (...args: Parameters<typeof fs.open>) => {
+          const handle = await originalOpen(...args);
+          if (String(args[0]) === file) {
+            const originalRead = handle.read.bind(handle);
+            handle.read = (async (
+              buffer: Buffer,
+              offset: number,
+              length: number,
+              position: number,
+            ) => {
+              reads++;
+              return originalRead(buffer, offset, length, position);
+            }) as typeof handle.read;
+          }
+          return handle;
+        },
+      );
+      syncBuiltinESMExports();
+      restore = () => {
+        mocked.mock.restore();
+        syncBuiltinESMExports();
+      };
+      armed = true;
+      await provider.refresh();
+      assert.ok(stopping);
+      await stopping;
+      assert.equal(reads, 1);
+      assert.equal(provider.status().state, "disabled");
+      assert.equal(await provider.current(), null);
+    } finally {
+      restore();
+      await provider.stop();
+      assert.equal(path.dirname(directory), path.resolve(tmpdir()));
+      assert.ok(
+        path.basename(directory).startsWith("lobbymesh-log-subscriber-stop-"),
+      );
+      await rm(directory, { recursive: true, force: true });
+    }
+  },
+);

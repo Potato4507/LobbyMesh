@@ -780,6 +780,19 @@ async function run() {
       await until(
         "document.querySelector('#sessionStatus')?.textContent === 'Local session detected' && document.querySelector('#sessionSourceNotice')?.textContent.includes('unverified evidence')",
       );
+      const rewrittenLog =
+        "new log without supported session evidence\n".repeat(32);
+      await writeFile(file, rewrittenLog);
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Waiting for session details'",
+      );
+      assert.equal(await logProvider.current(), null);
+      await writeFile(file, fixtureLog + rewrittenLog.repeat(2));
+      await logProvider.refresh();
+      await until(
+        "document.querySelector('#sessionStatus')?.textContent === 'Local session detected'",
+      );
       await utimes(file, new Date(startedAt - 1), new Date(startedAt - 1));
       await logProvider.refresh();
       await until(
@@ -834,6 +847,7 @@ async function run() {
       console.log(
         JSON.stringify({
           result: "session-status-passed",
+          sameFileRewriteRecovered: true,
           states: [
             "player-not-running",
             "player-log-pending",
