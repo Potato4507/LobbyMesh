@@ -985,6 +985,28 @@ async function run() {
         await execute("document.querySelector('#sendMessage').disabled"),
         false,
       );
+      for (const [outcome, label] of [
+        [
+          "not-located",
+          "Contact lookup unavailable right now; try again shortly",
+        ],
+        ["not-located", "Contact not located in this attempt"],
+        ["incomplete", "Contact lookup was incomplete"],
+      ] as const) {
+        if (!label.includes("unavailable")) messageClockAdvance += 5000;
+        searchOutcome = outcome;
+        await execute(
+          "document.querySelector('#messagesPanel form').requestSubmit()",
+        );
+        await until(
+          `[...document.querySelectorAll('#messageHistory .message-status')].at(-1)?.textContent === ${JSON.stringify(`${label} · delivery unconfirmed`)} && document.querySelector('#sendMessage')?.textContent === 'Send'`,
+        );
+        assert.equal(
+          await execute("document.querySelector('#messageDraft').value"),
+          "retained during contact discovery",
+        );
+        assert.equal(messaging.contacts()[0]?.discovered, false);
+      }
       messageClockAdvance += 5000;
       holdContactSearch = true;
       const beforeLookupSend = messaging.history(allowed).length;

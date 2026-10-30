@@ -1,5 +1,13 @@
 # Active checkpoint — 2026-10-30
 
+2026-10-30 automatic Send now projects fixed connection-only lookup outcomes: not located in this attempt, incomplete, or deferred by existing single-flight/cooldown. Every label retains delivery unconfirmed; no offline assertion/raw exceptions/resend. Cancellation and permission changes take precedence. Focused25/25/full213/213/typecheck/lint202/build/native conversation pass, including all three rendered outcomes with draft retained and subsequent Stop/found/ACK/block checks. See evidence/send-lookup-outcomes.md. Packaged-sourcef941434 Ubuntu41083367572 succeeds. Goal ACTIVE. Next implement one bounded authenticated refresh after a known binding fails negotiation, only before any text dispatch; retain no automatic retry after ambiguous delivery.
+
+Branch codex/lobbymesh-pi-lab-and-reliability; parent8bf4c95076917c0225792aa00eb61090b0bb6d85. Next: inspect git status; implement guarded pre-text negotiation refresh; focused/fault tests and integrated regression. Latest clean package remains f941434; it predates these new lookup labels. Historical checkpoints retained below.
+
+---
+
+# Active checkpoint — 2026-10-30
+
 2026-10-30 clean Windows artifact sourcef941434beb999b37173fc3d91cdcf9e0b50984b0 at dist/LobbyMesh-win32-x64-1793375027660/LobbyMesh.exe passes copied executable/off/protected reopen and pinned656-file integrity415668451 bytes,56 dependency copies, NotSigned. Digest and exact evidence: evidence/windows-send-recovery-package-summary.json. Both authorized read-only Pi doctor attempts again LAB_HOST_UNAVAILABLE; no device changes. CI f941434 run41083367572 was in progress at last check. Goal ACTIVE. Next distinguish automatic lookup not-located/incomplete/deferred failures in the message row using fixed bounded local reasons, preserving delivery uncertainty and draft retention.
 
 Branch codex/lobbymesh-pi-lab-and-reliability, parentf941434beb999b37173fc3d91cdcf9e0b50984b0. Next: inspect git/CI; implement fixed lookup-failure projection; focused/full/native conversation validation, then commit. Historical checkpoints retained below.

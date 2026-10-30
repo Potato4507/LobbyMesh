@@ -127,14 +127,16 @@ test("Stop, Clear, withdrawal and shutdown cancel owned lookup and discard even 
   }
 });
 test("not located, incomplete, invalid and throwing lookup never dispatch text or expose raw details", async () => {
-  for (const lookup of [
-    async () => ({ contact: null, complete: true }),
-    async () => ({ contact: null, complete: false }),
-    async () => ({ contact: { id: a, transportKey: key }, complete: true }),
-    async () => {
-      throw new Error("private endpoint and draft");
-    },
-  ] satisfies ContactLookup[]) {
+  for (const [index, lookup] of (
+    [
+      async () => ({ contact: null, complete: true }),
+      async () => ({ contact: null, complete: false }),
+      async () => ({ contact: { id: a, transportKey: key }, complete: true }),
+      async () => {
+        throw new Error("private endpoint and draft");
+      },
+    ] satisfies ContactLookup[]
+  ).entries()) {
     const f = fixture(lookup);
     try {
       await assert.rejects(
@@ -144,6 +146,15 @@ test("not located, incomplete, invalid and throwing lookup never dispatch text o
       assert.equal(f.exchanges(), 0);
       assert.equal(f.service.history(b)[0]?.status, "unconfirmed");
       assert.equal(f.service.history(b)[0]?.failure?.stage, "connection");
+      assert.equal(
+        f.service.history(b)[0]?.failure?.reason,
+        [
+          "contact-not-located",
+          "lookup-incomplete",
+          "unknown",
+          "lookup-incomplete",
+        ][index],
+      );
       assert.equal(
         JSON.stringify(f.service.history(b)).includes("private endpoint"),
         false,
@@ -172,6 +183,10 @@ test("send does not take ownership of an existing manual lookup or bypass its qu
       /DELIVERY_UNCONFIRMED/,
     );
     assert.equal(signal.aborted, false);
+    assert.equal(
+      f.service.history(b).at(-1)?.failure?.reason,
+      "lookup-deferred",
+    );
     assert.equal(f.exchanges(), 0);
     finish({ contact: null, complete: true });
     assert.deepEqual(await manual, { state: "not-located" });
@@ -180,6 +195,10 @@ test("send does not take ownership of an existing manual lookup or bypass its qu
       /DELIVERY_UNCONFIRMED/,
     );
     assert.equal(calls, 1);
+    assert.equal(
+      f.service.history(b).at(-1)?.failure?.reason,
+      "lookup-deferred",
+    );
   } finally {
     f.close();
   }

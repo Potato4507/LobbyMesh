@@ -5,6 +5,9 @@ export interface DeliveryFailure {
     | "timeout"
     | "peer-rejected"
     | "invalid-response"
+    | "contact-not-located"
+    | "lookup-incomplete"
+    | "lookup-deferred"
     | "unknown";
   stage: "connection" | "delivery";
 }
@@ -42,6 +45,14 @@ export function deliveryFailure(
   if (permissionChanged) return { reason: "permission-changed", stage };
   if (canceled) return { reason: "canceled", stage };
   const code = error instanceof Error ? error.message : null;
+  if (stage === "connection") {
+    if (code === "CONTACT_SEARCH_NOT_LOCATED")
+      return { reason: "contact-not-located", stage };
+    if (code === "CONTACT_SEARCH_INCOMPLETE")
+      return { reason: "lookup-incomplete", stage };
+    if (code === "CONTACT_SEARCH_BUSY" || code === "CONTACT_SEARCH_RATE_LIMIT")
+      return { reason: "lookup-deferred", stage };
+  }
   const reason: DeliveryFailure["reason"] =
     code === "DIRECT_TIMEOUT" || code === "RPC_TIMEOUT"
       ? "timeout"
@@ -62,6 +73,17 @@ export function unconfirmedLabel(
   failure: DeliveryFailure | null | undefined,
 ): string {
   const reason = failure?.reason;
+  if (failure?.stage === "connection") {
+    const lookup =
+      reason === "contact-not-located"
+        ? "Contact not located in this attempt"
+        : reason === "lookup-incomplete"
+          ? "Contact lookup was incomplete"
+          : reason === "lookup-deferred"
+            ? "Contact lookup unavailable right now; try again shortly"
+            : null;
+    if (lookup) return `${lookup} · delivery unconfirmed`;
+  }
   const detail =
     reason === "canceled"
       ? "Canceled locally"

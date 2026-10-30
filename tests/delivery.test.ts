@@ -84,3 +84,62 @@ test("cancel requests bind an exact local outgoing row ID to one contact without
   ])
     assert.throws(() => parseMessageCancel(value), /INVALID_MESSAGE_CANCEL/);
 });
+test("lookup reasons require exact local connection-stage codes and preserve uncertainty", () => {
+  for (const [code, reason, label] of [
+    [
+      "CONTACT_SEARCH_NOT_LOCATED",
+      "contact-not-located",
+      "Contact not located in this attempt",
+    ],
+    [
+      "CONTACT_SEARCH_INCOMPLETE",
+      "lookup-incomplete",
+      "Contact lookup was incomplete",
+    ],
+    [
+      "CONTACT_SEARCH_BUSY",
+      "lookup-deferred",
+      "Contact lookup unavailable right now; try again shortly",
+    ],
+    [
+      "CONTACT_SEARCH_RATE_LIMIT",
+      "lookup-deferred",
+      "Contact lookup unavailable right now; try again shortly",
+    ],
+  ] as const) {
+    const error = new Error(code);
+    assert.deepEqual(deliveryFailure(error, "connection", false, false), {
+      reason,
+      stage: "connection",
+    });
+    assert.equal(
+      unconfirmedLabel({ reason, stage: "connection" }),
+      `${label} · delivery unconfirmed`,
+    );
+    assert.deepEqual(deliveryFailure(error, "delivery", false, false), {
+      reason: "unknown",
+      stage: "delivery",
+    });
+    assert.equal(
+      unconfirmedLabel({ reason, stage: "delivery" }),
+      "Delivery unconfirmed",
+    );
+    for (const invalid of [
+      code,
+      { message: code },
+      new Error(`${code} private endpoint`),
+    ])
+      assert.equal(
+        deliveryFailure(invalid, "connection", false, false).reason,
+        "unknown",
+      );
+    assert.equal(
+      deliveryFailure(error, "connection", true, false).reason,
+      "canceled",
+    );
+    assert.equal(
+      deliveryFailure(error, "connection", true, true).reason,
+      "permission-changed",
+    );
+  }
+});

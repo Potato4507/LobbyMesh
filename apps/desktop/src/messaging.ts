@@ -268,7 +268,12 @@ export class DesktopMessaging {
         if (controller.signal.aborted)
           throw new Error("CONTACT_SEARCH_CANCELED");
         this.permit(peerId);
-        if (result.state !== "found") throw new Error("CONTACT_NOT_DISCOVERED");
+        if (result.state !== "found")
+          throw new Error(
+            result.state === "not-located"
+              ? "CONTACT_SEARCH_NOT_LOCATED"
+              : "CONTACT_SEARCH_INCOMPLETE",
+          );
         contact = this.resolveContact(peerId);
       }
       if (this.negotiated.get(peerId) !== contact.transportKey) {
