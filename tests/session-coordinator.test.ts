@@ -244,3 +244,57 @@ test("withdrawal, session replacement and stop during publication prevent an obs
     }
   }
 });
+
+test("coordinator withdrawal cancels a replacement join after an in-flight tombstone and can re-enable", async () => {
+  const provider = new MockSessionProvider();
+  provider.set(room("old"));
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const writes: { key: string; state: string }[] = [];
+  const membership = new SessionMembership(
+    createIdentity(),
+    {
+      async put(key, record) {
+        const state = JSON.parse(record.content).state;
+        writes.push({ key, state });
+        if (writes.length === 2) await held;
+      },
+      async lookup() {
+        return { records: [] };
+      },
+    },
+    { now: () => 1000, transportKey: "ab".repeat(32), displayName: "fixture" },
+  );
+  const coordinator = new SessionCoordinator(provider, membership);
+  try {
+    await coordinator.setConsent(true);
+    await coordinator.start();
+    provider.set(room("new"));
+    await setImmediate();
+    assert.equal(writes.length, 2);
+    const withdrawing = coordinator.setConsent(false);
+    release();
+    await withdrawing;
+    assert.deepEqual(writes, [
+      { key: sessionLookupKey(room("old"), 0), state: "joined" },
+      { key: sessionLookupKey(room("old"), 0), state: "left" },
+    ]);
+    assert.equal(coordinator.status().state, "consent-required");
+    await coordinator.setConsent(true);
+    assert.equal(coordinator.status().state, "ready");
+    assert.deepEqual(writes.at(-1), {
+      key: sessionLookupKey(room("new"), 0),
+      state: "joined",
+    });
+    await coordinator.stop();
+    assert.deepEqual(writes.at(-1), {
+      key: sessionLookupKey(room("new"), 0),
+      state: "left",
+    });
+  } finally {
+    release();
+    await coordinator.stop();
+  }
+});

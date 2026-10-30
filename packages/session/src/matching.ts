@@ -157,26 +157,32 @@ export class SessionMembership {
   async update(
     session: SessionIdentity | null,
     consent: boolean,
+    signal?: AbortSignal,
   ): Promise<void> {
     // Copy and validate before queueing: a caller cannot mutate scope during an await.
     const snapshot = session ? { ...session } : null;
     if (snapshot) canonicalSession(snapshot);
     if (typeof consent !== "boolean")
       return Promise.reject(new Error("CONSENT_REQUIRED"));
-    const task = this.tail.then(() => this.updateNow(snapshot, consent));
+    const task = this.tail.then(() =>
+      this.updateNow(snapshot, consent, signal),
+    );
     this.tail = task.catch(() => {});
     return task;
   }
   private async updateNow(
     session: SessionIdentity | null,
     consent: boolean,
+    signal?: AbortSignal,
   ): Promise<void> {
+    this.check(signal);
     const now = this.now();
     const key =
       session && consent
         ? sessionLookupKey(session, Math.floor(now / SESSION_EPOCH_MS))
         : null;
     for (const [oldKey, old] of this.active) {
+      this.check(signal);
       if (old.expiresAt <= now) {
         this.active.delete(oldKey);
         continue;
@@ -186,6 +192,7 @@ export class SessionMembership {
         this.active.delete(oldKey);
       }
     }
+    this.check(signal);
     if (!key || !session) return;
     const ad: Advertisement = {
       version: 1,
@@ -198,7 +205,13 @@ export class SessionMembership {
       claimedSource: session.evidenceSource,
     };
     await this.write(key, ad, now);
+    // A write already handed to the directory cannot be undone by aborting.
+    // Track its completion before checking cancellation so leave can tombstone it.
     this.active.set(key, { expiresAt: now + SESSION_EPOCH_MS, ad });
+    this.check(signal);
+  }
+  private check(signal?: AbortSignal): void {
+    if (signal?.aborted) throw new Error("SESSION_MATCH_ABORTED");
   }
   leave(): Promise<void> {
     return this.update(null, false);
@@ -206,15 +219,19 @@ export class SessionMembership {
   async find(
     session: SessionIdentity,
     consent: boolean,
+    signal?: AbortSignal,
   ): Promise<MatchedParticipant[]> {
     canonicalSession(session);
+    this.check(signal);
     if (consent !== true) return [];
     const now = this.now(),
       epoch = Math.floor(now / SESSION_EPOCH_MS);
     const latest = new Map<string, { record: RecordV1; ad: Advertisement }>();
     for (const window of epoch > 0 ? [epoch, epoch - 1] : [epoch]) {
+      this.check(signal);
       const key = sessionLookupKey(session, window);
       const result = await this.directory.lookup(key);
+      this.check(signal);
       if (
         result.routing &&
         (result.routing.state !== "exhausted" || result.routing.failures > 0)

@@ -6,10 +6,15 @@ import type { MatchedParticipant } from "./matching.js";
 import { canonicalSession } from "./matching.js";
 
 interface MembershipOperations {
-  update(session: SessionIdentity | null, consent: boolean): Promise<void>;
+  update(
+    session: SessionIdentity | null,
+    consent: boolean,
+    signal?: AbortSignal,
+  ): Promise<void>;
   find(
     session: SessionIdentity,
     consent: boolean,
+    signal?: AbortSignal,
   ): Promise<MatchedParticipant[]>;
   leave(): Promise<void>;
 }
@@ -36,6 +41,7 @@ export class SessionCoordinator {
   private stopping: Promise<void> | undefined;
   private unsubscribe: (() => void) | undefined;
   private cancelTimer: (() => void) | undefined;
+  private workController: AbortController | undefined;
   private view: SessionMatchStatus = { state: "idle", participants: [] };
   constructor(
     private readonly provider: SessionProvider,
@@ -52,6 +58,7 @@ export class SessionCoordinator {
       this.running = true;
       this.unsubscribe = this.provider.subscribe((value) => {
         if (!this.running) return;
+        this.workController?.abort();
         this.revision++;
         this.accept(value);
         void this.reconcile();
@@ -84,12 +91,14 @@ export class SessionCoordinator {
       const value = await this.provider.current();
       if (!this.running) return;
       if (revision === this.revision) {
+        this.workController?.abort();
         this.revision++;
         this.accept(value);
       }
     } catch {
       if (!this.running) return;
       if (revision === this.revision) {
+        this.workController?.abort();
         this.revision++;
         this.session = null;
         this.view = { state: "error", participants: [] };
@@ -100,6 +109,7 @@ export class SessionCoordinator {
   async setConsent(consent: boolean): Promise<void> {
     if (this.closed) throw new Error("COORDINATOR_CLOSED");
     if (typeof consent !== "boolean") throw new Error("CONSENT_REQUIRED");
+    this.workController?.abort();
     this.consent = consent;
     this.revision++;
     this.view = {
@@ -124,13 +134,17 @@ export class SessionCoordinator {
           session = this.session ? { ...this.session } : null,
           consent = this.consent;
         const evidenceError = this.view.state === "error";
+        const controller = new AbortController();
+        this.workController = controller;
         try {
-          await this.membership.update(session, consent);
+          await this.membership.update(session, consent, controller.signal);
           // A publication already in progress may finish after withdrawal or a
           // newer session event. Do not start another lookup for that old scope.
           if (revision !== this.revision || !this.running) continue;
           const participants =
-            session && consent ? await this.membership.find(session, true) : [];
+            session && consent
+              ? await this.membership.find(session, true, controller.signal)
+              : [];
           if (revision === this.revision && this.running)
             this.view = {
               state: evidenceError
@@ -145,6 +159,10 @@ export class SessionCoordinator {
         } catch {
           if (revision === this.revision)
             this.view = { state: "error", participants: [] };
+        } finally {
+          controller.abort();
+          if (this.workController === controller)
+            this.workController = undefined;
         }
       }
     })().finally(() => {
@@ -170,6 +188,7 @@ export class SessionCoordinator {
     this.stopping ??= (async () => {
       this.closed = true;
       this.running = false;
+      this.workController?.abort();
       this.revision++;
       this.cancelTimer?.();
       this.cancelTimer = undefined;

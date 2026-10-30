@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+Membership cancellation now spans coordinator generations and queued/between-await update/find boundaries. Reproduced obsolete joins/epoch reads blocked; completed joined writes retained for later tombstone cleanup. Focused14/14/full190/190/typecheck/lint182/build and native desktop four-process suite pass. See evidence/session-membership-cancellation.md. Both authorized Pi targets again LAB_HOST_UNAVAILABLE with strict read-only doctor, no changes. Goal ACTIVE. Next commit/push verified source, build and pin-check a clean Windows package including overlay/device/session fixes, inspect CI, then continue the next unblocked production behavior.
+
+
 Session generation races reproduced/fixed: old provider-read rejection no longer erases a newer event/departure, and publication completion after withdrawal/replacement/stop cannot start obsolete roster lookup. Focused10/10/full186/186/typecheck/lint182/build and native desktop four-process suite pass. See evidence/session-generation-ordering.md. Latestb453263 Ubuntu41002452495 succeeds;161856e failed known native burst182/183; intermittency unresolved. Goal ACTIVE. Next bound obsolete membership work between directory awaits so withdrawal does not start a new joined publication or second epoch lookup after an earlier operation finishes. Preserve tombstones for writes already in flight.
 
 

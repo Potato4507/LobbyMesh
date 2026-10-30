@@ -21,6 +21,115 @@ const room = (jobId = "room-1"): SessionIdentity => ({
   evidenceSource: "test",
   verification: "mock",
 });
+
+test("canceled queued membership and cancellation during a tombstone cannot publish a new joined scope", async () => {
+  for (const queued of [false, true]) {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const writes: { key: string; state: string }[] = [];
+    const membership = new SessionMembership(
+      createIdentity(),
+      {
+        async put(key, record) {
+          const state = JSON.parse(record.content).state;
+          writes.push({ key, state });
+          if (queued ? writes.length === 1 : state === "left") await held;
+        },
+        async lookup() {
+          return { records: [] };
+        },
+      },
+      {
+        now: () => 1000,
+        transportKey: "ab".repeat(32),
+        displayName: "fixture",
+      },
+    );
+    const first = membership.update(room("old"), true);
+    if (!queued) await first;
+    const owner = new AbortController();
+    const changing = membership.update(room("new"), true, owner.signal);
+    if (!queued) await new Promise((resolve) => setImmediate(resolve));
+    owner.abort();
+    release();
+    await first;
+    await assert.rejects(changing, /SESSION_MATCH_ABORTED/);
+    assert.ok(
+      !writes.some(
+        (v) =>
+          v.key === sessionLookupKey(room("new"), 0) && v.state === "joined",
+      ),
+    );
+    await membership.leave();
+    assert.equal(writes.at(-1)?.state, "left");
+    await membership.update(room("fresh"), true);
+    assert.equal(writes.at(-1)?.key, sessionLookupKey(room("fresh"), 0));
+    await membership.leave();
+  }
+});
+
+test("a joined write completed after cancellation remains tracked for withdrawal", async () => {
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const states: string[] = [];
+  const membership = new SessionMembership(
+    createIdentity(),
+    {
+      async put(_key, record) {
+        states.push(JSON.parse(record.content).state);
+        if (states.length === 1) await held;
+      },
+      async lookup() {
+        return { records: [] };
+      },
+    },
+    { now: () => 1000, transportKey: "ab".repeat(32), displayName: "fixture" },
+  );
+  const owner = new AbortController();
+  const publishing = membership.update(room(), true, owner.signal);
+  await new Promise((resolve) => setImmediate(resolve));
+  owner.abort();
+  release();
+  await assert.rejects(publishing, /SESSION_MATCH_ABORTED/);
+  await membership.leave();
+  assert.deepEqual(states, ["joined", "left"]);
+});
+
+test("canceled roster search stops before the next epoch and a fresh search recovers", async () => {
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let calls = 0;
+  const membership = new SessionMembership(
+    createIdentity(),
+    {
+      async put() {},
+      async lookup() {
+        calls++;
+        if (calls === 1) await held;
+        return { records: [] };
+      },
+    },
+    {
+      now: () => SESSION_EPOCH_MS + 1,
+      transportKey: "ab".repeat(32),
+      displayName: "fixture",
+    },
+  );
+  const owner = new AbortController();
+  const finding = membership.find(room(), true, owner.signal);
+  owner.abort();
+  release();
+  await assert.rejects(finding, /SESSION_MATCH_ABORTED/);
+  assert.equal(calls, 1);
+  assert.deepEqual(await membership.find(room(), true), []);
+  assert.equal(calls, 3);
+});
 test("session keys have canonical namespace/epoch scope and reject ambiguous/invalid evidence", () => {
   assert.equal(
     canonicalSession(room()),
