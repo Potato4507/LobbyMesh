@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-30",
+  "sourceParent": "f9c056edfd3aaa9ce24ec6c3a161a28dd85ffc08",
+  "sourceDirty": true,
+  "proof": "SAME_HOST",
+  "automatic": {
+    "result": "independent-send-recovery-passed",
+    "electronMainProcesses": 2,
+    "clientLaunches": 3,
+    "fullProcessRestart": true,
+    "identityPreserved": true,
+    "approvedPermissionPreserved": true,
+    "revokedRediscoveryDenied": true,
+    "revokedSendDenied": true,
+    "restoredClientManualRediscovery": false,
+    "automaticMissingBindingLookup": true,
+    "bindingKnownBeforeSend": false,
+    "initialAuthenticatedPeers": 0,
+    "acknowledgedText": true,
+    "voice": "off",
+    "microphone": false,
+    "physicalNetwork": false
+  },
+  "manualRegression": {
+    "result": "independent-contact-recovery-passed",
+    "electronMainProcesses": 2,
+    "clientLaunches": 3,
+    "fullProcessRestart": true,
+    "identityPreserved": true,
+    "approvedPermissionPreserved": true,
+    "revokedRediscoveryDenied": true,
+    "restoredClientManualRediscovery": true,
+    "authenticatedRediscovery": true,
+    "bindingKnownBeforeSend": true,
+    "initialAuthenticatedPeers": 0,
+    "acknowledgedText": true,
+    "voice": "off",
+    "microphone": false,
+    "physicalNetwork": false
+  },
+  "physicalAudio": false,
+  "releaseReady": false
+}

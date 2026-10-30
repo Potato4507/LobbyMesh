@@ -131,6 +131,10 @@ async function run() {
             return execute(
               "window.companion.status().then(s=>({connection:s.connection,microphone:s.microphone}))",
             );
+          case "binding-known":
+            return execute(
+              `window.companion.messaging().then(s=>s.contacts.find(c=>c.peerId===${JSON.stringify(message.peerId)})?.discovered===true)`,
+            );
           case "baseline-text":
             return execute(
               `window.companion.sendText(${JSON.stringify(message.peerId)},'synthetic baseline before restart').then(row=>({status:row.status}))`,

@@ -1,5 +1,13 @@
 # Active checkpoint — 2026-10-30
 
+2026-10-30 independent production Electron restart now has separate test:send-recovery mode: restored client has no binding (required false), sends without manual Find, performs authenticated lookup, actual ACK and recipient receipt; app identity/permission persist, revoked Send/Find denied, voice/microphone off, zero media hosts and clean exits. Native automatic plus unchanged manual recovery modes both pass with two processes/three launches each. Summary sourcef9c056e dirty harness; SAME_HOST only. See evidence/independent-send-recovery.md. f9c056e Ubuntu41082937873 succeeds. Goal ACTIVE. Next commit this verified acceptance mode, then refresh and verify a clean Windows development artifact including automatic Send recovery.
+
+Branch codex/lobbymesh-pi-lab-and-reliability, parentf9c056edfd3aaa9ce24ec6c3a161a28dd85ffc08. Next: check live git status; commit/push owned harness/evidence; package from clean runtime HEAD and verify pinned manifest. Historical checkpoints below remain history.
+
+---
+
+# Active checkpoint — 2026-10-30
+
 2026-10-30 explicit Send now looks up a missing approved-contact binding with the existing authenticated resolver before dispatch. Each send owns cancellation through Stop/Clear/withdrawal/shutdown; busy/manual lookup and cooldown remain bounded, late results cannot bind/send, and failed delivery retains draft. Focused22/22/full212/212/typecheck/lint200/build and Windows desktop five-process suite pass. See evidence/send-contact-lookup.md. Prior57f8e46 Ubuntu41081853549 succeeds. Goal ACTIVE. Next add and run independent production-transport full-client-restart automatic Send recovery, keeping manual Find coverage and all strict protocol/consent assertions.
 
 Branch codex/lobbymesh-pi-lab-and-reliability; source parent57f8e46c4a40f3104b00a7df21d74ebd80008732. Owned send-lookup source/tests/evidence follow. Next: inspect live status/HEAD; add independent automatic-send recovery mode; run it and retain actual ACK/default-off/cleanup evidence. Historical checkpoints below remain history.

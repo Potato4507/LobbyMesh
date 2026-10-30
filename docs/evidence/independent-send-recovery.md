@@ -1,0 +1,11 @@
+# Independent automatic Send recovery — 2026-10-30
+
+Added `pnpm test:send-recovery` as a separate production-transport acceptance mode of the independent Electron harness. Existing manual Find, default voice and crash modes retain their paths and strict assertions.
+
+Two independent Electron mains pair through the production desktop IPC and actual local HyperDHT/Noise transport. After baseline acknowledged text, B revokes A and both Find and Send must reject. A has no recovery text at the recipient. B explicitly reapproves A before A shuts down; re-pairing after restart would itself warm A's routing graph. A's process exits and a new process reopens its protected credentials and approved permission. After the existing public-query startup quota interval (1.1s), its connection details must still be unknown immediately before the new explicit Send. No manual Find is performed by the restored client. The send must ACK, and B must actually contain the distinct recovery text. Both clients must retain voice off/microphone off, have zero media hosts and exit cleanly with zero windows.
+
+Observed final automatic run: initial authenticated peers 0, bindingKnownBeforeSend false, automaticMissingBindingLookup true, ACK and recipient verification pass. Two mains / three client launches. Separate `pnpm test:contact-recovery` regression also passes, with its original manual authenticated Find and revoked-permission coverage. Neither protocol budgets, retries, native readiness bounds nor assertions were weakened. Exact redacted results and dirty harness provenance are retained in the companion summary JSON.
+
+An initial automatic-mode run found a warm binding because B reapproved after restart; that run was valid warm recovery but did not prove automatic missing-binding lookup. Moving B's explicit reapproval before A exits removes that confounder, and the final mode requires the missing binding rather than silently accepting a warm route.
+
+`pnpm typecheck` and `pnpm lint` pass. The production automatic-send commit f9c056edfd3aaa9ce24ec6c3a161a28dd85ffc08 passed full 212 tests, full native Windows desktop suite, and Ubuntu CI 41082937873. This increment changes the acceptance harness and package script only. SAME_HOST is not physical LAN/NAT, physical audio, actual Roblox or release acceptance.

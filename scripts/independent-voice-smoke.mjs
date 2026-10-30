@@ -23,7 +23,9 @@ const entry = path.resolve(
 );
 const clients = [];
 const crashMode = process.argv.includes("--crash");
-const contactRecoveryMode = process.argv.includes("--contact-recovery");
+const automaticSendRecoveryMode = process.argv.includes("--send-recovery");
+const contactRecoveryMode =
+  process.argv.includes("--contact-recovery") || automaticSendRecoveryMode;
 let crashCleanupMs = null;
 const crashTrace = [];
 let bootstrap;
@@ -174,6 +176,19 @@ try {
       b.command("rediscover", { peerId: infoA.peerId }),
       /CONTACT_NOT_AUTHORIZED/,
     );
+    if (automaticSendRecoveryMode) {
+      await assert.rejects(
+        b.command("recovery-text", { peerId: infoA.peerId }),
+        /CONTACT_NOT_AUTHORIZED/,
+      );
+      assert.equal(
+        await a.command("received-recovery-text", { peerId: infoB.peerId }),
+        false,
+      );
+      // Restore B's separate permission before A exits. Re-pairing after A
+      // restarts would itself authenticate A and warm its routing state.
+      await b.command("approve", { code: codeA.code });
+    }
     assert.equal((await a.command("stop")).windows, 0);
     assert.equal(await a.exited, 0);
     const restored = client(path.join(root, "a"), `127.0.0.1:${port}`, assets);
@@ -190,26 +205,34 @@ try {
     // Startup already consumes the shared public-discovery query quota (1s).
     // Let that existing quota reopen; this does not extend the search deadline.
     await delay(1100);
-    const recovered = await restored.command("rediscover", {
-      peerId: infoB.peerId,
-    });
-    if (recovered.state !== "found")
-      console.log(
-        JSON.stringify({
-          contactRestartLookup: {
-            result: recovered,
-            before: beforeLookup,
-            after: await restored.command("recovery-state"),
-          },
-        }),
-      );
-    assert.deepEqual(recovered, { state: "found" });
-    const freshCode = await restored.command("code");
-    await b.command("approve", { code: freshCode.code });
+    if (!automaticSendRecoveryMode) {
+      const recovered = await restored.command("rediscover", {
+        peerId: infoB.peerId,
+      });
+      if (recovered.state !== "found")
+        console.log(
+          JSON.stringify({
+            contactRestartLookup: {
+              result: recovered,
+              before: beforeLookup,
+              after: await restored.command("recovery-state"),
+            },
+          }),
+        );
+      assert.deepEqual(recovered, { state: "found" });
+    }
+    if (!automaticSendRecoveryMode) {
+      const freshCode = await restored.command("code");
+      await b.command("approve", { code: freshCode.code });
+    }
     assert.equal(
       await b.command("received-recovery-text", { peerId: infoA.peerId }),
       false,
     );
+    const bindingKnownBeforeSend = await restored.command("binding-known", {
+      peerId: infoB.peerId,
+    });
+    if (automaticSendRecoveryMode) assert.equal(bindingKnownBeforeSend, false);
     assert.deepEqual(
       await restored.command("recovery-text", { peerId: infoB.peerId }),
       { status: "acknowledged" },
@@ -228,14 +251,21 @@ try {
     }
     console.log(
       JSON.stringify({
-        result: "independent-contact-recovery-passed",
+        result: automaticSendRecoveryMode
+          ? "independent-send-recovery-passed"
+          : "independent-contact-recovery-passed",
         electronMainProcesses: 2,
         clientLaunches: 3,
         fullProcessRestart: true,
         identityPreserved: true,
         approvedPermissionPreserved: true,
         revokedRediscoveryDenied: true,
-        authenticatedRediscovery: true,
+        ...(automaticSendRecoveryMode ? { revokedSendDenied: true } : {}),
+        restoredClientManualRediscovery: !automaticSendRecoveryMode,
+        ...(automaticSendRecoveryMode
+          ? { automaticMissingBindingLookup: true }
+          : { authenticatedRediscovery: true }),
+        bindingKnownBeforeSend,
         initialAuthenticatedPeers: beforeLookup.connection.peers,
         acknowledgedText: true,
         voice: "off",

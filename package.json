@@ -21,6 +21,7 @@
     "test:media-host": "node scripts/audio-smoke.mjs host",
     "test:voice-calls": "node scripts/audio-smoke.mjs calls",
     "test:independent-voice": "node scripts/independent-voice-smoke.mjs",
+    "test:send-recovery": "node scripts/independent-voice-smoke.mjs --send-recovery",
     "test:voice-crash": "node scripts/independent-voice-smoke.mjs --crash",
     "diagnose:session": "tsx scripts/session-status.ts",
     "diagnose:handoff": "node scripts/native-handoff.mjs",
