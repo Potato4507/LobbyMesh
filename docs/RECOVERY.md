@@ -1,5 +1,13 @@
 # Active checkpoint — 2026-10-30
 
+2026-10-30 native desktop screenshot output defaults to exclusive dist/desktop-evidence-PID-time, retained on failure, with explicit --update-evidence for canonical screenshots. Fixed image names/absolute destinations validated; unknown/duplicate/conflicting options reject before artifacts/Electron. Focused3/3/full221/221/typecheck/lint206 and five native Windows processes pass; actual full run writes13 PNGs and no tracked image changes. See evidence/native-evidence-isolation.md. Goal ACTIVE. Next implement local verify:windows source-pinned staged checks/summary, preserving dirty work and recording failures rather than enabling extra paid-hosted jobs.
+
+Branch codex/lobbymesh-pi-lab-and-reliability; parenta61c2dddab47dfbac6e12f3ebbfadb38150d3f52. Next: inspect git; implement local Windows verification preflight/stage runner; test dirty-source rejection, commit and run source-clean pipeline once. Preserve any failed native evidence; no deadline/assertion changes. Historical checkpoints retained.
+
+---
+
+# Active checkpoint — 2026-10-30
+
 2026-10-30 transient overlay query failure now keeps the chat component owner mounted and hidden; null trusted connection still suspends the composer, draft returns after contact recovery and no text is sent. Native verifies same chat owner/draft, hidden widgets, one stop control and retained End/unknown/peer-notification behavior. Typecheck/lint203/build and five Windows desktop processes pass; Node218/218 retained from preceding runtime checkpoint. See evidence/overlay-draft-recovery.md. Clean7bcc86f Windows artifact dist/LobbyMesh-win32-x64-1793376289516 passes executable/off/protected reopen and pinned656-file integrity415672838 bytes, NotSigned; summary retained. Its Ubuntu41086591545 succeeds. Latest real session probe waiting/no selection/network off/self-asserted. Goal ACTIVE. Next isolate native screenshot outputs per run so unattended Windows verification preserves a clean tree; extra hosted Windows CI blocked on unverified private-repo billing under no-paid-infrastructure constraint.
 
 Branch codex/lobbymesh-pi-lab-and-reliability; parent7bcc86fb1e467fb889163484d7cdfe81a3cc8d9d. Next: inspect git; implement safe per-run native evidence destination; verify isolated screenshots and unchanged tracked sources, then local Windows acceptance orchestration. Historical checkpoints retained.

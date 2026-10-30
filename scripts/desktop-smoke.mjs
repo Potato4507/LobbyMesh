@@ -5,12 +5,40 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { build } from "esbuild";
 
+const focusedModes = [
+  "conversation-clear-only",
+  "session-status-only",
+  "overlay-capture-only",
+];
+let requestedMode = "",
+  updateEvidence = false;
+for (const argument of process.argv.slice(2)) {
+  if (
+    focusedModes.includes(argument.slice(2)) &&
+    argument.startsWith("--") &&
+    !requestedMode
+  )
+    requestedMode = argument.slice(2);
+  else if (argument === "--update-evidence" && !updateEvidence)
+    updateEvidence = true;
+  else throw new Error("INVALID_DESKTOP_SMOKE_OPTIONS");
+}
 const directory = await mkdtemp(
   path.join(tmpdir(), "lobbymesh-desktop-smoke-"),
 );
 const entry = path.resolve(`dist/desktop-smoke-${process.pid}.cjs`);
 try {
   await mkdir("dist", { recursive: true });
+  const evidenceDirectory = updateEvidence
+    ? path.resolve("docs/evidence")
+    : path.resolve("dist", `desktop-evidence-${process.pid}-${Date.now()}`);
+  if (!updateEvidence) await mkdir(evidenceDirectory);
+  console.log(
+    JSON.stringify({
+      desktopEvidenceDirectory: evidenceDirectory,
+      trackedEvidenceUpdated: updateEvidence,
+    }),
+  );
   await build({
     entryPoints: ["tests/fixtures/desktop-smoke.ts"],
     outfile: entry,
@@ -22,17 +50,8 @@ try {
   const executable = createRequire(import.meta.url)("electron"),
     environment = { ...process.env };
   delete environment.ELECTRON_RUN_AS_NODE;
-  const focusedModes = [
-    "conversation-clear-only",
-    "session-status-only",
-    "overlay-capture-only",
-  ];
-  for (const mode of [
-    "--conversation-clear-only",
-    "--session-status-only",
-    "--overlay-capture-only",
-  ].includes(process.argv[2])
-    ? [process.argv[2].slice(2)]
+  for (const mode of requestedMode
+    ? [requestedMode]
     : process.platform === "win32"
       ? [
           "",
@@ -48,7 +67,8 @@ try {
         [
           entry,
           focusedModes.includes(mode) ? path.join(directory, mode) : directory,
-          ...(mode ? [mode] : []),
+          mode || "main",
+          evidenceDirectory,
         ],
         {
           windowsHide: true,

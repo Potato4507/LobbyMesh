@@ -1,5 +1,8 @@
 # Release readiness
 
+Native screenshots: `pnpm test:desktop` retains per-run images in a new `dist/desktop-evidence-*` directory and prints its path. Use `--update-evidence` explicitly to update canonical screenshots; focused modes remain available. Normal verification preserves tracked evidence. Latest clean package is runtime7bcc86fb1e467fb889163484d7cdfe81a3cc8d9d at dist/LobbyMesh-win32-x64-1793376289516, pinned digest e46e51742c2b828d5a56a5d369dd7e03df670693ff1f2b64b959f58fdcd15a24, NotSigned; see evidence/windows-voice-observation-package-summary.json. It predates overlay draft recovery.
+
+
 2026-10-30 clean runtimedadd424e175d57185523c68e78397e3b74b97904 Windows artifact dist/LobbyMesh-win32-x64-1793337646325/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415667493 bytes, NotSigned. Retained digest/limits: evidence/windows-call-end-package-summary.json. Ubuntu41007919069 fails199/200 on existing strict native burst timeout vs exhausted; A hello1501ms, B hello1500.44ms then abort1402.63ms after queue1597.77ms and queued aborts~3s; inboundA8/B18 all success, no admission rejects. Tests unchanged. Goal ACTIVE. Next expose existing redacted outbound/inbound diagnostics only through trusted desktop network owner to the independent native fixture, attach them to unexpected control failures and inspect the next hangup failure without altering its error/deadline/ACK contract.
 
 

@@ -28,8 +28,14 @@ import { PreferenceStore } from "../../packages/security/src/preferences.js";
 import { RecordStore } from "../../packages/security/src/records.js";
 import { WindowsLogSessionProvider } from "../../packages/session/src/windows-logs.js";
 import { VoiceCalls } from "../../packages/voice/src/calls.js";
+import { desktopEvidencePath } from "../../scripts/desktop-evidence.js";
 
 async function run() {
+  const evidenceDirectory = process.argv[4];
+  if (!evidenceDirectory)
+    throw new Error("DESKTOP_EVIDENCE_DIRECTORY_REQUIRED");
+  const evidencePath = (source: string) =>
+    desktopEvidencePath(evidenceDirectory, source);
   const startedAt = performance.now();
   const stage = (name: string) =>
     console.log(
@@ -419,7 +425,7 @@ async function run() {
       if (!visible) window.showInactive();
       await delay(100);
       await writeFile(
-        path.resolve(filename),
+        evidencePath(filename),
         (await contents.capturePage()).toPNG(),
       );
       if (!visible) window.hide();
@@ -486,7 +492,7 @@ async function run() {
         true,
       );
       await writeFile(
-        path.resolve("docs/evidence/lobbymesh-overlay-capture-test.png"),
+        evidencePath("docs/evidence/lobbymesh-overlay-capture-test.png"),
         (await overlay.webContents.capturePage()).toPNG(),
       );
       overlay.hide();
@@ -1844,7 +1850,7 @@ async function run() {
       overlayWindow.showInactive();
       await delay(200);
       await writeFile(
-        path.resolve("docs/evidence/lobbymesh-overlay-voice-test.png"),
+        evidencePath("docs/evidence/lobbymesh-overlay-voice-test.png"),
         (await overlayWindow.webContents.capturePage()).toPNG(),
       );
       overlayWindow.hide();
@@ -1989,7 +1995,7 @@ async function run() {
       overlayWindow.showInactive();
       await delay(200);
       await writeFile(
-        path.resolve("docs/evidence/lobbymesh-overlay-test.png"),
+        evidencePath("docs/evidence/lobbymesh-overlay-test.png"),
         (await overlayWindow.webContents.capturePage()).toPNG(),
       );
       overlayWindow.hide();
@@ -2288,8 +2294,8 @@ async function run() {
     desktop.window.setContentSize(1080, 1280);
     await navigate("preferences");
     await delay(100);
-    const screenshot = path.resolve("docs/evidence/lobbymesh-settings.png");
-    await captureDesktop(screenshot);
+    const screenshot = evidencePath("docs/evidence/lobbymesh-settings.png");
+    await captureDesktop("docs/evidence/lobbymesh-settings.png");
     desktop.window.setContentSize(720, 600);
     for (const view of [
       "overview",
