@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+Native overlay Escape keyDown now restores click-through/nonfocusable mode through owned main-process input handling; keyUp/other-key negatives, draft/network retention and existing button behavior verified. Full183/183/typecheck/lint182/build and native desktop four-process suite pass. See evidence/overlay-native-escape.md. Contact sourcec01992e Ubuntu41002009026 fails182/183 on historical native burst hello timeout/lookup budget, receiver admission clean; exact evidence in native-setup-abort.md, strict tests unchanged. Clean unsignedc01992e package remains valid local evidence, not CI/release acceptance. Goal ACTIVE. Next continue voice lifecycle/device-recovery behavior using production source and a focused regression; physical Pi/audio/game acceptance remains blocked/unverified.
+
+
 2026-10-29 approved contact rediscovery: explicit Find contact for already-approved identities uses authenticated app-DHT results; exact IPC exports only fixed outcome. One global slot/cooldown, bounded caller, withdrawal/close abort and late-result suppression; memory-only binding. Full183/183/typecheck/lint181/build and all four native desktop modes pass. Actual independent-process Noise lookup followed by ACK after fresh message owner/routing-view omission passes; not whole-process restart or cross-host. See evidence/approved-contact-rediscovery.md. Prior22fe2c1 Ubuntu41000105553 succeeded; native intermittency remains open. Next commit this verified runtime, build/pin-check a clean Windows package, inspect source CI, then continue another unblocked improvement. Sustained goal remains ACTIVE.
 
 

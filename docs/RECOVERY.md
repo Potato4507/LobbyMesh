@@ -1,5 +1,8 @@
 # Active checkpoint — 2026-10-29, session detection lifecycle and visibility
 
+Native overlay Escape keyDown now restores click-through/nonfocusable mode through owned main-process input handling; keyUp/other-key negatives, draft/network retention and existing button behavior verified. Full183/183/typecheck/lint182/build and native desktop four-process suite pass. See evidence/overlay-native-escape.md. Contact sourcec01992e Ubuntu41002009026 fails182/183 on historical native burst hello timeout/lookup budget, receiver admission clean; exact evidence in native-setup-abort.md, strict tests unchanged. Clean unsignedc01992e package remains valid local evidence, not CI/release acceptance. Goal ACTIVE. Next continue voice lifecycle/device-recovery behavior using production source and a focused regression; physical Pi/audio/game acceptance remains blocked/unverified.
+
+
 Clean runtime c01992e Windows package dist/LobbyMesh-win32-x64-1793333811097/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415658657 bytes, NotSigned. Contains confirmed binding retention and approved authenticated rediscovery. Retained digest/limits: evidence/windows-contact-recovery-package-summary.json. Ubuntu41002009026 in progress at this checkpoint; no green CI claim yet. Goal ACTIVE; next add native Escape return-to-game for the interactive overlay, keeping capture/permissions unchanged, then inspect source CI.
 
 

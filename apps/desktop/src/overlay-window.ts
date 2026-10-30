@@ -108,6 +108,18 @@ export class DesktopOverlay {
       window.setMenu(null);
       window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
       window.webContents.on("will-navigate", (event) => event.preventDefault());
+      // Keep return-to-game available without waiting for renderer IPC/polling.
+      window.webContents.on("before-input-event", (event, input) => {
+        if (
+          this.window === window &&
+          this.interactive &&
+          input.type === "keyDown" &&
+          input.key === "Escape"
+        ) {
+          event.preventDefault();
+          this.setInteractive(false);
+        }
+      });
       window.on("close", (event) => {
         if (!this.closed && this.preferences.enabled) {
           event.preventDefault();

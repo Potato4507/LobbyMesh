@@ -174,7 +174,7 @@ function Overlay() {
           <p className="eyebrow">LOBBYMESH</p>
           <span>
             {overlay?.interactive
-              ? "Interaction mode"
+              ? "Interaction mode · Esc to return"
               : "Click-through · Ctrl + Shift + Space"}
           </span>
         </div>

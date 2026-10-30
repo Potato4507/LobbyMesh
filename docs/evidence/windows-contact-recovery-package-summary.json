@@ -29,7 +29,10 @@
   "authenticode": "NotSigned",
   "sourceCI": {
     "run": 41002009026,
-    "result": "in_progress_at_package_checkpoint"
+    "result": "failure",
+    "tests": 183,
+    "passed": 182,
+    "failure": "existing-native-burst-lookup-timeout-before-contact-search"
   },
   "limits": [
     "no-physical-audio",

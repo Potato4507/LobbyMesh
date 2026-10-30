@@ -1427,6 +1427,46 @@ async function run() {
       await overlayExecute("document.querySelector('#overlayLock').click()");
       assert.equal(overlayWindow.isFocusable(), false);
       await untilOverlay("document.querySelector('#overlayLock') === null");
+      await execute("window.companion.overlayMode(true)");
+      await untilOverlay("document.querySelector('#overlayLock') !== null");
+      await overlayExecute(`(() => {
+        const input = document.querySelector('#messageDraft');
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(input, 'draft retained on Escape');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      })()`);
+      overlayWindow.webContents.sendInputEvent({
+        type: "keyUp",
+        keyCode: "Escape",
+      });
+      await delay(25);
+      assert.equal(desktop.overlay.status().interactive, true);
+      overlayWindow.webContents.sendInputEvent({
+        type: "keyDown",
+        keyCode: "Tab",
+      });
+      await delay(25);
+      assert.equal(desktop.overlay.status().interactive, true);
+      overlayWindow.webContents.sendInputEvent({
+        type: "keyDown",
+        keyCode: "Escape",
+      });
+      await untilOverlay(
+        "window.companion.overlay().then(s => !s.interactive)",
+      );
+      assert.equal(overlayWindow.isFocusable(), false);
+      await untilOverlay("document.querySelector('#overlayLock') === null");
+      assert.equal(
+        await overlayExecute("document.querySelector('#messageDraft').value"),
+        "draft retained on Escape",
+      );
+      assert.equal(
+        (
+          await execute<{ state: string }>(
+            "window.companion.status().then(s => s.connection)",
+          )
+        ).state,
+        "online",
+      );
       await overlayExecute(
         "(() => { const label = document.createElement('p'); label.className = 'eyebrow'; label.textContent = 'SYNTHETIC TEST · NO ROBLOX'; document.querySelector('main').prepend(label); })()",
       );
