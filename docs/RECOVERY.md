@@ -1,5 +1,13 @@
 # Active checkpoint — 2026-10-30
 
+2026-10-30 source-clean verify:windows30cad2d passes every stage once: type/lint, Node222/222, build, five desktop processes with isolated images, independent missing-binding Send restart, authenticated media, full independent voice, actual package/default-off/protected reopen and pinned integrity; final source unchanged. Native voice remains intermittent historically; this pass does not erase retained failures. Artifact dist/LobbyMesh-win32-x64-1793395439652, manifest602eecf5beeaea631fbc9eafea5c785344d58f5fa4613b6073a77298e6301108, NotSigned. See evidence/windows-local-verification-summary.json. Pi fresh setup read-only verified, user-local Node setup approval pending; no Pi writes. Goal ACTIVE. Next produce a standalone headless lab package with exact production dependencies and ARM64 prebuild inventory, then deploy/run physical LAN only after required approval.
+
+Branch codex/lobbymesh-pi-lab-and-reliability, runtime30cad2d23f80b4477b85e2df5ab9f163b7bcf7e7 pushed. Verification process6174 finished exit0; lock released. Next: inspect live git; prepare standalone portable lab artifact/remote bundle support; await explicit user-local Pi install approval. Updated SSH details and OS-protected credential stay private outside repo; old targets obsolete. No app-model or system settings reset. Historical checkpoints retained.
+
+---
+
+# Active checkpoint — 2026-10-30
+
 2026-10-30 local verify:windows runner added: clean-source/repository preflight, owned exclusive lock, fixed sequential type/lint/Node/build/desktop/send-recovery/voice/independent-voice/package/pinned-integrity stages, source recheck and retained per-stage logs/summary. Preflight preservation test1/1 plus typecheck/lint207 pass; full clean-source run pending until this checkpoint commits. Latest Pi reimaged setup is reachable with updated credentials from authorized recent chat; read-only inventory Pi5/ARM64/Debian13/8058MiB, Node/pnpm/nft/tc absent. Runtime setup approval requested; no remote writes. See evidence/pi-readonly-inventory-summary.json. Goal ACTIVE. Next run source-clean verify:windows once and retain any real native failure; while approval is pending, prepare only local Pi bundle/transfer capability.
 
 Branch codex/lobbymesh-pi-lab-and-reliability, parent803e8b9. Next: inspect git and commit owned runner/evidence; run verify:windows from clean source; inspect stage summary and continue Pi setup only after approval arrives. Prepared local peer bundle in ignored dist/pi-lab-staging-1793395192161 starts/stops successfully; no Pi deployment yet. Updated connection/credential belongs to private prior-chat/local protected setup, never repository. Historical unavailable-target records are obsolete for the fresh hostname.
