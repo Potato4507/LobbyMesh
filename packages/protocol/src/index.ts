@@ -27,7 +27,7 @@ export interface SignedRecord {
 }
 export interface BootstrapDiscovery {
   start(): Promise<void>;
-  findAppEntrypoints(): AsyncIterable<PeerContact>;
+  findAppEntrypoints(signal?: AbortSignal): AsyncIterable<PeerContact>;
   announceAppEntrypoint(): Promise<void>;
   stop(): Promise<void>;
 }

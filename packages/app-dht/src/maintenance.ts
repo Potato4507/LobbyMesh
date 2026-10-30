@@ -82,7 +82,7 @@ export class OverlayMaintenance {
     const work = async () => {
       try {
         const candidates = await searchEntrypoints(
-          this.discovery.findAppEntrypoints(),
+          (searchSignal) => this.discovery.findAppEntrypoints(searchSignal),
           (contact, searchSignal) =>
             this.overlay.probe(
               contact,

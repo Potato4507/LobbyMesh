@@ -37,7 +37,7 @@ export async function recoverContact(
   }
   let incomplete = false;
   await searchEntrypoints(
-    discovery.findAppEntrypoints(),
+    (searchSignal) => discovery.findAppEntrypoints(searchSignal),
     (contact, searchSignal) => overlay.probe(contact, searchSignal),
     (state) => {
       if (state === "retrying") incomplete = true;

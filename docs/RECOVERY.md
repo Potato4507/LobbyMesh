@@ -1,5 +1,8 @@
 # Active checkpoint — 2026-10-29, session detection lifecycle and visibility
 
+Discovery owner cancellation reproduced/fixed across backend pending next(), buffered hints and search-owned deadlines. Optional source factory carries internal search abort into PublicDiscovery; no pre-canceled backend query/factory, normal quotas unchanged. Focused21/21/full197/197/typecheck/lint187/build and independent native restart/contact/text smoke pass. See evidence/discovery-owner-cancellation.md. Source d81821f Ubuntu41004841981 succeeded; historical native media/burst failures remain open. Goal ACTIVE. Next commit/push verified source, checkpoint clean Windows package/CI, then continue another unblocked product improvement.
+
+
 Clean source d81821fbe5bb7c9bba0a8c98058beb3fe8487dcf packaged at dist/LobbyMesh-win32-x64-1793335650700/LobbyMesh.exe. Copied executable/default-off/protected reopen and pinned656-file integrity415663119 bytes pass, NotSigned. Retained digest/limits: evidence/windows-bootstrap-recovery-package-summary.json. Source Ubuntu41004841981 in progress at checkpoint; prior UIe91d22c/41003831482 succeeded. Branch codex/lobbymesh-pi-lab-and-reliability, no unrelated dirty files. Goal ACTIVE. Next propagate owned discovery cancellation into pending backend queries, test timeout/withdrawal cleanup without weakening search bounds, then commit and continue.
 
 

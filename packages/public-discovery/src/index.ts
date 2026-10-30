@@ -42,7 +42,10 @@ export class PublicDiscovery implements BootstrapDiscovery {
     await this.backend.listen();
     this.running = true;
   }
-  private async *consume(query: DiscoveryQuery): AsyncIterable<PeerContact> {
+  private async *consume(
+    query: DiscoveryQuery,
+    signal?: AbortSignal,
+  ): AsyncIterable<PeerContact> {
     this.queries.add(query);
     let timedOut = false;
     const timer = setTimeout(() => {
@@ -50,8 +53,16 @@ export class PublicDiscovery implements BootstrapDiscovery {
       query.destroy();
     }, this.timeoutMs);
     const seen = new Set<string>();
+    const abort = () => query.destroy();
+    const check = () => {
+      if (signal?.aborted) throw new Error("DISCOVERY_ABORTED");
+    };
+    signal?.addEventListener("abort", abort, { once: true });
     try {
+      if (signal?.aborted) abort();
+      check();
       for await (const value of query) {
+        check();
         if (
           !value ||
           typeof value !== "object" ||
@@ -60,6 +71,7 @@ export class PublicDiscovery implements BootstrapDiscovery {
         )
           continue;
         for (const peer of value.peers.slice(0, 256)) {
+          check();
           if (!peer || typeof peer !== "object") continue;
           const contact = entrypoint(peer.publicKey);
           if (!contact || seen.has(contact.id)) continue;
@@ -68,18 +80,24 @@ export class PublicDiscovery implements BootstrapDiscovery {
           if (seen.size >= 256) return;
         }
       }
+      check();
       if (timedOut) throw new Error("DISCOVERY_TIMEOUT");
+    } catch (error) {
+      check();
+      throw error;
     } finally {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
       query.destroy();
       this.queries.delete(query);
     }
   }
-  async *findAppEntrypoints(): AsyncIterable<PeerContact> {
+  async *findAppEntrypoints(signal?: AbortSignal): AsyncIterable<PeerContact> {
     if (!this.running) throw new Error("NOT_STARTED");
+    if (signal?.aborted) throw new Error("DISCOVERY_ABORTED");
     if (this.now() - this.lastLookup < 1000) throw new Error("RATE_LIMIT");
     this.lastLookup = this.now();
-    yield* this.consume(this.backend.lookup(ENTRYPOINT_TOPIC));
+    yield* this.consume(this.backend.lookup(ENTRYPOINT_TOPIC), signal);
   }
   async announceAppEntrypoint(): Promise<void> {
     if (!this.running) throw new Error("NOT_STARTED");

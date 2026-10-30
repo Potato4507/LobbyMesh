@@ -14,7 +14,9 @@ export interface ProbeResult {
   authenticated: boolean;
 }
 export async function searchEntrypoints(
-  contacts: AsyncIterable<PeerContact>,
+  contacts:
+    | AsyncIterable<PeerContact>
+    | ((signal: AbortSignal) => AsyncIterable<PeerContact>),
   probe: (contact: PeerContact, signal: AbortSignal) => Promise<ProbeResult>,
   onState: (state: SearchState) => void,
   options: {
@@ -29,7 +31,19 @@ export async function searchEntrypoints(
     throw new Error("INVALID_TIMEOUT");
   onState("discovering");
   const controller = new AbortController();
-  const iterator = contacts[Symbol.asyncIterator]();
+  let iterator: AsyncIterator<PeerContact>;
+  try {
+    iterator = options.signal?.aborted
+      ? { next: async () => ({ done: true, value: undefined }) }
+      : (typeof contacts === "function"
+          ? contacts(controller.signal)
+          : contacts)[Symbol.asyncIterator]();
+  } catch {
+    controller.abort();
+    onState("retrying");
+    onState("no-reachable-candidate");
+    return [];
+  }
   let rejectDeadline: (error: Error) => void = () => {};
   const cancel = () => {
     controller.abort();

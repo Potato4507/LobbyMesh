@@ -75,3 +75,50 @@ test("intermittent discovery errors and empty network are distinct", async () =>
   );
   assert.deepEqual(empty, ["discovering", "no-reachable-candidate"]);
 });
+
+test("the search-owned signal closes a pending discovery query on deadline without opening a pre-canceled source", async () => {
+  let supplied: AbortSignal | undefined,
+    closed = false,
+    factories = 0;
+  const source = (signal: AbortSignal) => {
+    supplied = signal;
+    factories++;
+    return {
+      async *[Symbol.asyncIterator]() {
+        await new Promise<void>((resolve) =>
+          signal.addEventListener(
+            "abort",
+            () => {
+              closed = true;
+              resolve();
+            },
+            { once: true },
+          ),
+        );
+      },
+    };
+  };
+  assert.deepEqual(
+    await searchEntrypoints(
+      source,
+      async () => ({ version: 1, authenticated: true }),
+      () => {},
+      { timeoutMs: 5 },
+    ),
+    [],
+  );
+  assert.equal(supplied?.aborted, true);
+  assert.equal(closed, true);
+  const owner = new AbortController();
+  owner.abort();
+  assert.deepEqual(
+    await searchEntrypoints(
+      source,
+      async () => ({ version: 1, authenticated: true }),
+      () => {},
+      { signal: owner.signal },
+    ),
+    [],
+  );
+  assert.equal(factories, 1);
+});

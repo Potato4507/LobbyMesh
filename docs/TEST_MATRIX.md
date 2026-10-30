@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+Discovery owner cancellation reproduced/fixed across backend pending next(), buffered hints and search-owned deadlines. Optional source factory carries internal search abort into PublicDiscovery; no pre-canceled backend query/factory, normal quotas unchanged. Focused21/21/full197/197/typecheck/lint187/build and independent native restart/contact/text smoke pass. See evidence/discovery-owner-cancellation.md. Source d81821f Ubuntu41004841981 succeeded; historical native media/burst failures remain open. Goal ACTIVE. Next commit/push verified source, checkpoint clean Windows package/CI, then continue another unblocked product improvement.
+
+
 Bootstrap-assisted approved contact recovery implemented after native full-restart zero-route failure. Existing graph first, bounded public-entrypoint authentication if missing, exact requested authenticated target only; existing5s caller/slot/cooldown/public quotas unchanged. Focused10/10/full194/194/typecheck/lint185/build and new explicit independent native contact-recovery scenario pass (two processes,three launches, real IPC/Noise/ACK, approved identity+permission retained, voice off). Final positive startup peers1; cold-path UNIT and earlier native cold failure documented without overstating proof. See evidence/contact-bootstrap-recovery.md. Existing full native media failures retained; strict default voice/crash assertions unchanged. Goal ACTIVE. Next commit/push verified runtime, refresh clean Windows package and source CI, then continue an unblocked integration/reliability increment.
 
 
