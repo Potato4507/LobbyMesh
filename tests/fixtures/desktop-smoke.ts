@@ -516,6 +516,78 @@ async function run() {
         execute(
           `(()=>{const input=document.querySelector('#messageDraft');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,${JSON.stringify(text)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`,
         );
+      for (let seq = 1; seq <= 6; seq++)
+        await messaging.handle(
+          { id: allowed, publicKey: "synthetic app", transportKey },
+          {
+            ...incoming,
+            id: seq.toString(16).padStart(32, "0"),
+            seq,
+            text: `Synthetic older message ${seq}\nSecond line\nThird line`,
+          },
+          new AbortController().signal,
+        );
+      await until(
+        "document.querySelectorAll('#messageHistory article').length === 7",
+      );
+      await draft("draft retained while reading history");
+      await execute(
+        `(() => { const history = document.querySelector('#messageHistory'); history.scrollTop = 0; history.dispatchEvent(new Event('scroll')); })()`,
+      );
+      await until("document.querySelector('#jumpToLatest') !== null");
+      await execute("document.querySelector('#messageHistory').focus()");
+      desktop.window.webContents.sendInputEvent({
+        type: "keyDown",
+        keyCode: "PageDown",
+      });
+      desktop.window.webContents.sendInputEvent({
+        type: "keyUp",
+        keyCode: "PageDown",
+      });
+      await until("document.querySelector('#messageHistory').scrollTop > 0");
+      desktop.window.webContents.sendInputEvent({
+        type: "keyDown",
+        keyCode: "Home",
+      });
+      desktop.window.webContents.sendInputEvent({
+        type: "keyUp",
+        keyCode: "Home",
+      });
+      await until("document.querySelector('#messageHistory').scrollTop === 0");
+      await messaging.handle(
+        { id: allowed, publicKey: "synthetic app", transportKey },
+        {
+          ...incoming,
+          id: "77".repeat(16),
+          seq: 7,
+          text: "Synthetic newest message while reading older text",
+        },
+        new AbortController().signal,
+      );
+      await until(
+        "document.querySelectorAll('#messageHistory article').length === 8",
+      );
+      assert.equal(
+        await execute("document.querySelector('#messageHistory').scrollTop"),
+        0,
+      );
+      assert.equal(
+        await execute("document.querySelector('#messageDraft').value"),
+        "draft retained while reading history",
+      );
+      await execute("document.querySelector('#jumpToLatest').click()");
+      await until("document.querySelector('#jumpToLatest') === null");
+      assert.ok(
+        await execute(
+          "(() => {const history = document.querySelector('#messageHistory'); return history.scrollTop > 0 && history.scrollHeight - history.scrollTop - history.clientHeight < 40 && document.activeElement === history;})()",
+        ),
+      );
+      assert.equal(
+        await execute(
+          "document.querySelector('#messageHistory').getAttribute('aria-label')",
+        ),
+        "Conversation messages",
+      );
       const historyRead = messaging.history.bind(messaging);
       let heldHistory: (() => void)[] = [],
         delayHistory = true;
@@ -743,6 +815,8 @@ async function run() {
           networkStayedOnline: true,
           deliveryReasons: "bounded-unconfirmed-and-draft-retained",
           individualCancel: "one-row-draft-retained-and-priority-quota",
+          historyNavigation:
+            "reading-position-retained-explicit-jump-and-focused-scroll-region",
           contactSearch:
             "incomplete-not-located-found-draft-retained-and-block-canceled",
           microphone: false,

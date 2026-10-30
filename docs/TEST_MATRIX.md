@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+Conversation Jump to latest and labelled keyboard-scrollable history implemented. Native PageDown/Home plus incoming-text retention, explicit bottom/focus and draft retention pass; main/overlay share component. Full190/190/typecheck/lint183/build and four native desktop modes pass. See evidence/conversation-history-navigation.md. Runtime76b2867 Ubuntu41003021282 succeeded; its clean unsigned package is historical for this newer renderer. Goal ACTIVE. Next extend independent native clients to verify approved-contact rediscovery and acknowledged text after whole-client restart through production desktop IPC, preserving revoked-contact/default-off voice checks.
+
+
 Membership cancellation now spans coordinator generations and queued/between-await update/find boundaries. Reproduced obsolete joins/epoch reads blocked; completed joined writes retained for later tombstone cleanup. Focused14/14/full190/190/typecheck/lint182/build and native desktop four-process suite pass. See evidence/session-membership-cancellation.md. Both authorized Pi targets again LAB_HOST_UNAVAILABLE with strict read-only doctor, no changes. Goal ACTIVE. Next commit/push verified source, build and pin-check a clean Windows package including overlay/device/session fixes, inspect CI, then continue the next unblocked production behavior.
 
 

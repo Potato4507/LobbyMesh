@@ -1,5 +1,8 @@
 # Active checkpoint — 2026-10-29, session detection lifecycle and visibility
 
+Conversation Jump to latest and labelled keyboard-scrollable history implemented. Native PageDown/Home plus incoming-text retention, explicit bottom/focus and draft retention pass; main/overlay share component. Full190/190/typecheck/lint183/build and four native desktop modes pass. See evidence/conversation-history-navigation.md. Runtime76b2867 Ubuntu41003021282 succeeded; its clean unsigned package is historical for this newer renderer. Goal ACTIVE. Next extend independent native clients to verify approved-contact rediscovery and acknowledged text after whole-client restart through production desktop IPC, preserving revoked-contact/default-off voice checks.
+
+
 Clean runtime76b2867 Windows artifact dist/LobbyMesh-win32-x64-1793334465911/LobbyMesh.exe: copied executable/default-off/protected reopen and pinned656-file integrity415659987 bytes pass, NotSigned. Includes native Escape, queued microphone-enumeration cancellation and session generation/membership cancellation. Exact digest/limits: evidence/windows-session-cancellation-package-summary.json. Source Ubuntu41003021282 still in progress at verification; preceding56c2684/41002740319 succeeded. Goal ACTIVE. Next improve conversation navigation so readers can keep position during incoming text and explicitly jump to latest, with native browser evidence and no message retention expansion.
 
 

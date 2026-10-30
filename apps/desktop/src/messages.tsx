@@ -40,9 +40,12 @@ export function Messages({
     historyRevision = useRef(0);
   const current = useRef(selected);
   current.current = selected;
-  const log = useRef<HTMLDivElement>(null),
+  const log = useRef<HTMLElement>(null),
     follow = useRef(true);
+  const [following, setFollowing] = useState(true);
   useEffect(() => {
+    follow.current = true;
+    setFollowing(true);
     if (connection?.state !== "online") {
       setAvailable(false);
       setContacts([]);
@@ -106,6 +109,10 @@ export function Messages({
   }, [connection?.state, selected]);
   const last = history.at(-1)?.localId;
   useEffect(() => {
+    if (!last) {
+      follow.current = true;
+      setFollowing(true);
+    }
     if (last && follow.current && log.current)
       log.current.scrollTop = log.current.scrollHeight;
   }, [last]);
@@ -395,18 +402,24 @@ export function Messages({
               </span>
             </div>
           )}
-          <div
+          <section
             id="messageHistory"
             ref={log}
             className="message-history"
+            aria-label="Conversation messages"
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: Labelled scrollable history needs keyboard scrolling and a focus destination after Jump to latest.
+            tabIndex={0}
             onScroll={() => {
               const element = log.current;
-              if (element)
-                follow.current =
+              if (element) {
+                const latest =
                   element.scrollHeight -
                     element.scrollTop -
                     element.clientHeight <
                   40;
+                follow.current = latest;
+                setFollowing(latest);
+              }
             }}
           >
             {!history.length && (
@@ -456,7 +469,26 @@ export function Messages({
                   )}
               </article>
             ))}
-          </div>
+          </section>
+          {!!history.length && !following && (
+            <button
+              id="jumpToLatest"
+              type="button"
+              className="secondary"
+              aria-controls="messageHistory"
+              onClick={() => {
+                const element = log.current;
+                follow.current = true;
+                setFollowing(true);
+                if (element) {
+                  element.scrollTop = element.scrollHeight;
+                  element.focus({ preventScroll: true });
+                }
+              }}
+            >
+              Jump to latest
+            </button>
+          )}
           {history.some(
             (message) =>
               message.direction === "outgoing" && message.status === "sending",

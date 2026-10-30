@@ -30,7 +30,7 @@
   "authenticode": "NotSigned",
   "sourceCI": {
     "run": 41003021282,
-    "result": "in_progress_at_package_checkpoint"
+    "result": "success"
   },
   "limits": [
     "no-physical-audio",
