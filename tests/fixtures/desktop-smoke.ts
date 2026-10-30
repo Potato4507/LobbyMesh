@@ -114,7 +114,8 @@ async function run() {
   let failVoiceClose = false,
     failVoiceHangup = false,
     failVoiceQuality = true;
-  let failVoiceRead = false;
+  let failVoiceRead = false,
+    failOverlayVoiceRead = false;
   const registerHandler = ipcMain.handle;
   // Fault only the renderer status read. Keep production sender validation,
   // voice actions and the real synthetic media owner behind the original handler.
@@ -122,6 +123,8 @@ async function run() {
     registerHandler.call(ipcMain, channel, (event, ...args) => {
       if (channel === "companion:voice" && failVoiceRead)
         throw new Error("private synthetic status read failure");
+      if (channel === "companion:overlay:voice" && failOverlayVoiceRead)
+        throw new Error("private synthetic overlay read failure");
       return listener(event, ...args);
     });
   };
@@ -585,6 +588,23 @@ async function run() {
         ),
         true,
       );
+      failOverlayVoiceRead = true;
+      for (let n = 0; n < 250; n++) {
+        if (
+          await overlayExecute(
+            "document.querySelector('[role=alert]')?.textContent.includes('Companion status unavailable') && document.querySelector('#overlayCaptureStatus')?.textContent.includes('state unknown') && document.querySelector('#overlayEndCall') !== null",
+          )
+        )
+          break;
+        await delay(20);
+      }
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('#overlayEndCall') !== null",
+        ),
+        true,
+      );
+      assert.equal(localVoiceOwner.status().capturing, true);
       await overlayExecute("document.querySelector('#overlayEndCall').click()");
       for (let n = 0; n < 250; n++) {
         if (
@@ -601,6 +621,14 @@ async function run() {
         ),
         true,
       );
+      assert.equal(localVoiceOwner.status().capturing, false);
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('#overlayCaptureStatus')?.textContent.includes('state unknown')",
+        ),
+        true,
+      );
+      failOverlayVoiceRead = false;
       await indicator("LobbyMesh microphone off");
       assert.equal(remote.status().capturing, true);
       failVoiceHangup = false;
@@ -625,6 +653,8 @@ async function run() {
             "main-and-overlay-local-off-peer-notification-unconfirmed",
           statusReadFailure:
             "unknown-release-PTT-retain-End-recover-without-transmission",
+          overlayReadFailure:
+            "unknown-retained-stop-and-peer-notification-notice",
           microphone: false,
           physicalAudio: false,
         }),

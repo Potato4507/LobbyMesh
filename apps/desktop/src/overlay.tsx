@@ -42,7 +42,8 @@ function Overlay() {
         .catch(() => {
           if (active) {
             setStatus(null);
-            setVoice(null);
+            // Keep only the last call token available for a stop attempt.
+            // Failed dashboards render no cached capture/activity facts.
             setFailed(true);
           }
         })
@@ -78,6 +79,22 @@ function Overlay() {
       setEnding(false);
     }
   }
+  const endControl = voice?.callId ? (
+    overlay?.interactive ? (
+      <button
+        id="overlayEndCall"
+        type="button"
+        disabled={ending}
+        onClick={() => {
+          void endCall();
+        }}
+      >
+        {ending ? "Ending call…" : "End call"}
+      </button>
+    ) : (
+      <small>Interact with overlay to end call.</small>
+    )
+  ) : null;
   const widgets: Record<OverlayWidget, () => React.ReactNode> = {
     network: () => (
       <section className="panel" data-overlay-widget="network">
@@ -149,21 +166,7 @@ function Overlay() {
               ? "Not transmitting"
               : "Transmission unknown"}
         </p>
-        {voice?.callId &&
-          (overlay?.interactive ? (
-            <button
-              id="overlayEndCall"
-              type="button"
-              disabled={ending}
-              onClick={() => {
-                void endCall();
-              }}
-            >
-              {ending ? "Ending call…" : "End call"}
-            </button>
-          ) : (
-            <small>Interact with overlay to end call.</small>
-          ))}
+        {endControl}
         <p>
           <small>Start, answer and hold to talk in the main window.</small>
         </p>
@@ -212,7 +215,15 @@ function Overlay() {
         )}
       </header>
       {failed ? (
-        <p role="alert">Companion status unavailable.</p>
+        <section aria-label="Unavailable companion status">
+          <p role="alert">Companion status unavailable.</p>
+          {endControl}
+          {callError && (
+            <p id="overlayCallError" role="alert">
+              {callError}
+            </p>
+          )}
+        </section>
       ) : (
         overlay?.preferences.widgets.map((widget) => (
           <div key={widget}>{widgets[widget]()}</div>

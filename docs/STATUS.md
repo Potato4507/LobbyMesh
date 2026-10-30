@@ -1,5 +1,8 @@
 # Continuation — 2026-10-29 UTC
 
+2026-10-30 overlay query-failure regression reproduced and fixed: dashboard failure retains only last observed call token for End in interactive mode, suppresses cached activity widgets, keeps microphone unknown and displays stop-result uncertainty even while reads fail. Native owner confirms capture stops; off indicator requires fresh poll. Main app already has independent fresh voice feedback; no speculative header change. Full218/218/typecheck/lint203/build and five native Windows processes pass at unchanged30s limits. See evidence/overlay-unavailable-stop.md. Prior845ef6e Ubuntu41085156010 succeeds. Goal ACTIVE. Next consume successful voice action snapshots immediately and discard older in-flight status reads so a late pre-hangup snapshot cannot restore stale call/capture UI.
+
+
 2026-10-30 native voice-read regression reproduced and fixed: rejected status reads formerly displayed microphone off and removed End while capture continued. Renderer now projects unknown/unavailable, releases PTT, retains End/consent-off, hides stale activity controls and recovers on fresh read without resuming transmission. Synthetic native assertions verify actual owner capturing true/transmitting false, End while reads fail, local off and existing peer-notification uncertainty. Full218/218/typecheck/lint203/build and all five Windows desktop processes pass, original30s bounds. See evidence/voice-status-read-failure.md. Priorc66eb13 Ubuntu41084479480 succeeds. Goal ACTIVE. Next verify/fix main app status-read failure so a stale microphone-off header never survives missing trusted observations, while preserving fresh call-panel evidence and recovery.
 
 
