@@ -1,5 +1,8 @@
 # Continuation — 2026-10-29 UTC
 
+2026-10-30: clean runtime399252d1c6fdc451776f255c3c3c757c360fbe05 artifact dist/LobbyMesh-win32-x64-1793336387285/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415664405 bytes, NotSigned. Exact digest/limits: evidence/windows-overlay-capture-package-summary.json. Ubuntu41005923365 succeeded. Goal ACTIVE. Next reproduce whether unchanged PTT lease renewal unnecessarily invalidates a fresh input activity sample, retain strict command-order transmission guards and press/release/device scope negatives, then verify native media without relaxing its level assertion.
+
+
 Persistent overlay microphone header implemented independently of optional widgets; unknown capture never becomes off, and sticky header remains visible after scrolling. Full197/197/typecheck/lint188/build and native desktop five-process suite pass; final focused sticky visibility/on-unknown-off pass and synthetic screenshot reviewed. See evidence/persistent-overlay-capture.md. Added isolated scenario keeps existing30s per-process bound and all previous checks. Goal ACTIVE. Next commit/push, create clean Windows artifact/CI checkpoint, then investigate the strict native media input-level failure using existing status/PTT ownership diagnostics rather than relaxing assertions.
 
 

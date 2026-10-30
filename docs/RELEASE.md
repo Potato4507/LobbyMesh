@@ -1,5 +1,8 @@
 # Release readiness
 
+2026-10-30: clean runtime399252d1c6fdc451776f255c3c3c757c360fbe05 artifact dist/LobbyMesh-win32-x64-1793336387285/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415664405 bytes, NotSigned. Exact digest/limits: evidence/windows-overlay-capture-package-summary.json. Ubuntu41005923365 succeeded. Goal ACTIVE. Next reproduce whether unchanged PTT lease renewal unnecessarily invalidates a fresh input activity sample, retain strict command-order transmission guards and press/release/device scope negatives, then verify native media without relaxing its level assertion.
+
+
 Clean runtime bf09b5fa9238e1ce252d9a00bf54a2b14ceb1291 Windows package dist/LobbyMesh-win32-x64-1793335903556/LobbyMesh.exe passes actual copied executable/default-off/protected reopen and pinned656-file integrity415663960 bytes, NotSigned. Exact digest/limits: evidence/windows-discovery-cancellation-package-summary.json. Ubuntu41005218575 succeeded. Fresh read-only local session probe remains waiting/no selected session/self-asserted, network off/no raw identifiers. Goal ACTIVE. Next make the overlay microphone/unknown-capture indicator visible independently of optional network/voice widget choices, with native positive/unknown/off checks.
 
 
