@@ -1,5 +1,8 @@
 # Continuation — 2026-10-29 UTC
 
+Clean runtime c01992e Windows package dist/LobbyMesh-win32-x64-1793333811097/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415658657 bytes, NotSigned. Contains confirmed binding retention and approved authenticated rediscovery. Retained digest/limits: evidence/windows-contact-recovery-package-summary.json. Ubuntu41002009026 in progress at this checkpoint; no green CI claim yet. Goal ACTIVE; next add native Escape return-to-game for the interactive overlay, keeping capture/permissions unchanged, then inspect source CI.
+
+
 2026-10-29 approved contact rediscovery: explicit Find contact for already-approved identities uses authenticated app-DHT results; exact IPC exports only fixed outcome. One global slot/cooldown, bounded caller, withdrawal/close abort and late-result suppression; memory-only binding. Full183/183/typecheck/lint181/build and all four native desktop modes pass. Actual independent-process Noise lookup followed by ACK after fresh message owner/routing-view omission passes; not whole-process restart or cross-host. See evidence/approved-contact-rediscovery.md. Prior22fe2c1 Ubuntu41000105553 succeeded; native intermittency remains open. Next commit this verified runtime, build/pin-check a clean Windows package, inspect source CI, then continue another unblocked improvement. Sustained goal remains ACTIVE.
 
 

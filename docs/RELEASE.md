@@ -1,5 +1,8 @@
 # Release readiness
 
+Clean runtime c01992e Windows package dist/LobbyMesh-win32-x64-1793333811097/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415658657 bytes, NotSigned. Contains confirmed binding retention and approved authenticated rediscovery. Retained digest/limits: evidence/windows-contact-recovery-package-summary.json. Ubuntu41002009026 in progress at this checkpoint; no green CI claim yet. Goal ACTIVE; next add native Escape return-to-game for the interactive overlay, keeping capture/permissions unchanged, then inspect source CI.
+
+
 Development only; no public release, installer, code signature or updater produced. Current source/evidence supersedes the historical GUI/Windows blocker.
 
 2026-10-29 current clean runtime d297fc0375b7061e07b04ff86b8d98a89a529b13: `dist/LobbyMesh-win32-x64-1793314647740/LobbyMesh.exe`, actual copied executable/default networking+microphone off/protected credential reopen and pinned656-file integrity pass,415649500 bytes. Includes prompt scan opt-out and honest session-source visibility/recovery explanations. NotSigned. Exact retained hash and CI observation: evidence/windows-session-status-package-summary.json. Native desktop session fixtures passed; live read-only player/log probe selected no session. No positive actual-game join/teleport/exit, installer/fresh-machine/audio/LAN/NAT/release-ready acceptance.
