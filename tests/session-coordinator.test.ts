@@ -154,3 +154,93 @@ test("network and provider failures clear participants and remain visible", asyn
   assert.deepEqual(coordinator.status().participants, []);
   await coordinator.stop();
 });
+
+test("a stale provider read rejection cannot erase a newer session event or departure", async () => {
+  for (const latest of [room("fresh"), null]) {
+    let notify: (value: SessionIdentity | null) => void = () => {};
+    let rejectRead: (error: Error) => void = () => {};
+    const pending = new Promise<SessionIdentity | null>((_resolve, reject) => {
+      rejectRead = reject;
+    });
+    const found: string[] = [];
+    const coordinator = new SessionCoordinator(
+      {
+        current: () => pending,
+        subscribe(handler) {
+          notify = handler;
+          return () => {};
+        },
+      },
+      {
+        async update() {},
+        async find(session) {
+          found.push(session.jobId);
+          return [];
+        },
+        async leave() {},
+      },
+    );
+    try {
+      await coordinator.setConsent(true);
+      const starting = coordinator.start();
+      notify(latest);
+      await coordinator.settled();
+      rejectRead(new Error("older source read failed"));
+      await starting;
+      assert.equal(coordinator.status().state, latest ? "ready" : "idle");
+      await coordinator.setConsent(true);
+      assert.equal(found.at(-1), latest?.jobId);
+      assert.equal(coordinator.status().state, latest ? "ready" : "idle");
+    } finally {
+      await coordinator.stop();
+    }
+  }
+});
+
+test("withdrawal, session replacement and stop during publication prevent an obsolete roster lookup", async () => {
+  for (const action of ["withdraw", "replace", "stop"]) {
+    const provider = new MockSessionProvider();
+    provider.set(room("old"));
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const found: string[] = [];
+    const coordinator = new SessionCoordinator(provider, {
+      async update(session, consent) {
+        if (session?.jobId === "old" && consent) await held;
+      },
+      async find(session) {
+        found.push(session.jobId);
+        return [];
+      },
+      async leave() {},
+    });
+    try {
+      await coordinator.start();
+      const consenting = coordinator.setConsent(true);
+      await setImmediate();
+      const changed =
+        action === "withdraw"
+          ? coordinator.setConsent(false)
+          : action === "stop"
+            ? coordinator.stop()
+            : Promise.resolve(provider.set(room("new")));
+      release();
+      await Promise.all([consenting, changed]);
+      await coordinator.settled();
+      assert.deepEqual(found, action === "replace" ? ["new"] : []);
+      assert.equal(
+        coordinator.status().state,
+        action === "replace"
+          ? "ready"
+          : action === "stop"
+            ? "idle"
+            : "consent-required",
+      );
+    } finally {
+      release();
+      await coordinator.stop();
+    }
+  }
+});

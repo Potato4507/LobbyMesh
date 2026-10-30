@@ -89,9 +89,11 @@ export class SessionCoordinator {
       }
     } catch {
       if (!this.running) return;
-      this.revision++;
-      this.session = null;
-      this.view = { state: "error", participants: [] };
+      if (revision === this.revision) {
+        this.revision++;
+        this.session = null;
+        this.view = { state: "error", participants: [] };
+      }
     }
     await this.reconcile();
   }
@@ -124,6 +126,9 @@ export class SessionCoordinator {
         const evidenceError = this.view.state === "error";
         try {
           await this.membership.update(session, consent);
+          // A publication already in progress may finish after withdrawal or a
+          // newer session event. Do not start another lookup for that old scope.
+          if (revision !== this.revision || !this.running) continue;
           const participants =
             session && consent ? await this.membership.find(session, true) : [];
           if (revision === this.revision && this.running)

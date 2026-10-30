@@ -1,5 +1,8 @@
 # Active checkpoint — 2026-10-29, session detection lifecycle and visibility
 
+Session generation races reproduced/fixed: old provider-read rejection no longer erases a newer event/departure, and publication completion after withdrawal/replacement/stop cannot start obsolete roster lookup. Focused10/10/full186/186/typecheck/lint182/build and native desktop four-process suite pass. See evidence/session-generation-ordering.md. Latestb453263 Ubuntu41002452495 succeeds;161856e failed known native burst182/183; intermittency unresolved. Goal ACTIVE. Next bound obsolete membership work between directory awaits so withdrawal does not start a new joined publication or second epoch lookup after an earlier operation finishes. Preserve tombstones for writes already in flight.
+
+
 Queued microphone enumeration cancellation reproduced1 vs0 calls, then fixed with closed/epoch check immediately before enumerator invocation; late-result checks remain and fresh refresh recovers. Focused7/7/full184/184/typecheck/lint182/build and native isolated media-host smoke pass. See evidence/input-enumeration-cancel.md. No physical audio/hotplug claim. Goal ACTIVE. Next inspect native connection handoff/stream ownership against paired failure evidence and add a justified bounded repair or focused instrumentation; do not expand retry/deadlines or change strict tests. Pi remains unavailable; c01992e package and CI failure are retained separately.
 
 

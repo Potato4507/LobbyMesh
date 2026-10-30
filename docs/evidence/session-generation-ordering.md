@@ -1,0 +1,9 @@
+# Session generation ordering — 2026-10-29
+
+Two reproduced races in SessionCoordinator: a pending provider.current rejection previously cleared a newer subscription event (error instead of ready), and a held membership.update could finish after consent withdrawal then still invoke find for the obsolete session. Both regression tests failed before repair.
+
+Provider read failure now follows the same revision check as read success. Only a current-generation failure may clear session/set error. Reconcile checks revision/running after publication before starting the roster lookup. Withdrawal, replacement and stop still invalidate local view synchronously; a publication already in progress is not claimed cancelable by this change. The dirty cycle reconciles the latest scope/consent afterward. No parser, trust, manual input, wire protocol or networking permission change.
+
+Windows Node24.22.1/Electron45.1.0: focused coordinator/desktop-membership/matching10/10, full186/186, typecheck, lint182 and build pass. Native desktop main/conversation/session-status/protected reopen pass at unchanged30s per-process bound. Controlled-promise UNIT cases cover fresh session and departure winning over an old rejection, withdrawal/stop yielding zero obsolete find calls and replacement looking up only the new scope. Existing provider transition, signed record, refresh/leave, remote claim distrust and stale in-flight result tests retained. No positive actual Roblox or physical network proof.
+
+Latest inspected sourceb453263 Ubuntu41002452495 succeeds; bdbe971/41002165000 also succeeds. Overlay161856e/41002302358 fails182/183 on the same strict native reverse burst timeout vs exhausted, A hello timeout1500.66ms and recovered request58.99ms with queued work around1.6s. No test/retry/deadline was weakened; alternating green/red runs do not resolve native intermittency.
