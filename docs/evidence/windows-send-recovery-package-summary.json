@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-30",
+  "source": {
+    "revision": "f941434beb999b37173fc3d91cdcf9e0b50984b0",
+    "dirty": false
+  },
+  "artifact": {
+    "directory": "D:\\LobbyMesh\\dist\\LobbyMesh-win32-x64-1793375027660",
+    "executable": "D:\\LobbyMesh\\dist\\LobbyMesh-win32-x64-1793375027660\\LobbyMesh.exe",
+    "source": {
+      "revision": "f941434beb999b37173fc3d91cdcf9e0b50984b0",
+      "dirty": false
+    },
+    "manifest": "D:\\LobbyMesh\\dist\\LobbyMesh-win32-x64-1793375027660\\manifest.json"
+  },
+  "files": 656,
+  "bytes": 415668451,
+  "dependencyCopies": 56,
+  "smoke": {
+    "result": "passed",
+    "packaged": true,
+    "electron": "45.1.0",
+    "sandbox": true,
+    "contextIsolation": true,
+    "network": "offline",
+    "microphone": "off",
+    "credentials": "protected-reopen"
+  },
+  "manifestSha256": "40d367b8af549f9fe85325caa70bac6a40f75458f7c2d776c0b84de6132a88fd",
+  "integrity": "passed-pinned-manifest",
+  "authenticode": "NotSigned",
+  "physicalAudio": false,
+  "physicalLAN": false,
+  "virtualNAT": false,
+  "releaseReady": false,
+  "piDoctor": "both-authorized-targets-LAB_HOST_UNAVAILABLE"
+}

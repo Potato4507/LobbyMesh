@@ -1,5 +1,13 @@
 # Active checkpoint — 2026-10-30
 
+2026-10-30 clean Windows artifact sourcef941434beb999b37173fc3d91cdcf9e0b50984b0 at dist/LobbyMesh-win32-x64-1793375027660/LobbyMesh.exe passes copied executable/off/protected reopen and pinned656-file integrity415668451 bytes,56 dependency copies, NotSigned. Digest and exact evidence: evidence/windows-send-recovery-package-summary.json. Both authorized read-only Pi doctor attempts again LAB_HOST_UNAVAILABLE; no device changes. CI f941434 run41083367572 was in progress at last check. Goal ACTIVE. Next distinguish automatic lookup not-located/incomplete/deferred failures in the message row using fixed bounded local reasons, preserving delivery uncertainty and draft retention.
+
+Branch codex/lobbymesh-pi-lab-and-reliability, parentf941434beb999b37173fc3d91cdcf9e0b50984b0. Next: inspect git/CI; implement fixed lookup-failure projection; focused/full/native conversation validation, then commit. Historical checkpoints retained below.
+
+---
+
+# Active checkpoint — 2026-10-30
+
 2026-10-30 independent production Electron restart now has separate test:send-recovery mode: restored client has no binding (required false), sends without manual Find, performs authenticated lookup, actual ACK and recipient receipt; app identity/permission persist, revoked Send/Find denied, voice/microphone off, zero media hosts and clean exits. Native automatic plus unchanged manual recovery modes both pass with two processes/three launches each. Summary sourcef9c056e dirty harness; SAME_HOST only. See evidence/independent-send-recovery.md. f9c056e Ubuntu41082937873 succeeds. Goal ACTIVE. Next commit this verified acceptance mode, then refresh and verify a clean Windows development artifact including automatic Send recovery.
 
 Branch codex/lobbymesh-pi-lab-and-reliability, parentf9c056edfd3aaa9ce24ec6c3a161a28dd85ffc08. Next: check live git status; commit/push owned harness/evidence; package from clean runtime HEAD and verify pinned manifest. Historical checkpoints below remain history.
