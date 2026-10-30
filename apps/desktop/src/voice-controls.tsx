@@ -32,6 +32,7 @@ export function VoiceControls({
   const previousCall = useRef<string | null>(null);
   const holding = useRef(false),
     actionRevision = useRef(0),
+    observationRevision = useRef(0),
     alive = useRef(true);
   const release = useCallback(() => {
     const wasHeld = holding.current;
@@ -50,9 +51,10 @@ export function VoiceControls({
     const poll = async () => {
       if (busy) return;
       busy = true;
+      const revision = observationRevision.current;
       try {
         const value = await window.companion.voice();
-        if (live) {
+        if (live && revision === observationRevision.current) {
           setPollFailed(false);
           setVoice(value);
           onMicrophone?.(
@@ -64,7 +66,7 @@ export function VoiceControls({
           );
         }
       } catch {
-        if (live) {
+        if (live && revision === observationRevision.current) {
           release();
           // Retain only the last call's controls so End/consent-off remain
           // reachable. Its capture/activity facts are no longer current.
@@ -90,6 +92,7 @@ export function VoiceControls({
       release();
       alive.current = false;
       actionRevision.current++;
+      observationRevision.current++;
       clearInterval(timer);
       window.removeEventListener("blur", release);
       window.removeEventListener("pagehide", release);
@@ -136,13 +139,29 @@ export function VoiceControls({
   }, [held, release]);
   async function act(request: VoiceAction) {
     const revision = ++actionRevision.current;
+    observationRevision.current++;
     release();
     setPending(true);
     setNotice("");
     try {
-      await window.companion.voiceAction(request);
+      const value = await window.companion.voiceAction(request);
+      if (alive.current && revision === actionRevision.current) {
+        // The action result is a fresh trusted observation. Reads started
+        // before it completed cannot restore an earlier call or capture state.
+        observationRevision.current++;
+        setVoice(value);
+        setPollFailed(false);
+        onMicrophone?.(
+          value.capturing === null
+            ? "unknown"
+            : value.capturing
+              ? "capturing"
+              : "off",
+        );
+      }
     } catch (error) {
       if (alive.current && revision === actionRevision.current) {
+        observationRevision.current++;
         const message = error instanceof Error ? error.message : "";
         const endNotice =
           request.action === "hangup" ? voiceEndNotice(error) : null;

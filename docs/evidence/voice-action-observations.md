@@ -1,0 +1,9 @@
+# Voice action observation ownership — 2026-10-30
+
+VoiceControls previously ignored the trusted snapshot returned by an action and waited for its polling loop. With an old capturing snapshot held in flight, End could finish locally while the renderer kept the old call and microphone-on state indefinitely. The native regression failed while waiting for confirmed off/removed End before releasing that query (voice-action-snapshot-repro.log).
+
+Successful action responses now immediately publish the current voice/capture snapshot and clear query failure. A separate observation revision invalidates reads started before an action or before its result/error commits; stale poll success and failure cannot replace a newer action observation. Existing action revision and lifetime ownership remain. Failed actions still retain bounded honest notices and wait for actual new status rather than inventing capture facts. PTT commands and consent/media/signaling policies are unchanged.
+
+Native isolated synthetic fixture now holds an actual capturing snapshot before End, requires the action result to remove the call and show microphone off while the query is still pending, then releases either the obsolete snapshot or a late rejection. A MutationObserver across the release and fresh poll requires no restoration of a call token, microphone-on or unknown status after confirmed off. Both cases pass. The fixture restores query registration and resolves any held work during final cleanup. Existing query-failure/unknown/PTT release/recovery and overlay retained-End/peer-notification cases remain.
+
+Full Node218/218, typecheck/lint203/build and all five Windows desktop processes pass with original30-second bounds. No physical microphone was activated. This is native synthetic UI and state ownership evidence, not physical audio/LAN/NAT/Roblox or release acceptance. Generated unrelated screenshots restored from the clean baseline.

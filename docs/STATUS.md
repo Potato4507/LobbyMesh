@@ -1,5 +1,8 @@
 # Continuation — 2026-10-29 UTC
 
+2026-10-30 successful voice action snapshots now update renderer immediately; a separate observation revision discards polls started before action completion and obsolete errors. Native held-capturing snapshot regression failed before repair, then both late snapshot/rejection cases pass: End confirms off before held read settles and MutationObserver sees no stale call/capture restoration. Existing unknown-read, PTT release/no-auto-resume, overlay End and peer uncertainty cases retained. Full218/218/typecheck/lint203/build and five Windows desktop processes pass. See evidence/voice-action-observations.md. Goal ACTIVE. Next refresh clean Windows artifact, then preserve overlay draft state across transient dashboard query failure without exposing stale controls.
+
+
 2026-10-30 overlay query-failure regression reproduced and fixed: dashboard failure retains only last observed call token for End in interactive mode, suppresses cached activity widgets, keeps microphone unknown and displays stop-result uncertainty even while reads fail. Native owner confirms capture stops; off indicator requires fresh poll. Main app already has independent fresh voice feedback; no speculative header change. Full218/218/typecheck/lint203/build and five native Windows processes pass at unchanged30s limits. See evidence/overlay-unavailable-stop.md. Prior845ef6e Ubuntu41085156010 succeeds. Goal ACTIVE. Next consume successful voice action snapshots immediately and discard older in-flight status reads so a late pre-hangup snapshot cannot restore stale call/capture UI.
 
 

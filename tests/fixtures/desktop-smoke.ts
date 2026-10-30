@@ -115,17 +115,28 @@ async function run() {
     failVoiceHangup = false,
     failVoiceQuality = true;
   let failVoiceRead = false,
-    failOverlayVoiceRead = false;
+    failOverlayVoiceRead = false,
+    holdVoiceRead = false,
+    rejectHeldVoiceRead = false;
+  const heldVoiceReads: (() => void)[] = [];
+  let heldCapture: unknown;
   const registerHandler = ipcMain.handle;
   // Fault only the renderer status read. Keep production sender validation,
   // voice actions and the real synthetic media owner behind the original handler.
   ipcMain.handle = (channel, listener) => {
-    registerHandler.call(ipcMain, channel, (event, ...args) => {
+    registerHandler.call(ipcMain, channel, async (event, ...args) => {
       if (channel === "companion:voice" && failVoiceRead)
         throw new Error("private synthetic status read failure");
       if (channel === "companion:overlay:voice" && failOverlayVoiceRead)
         throw new Error("private synthetic overlay read failure");
-      return listener(event, ...args);
+      const value = await listener(event, ...args);
+      if (channel === "companion:voice" && holdVoiceRead) {
+        heldCapture = (value as { capturing: unknown }).capturing;
+        await new Promise<void>((resolve) => heldVoiceReads.push(resolve));
+        if (rejectHeldVoiceRead)
+          throw new Error("private late synthetic read failure");
+      }
+      return value;
     });
   };
   let inputActivityMode: "unknown" | "measured" | "peaking" = "unknown";
@@ -503,10 +514,36 @@ async function run() {
         return next;
       };
       await navigate("messages");
+      for (const rejectLate of [false, true]) {
+        await startCall();
+        await until(
+          "document.querySelector('#hangupCall') && !document.querySelector('#hangupCall').disabled",
+        );
+        holdVoiceRead = true;
+        for (let n = 0; n < 250 && !heldVoiceReads.length; n++) await delay(20);
+        assert.ok(heldVoiceReads.length);
+        assert.equal(heldCapture, true);
+        await execute("document.querySelector('#hangupCall').click()");
+        await until(
+          "document.querySelector('#voiceCapture')?.textContent === 'Microphone off' && document.querySelector('#hangupCall') === null",
+        );
+        await execute(
+          "(() => {window.staleVoiceRestored=false;window.voiceObserver=new MutationObserver(()=>{if(document.querySelector('#voicePanel')?.dataset.callId || document.querySelector('#voiceCapture')?.textContent !== 'Microphone off')window.staleVoiceRestored=true;});window.voiceObserver.observe(document.querySelector('#voicePanel'),{childList:true,attributes:true,subtree:true,characterData:true});})()",
+        );
+        holdVoiceRead = false;
+        rejectHeldVoiceRead = rejectLate;
+        for (const finish of heldVoiceReads.splice(0)) finish();
+        await delay(400);
+        assert.equal(
+          await execute(
+            "window.voiceObserver.disconnect(); window.staleVoiceRestored",
+          ),
+          false,
+        );
+        rejectHeldVoiceRead = false;
+      }
       const mainCall = await startCall();
-      await until(
-        "document.querySelector('#hangupCall') && !document.querySelector('#hangupCall').disabled",
-      );
+      await until("document.querySelector('#hangupCall') !== null");
       await until("document.querySelector('#pushToTalk') !== null");
       await execute(
         "(() => {const talk=document.querySelector('#pushToTalk'); talk.focus(); talk.dispatchEvent(new KeyboardEvent('keydown',{code:'Space',bubbles:true}));})()",
@@ -655,6 +692,8 @@ async function run() {
             "unknown-release-PTT-retain-End-recover-without-transmission",
           overlayReadFailure:
             "unknown-retained-stop-and-peer-notification-notice",
+          actionObservation:
+            "immediate-End-result-late-snapshot-and-rejection-discarded",
           microphone: false,
           physicalAudio: false,
         }),
@@ -2382,6 +2421,7 @@ async function run() {
     process.exitCode = 1;
   } finally {
     ipcMain.handle = registerHandler;
+    for (const finish of heldVoiceReads.splice(0)) finish();
     foreign?.destroy();
     desktop?.window.destroy();
     await desktop?.close();
