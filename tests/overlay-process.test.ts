@@ -525,6 +525,34 @@ test(
         },
       }),
     );
+    const reset = (await a.command("reset-message-owner")) as {
+      peerId: string;
+      discovered: boolean;
+    }[];
+    assert.equal(
+      reset.find((contact) => contact.peerId === infoB.id)?.discovered,
+      false,
+    );
+    assert.deepEqual(
+      await a.command("rediscover-contact", { peerId: infoB.id }),
+      { state: "found" },
+    );
+    const rediscovered = (await a.command("direct-send", {
+      peerId: infoB.id,
+      text: "authorized contact rediscovered through app DHT",
+    })) as { status: string };
+    assert.equal(rediscovered.status, "acknowledged");
+    t.diagnostic(
+      JSON.stringify({
+        nativeApprovedContactSearch: {
+          freshMessageOwner: true,
+          routingViewOmitted: true,
+          identityPinned: true,
+          acknowledged: true,
+          processRestart: false,
+        },
+      }),
+    );
     for (const peer of [b, a])
       assert.equal(await peer.command("stop"), "stopped");
     await bootstrap.command("stop").catch(() => {});

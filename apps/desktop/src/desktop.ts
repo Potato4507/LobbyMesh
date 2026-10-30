@@ -137,6 +137,7 @@ export async function createDesktop(
         "companion:messages",
         "companion:messages:send",
         "companion:messages:clear",
+        "companion:messages:discover",
         "companion:messages:cancel",
       ].includes(channel)
     )
@@ -535,6 +536,10 @@ export async function createDesktop(
   handle("companion:messages", (request) => {
     const peerId = parsePeerId(request);
     return messaging((service) => service.history(peerId));
+  });
+  handle("companion:messages:discover", (request) => {
+    const peerId = parsePeerId(request);
+    return messaging((service) => service.rediscover(peerId));
   });
   handle("companion:messages:send", async (request) => {
     if (

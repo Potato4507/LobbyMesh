@@ -93,6 +93,11 @@ async function run() {
     receiver: DirectMessenger | undefined,
     holdSends = false;
   let textFailure: string | null = null;
+  let hideMessageRouting = false,
+    messageClockAdvance = 0,
+    holdContactSearch = false;
+  let searchOutcome: "found" | "not-located" | "incomplete" = "found";
+  let searchSignal: AbortSignal | undefined;
   let remoteVoice: VoiceCalls | undefined,
     localMediaStarts = 0,
     holdVoiceMute = false,
@@ -146,7 +151,26 @@ async function run() {
         );
       },
       value,
-      () => [{ id: allowed, transportKey }],
+      () => (hideMessageRouting ? [] : [{ id: allowed, transportKey }]),
+      () => Date.now() + messageClockAdvance,
+      async (peerId, signal) => {
+        searchSignal = signal;
+        if (holdContactSearch)
+          await new Promise<void>((_resolve, reject) => {
+            if (signal.aborted) reject(new Error("canceled"));
+            else
+              signal.addEventListener(
+                "abort",
+                () => reject(new Error("canceled")),
+                { once: true },
+              );
+          });
+        return {
+          contact:
+            searchOutcome === "found" ? { id: peerId, transportKey } : null,
+          complete: searchOutcome !== "incomplete",
+        };
+      },
     );
     messaging = service;
     const makeMedia = (local: boolean) => {
@@ -650,6 +674,65 @@ async function run() {
         "single local cancellation fixture",
       );
       holdSends = false;
+      hideMessageRouting = true;
+      messageClockAdvance = 120001;
+      await draft("retained during contact discovery");
+      await until(
+        "document.querySelector('#contactSelect')?.selectedOptions[0]?.textContent.includes('Waiting for discovery') && document.querySelector('#sendMessage').disabled",
+      );
+      assert.equal(
+        await execute(
+          "window.companion.rediscoverContact({peerId:'a'.repeat(64)}).then(()=>false,()=>true)",
+        ),
+        true,
+      );
+      searchOutcome = "incomplete";
+      await execute("document.querySelector('#findContact').click()");
+      await until(
+        "document.querySelector('#messageNotice')?.textContent.includes('Contact search was incomplete')",
+      );
+      assert.equal(
+        await execute("document.querySelector('#sendMessage').disabled"),
+        true,
+      );
+      searchOutcome = "not-located";
+      messageClockAdvance += 5000;
+      await execute("document.querySelector('#findContact').click()");
+      await until(
+        "document.querySelector('#messageNotice')?.textContent.includes('Contact not located in this attempt')",
+      );
+      assert.equal(
+        await execute("document.querySelector('#sendMessage').disabled"),
+        true,
+      );
+      searchOutcome = "found";
+      messageClockAdvance += 5000;
+      await execute("document.querySelector('#findContact').click()");
+      await until(
+        "document.querySelector('#messageNotice')?.textContent.includes('Verified connection details found') && document.querySelector('#contactSelect')?.selectedOptions[0]?.textContent.includes('Connection details known')",
+      );
+      assert.equal(
+        await execute("document.querySelector('#messageDraft').value"),
+        "retained during contact discovery",
+      );
+      await execute(
+        "(() => {const label=document.createElement('p');label.className='eyebrow';label.textContent='SYNTHETIC CONTACT SEARCH · NO LIVE PEER';document.querySelector('#contactSelect').before(label);document.querySelector('#findContact').scrollIntoView({block:'center'});})()",
+      );
+      await captureDesktop("docs/evidence/lobbymesh-contact-search-test.png");
+      messageClockAdvance += 5000;
+      holdContactSearch = true;
+      await execute("document.querySelector('#findContact').click()");
+      await until(
+        "document.querySelector('#findContact')?.disabled && document.querySelector('#messageNotice')?.textContent.includes('Looking for this approved')",
+      );
+      await execute(
+        "document.querySelector('#blockConversationContact').click()",
+      );
+      await until(
+        "document.querySelector('#messageNotice')?.textContent.includes('Contact blocked on this device')",
+      );
+      assert.equal(searchSignal?.aborted, true);
+      assert.equal(policy?.blocked(allowed), true);
       console.log(
         JSON.stringify({
           result: "conversation-clear-passed",
@@ -660,6 +743,8 @@ async function run() {
           networkStayedOnline: true,
           deliveryReasons: "bounded-unconfirmed-and-draft-retained",
           individualCancel: "one-row-draft-retained-and-priority-quota",
+          contactSearch:
+            "incomplete-not-located-found-draft-retained-and-block-canceled",
           microphone: false,
         }),
       );
@@ -1146,6 +1231,12 @@ async function run() {
         overlayWindow.webContents.executeJavaScript(code);
       assert.deepEqual(
         await overlayExecute(
+          `window.companion.rediscoverContact('${allowed}')`,
+        ),
+        { state: "found" },
+      );
+      assert.deepEqual(
+        await overlayExecute(
           `window.companion.cancelMessage(${JSON.stringify({ peerId: allowed, localId: "0".repeat(32) })})`,
         ),
         { canceled: false },
@@ -1611,6 +1702,7 @@ async function run() {
     await foreign.loadFile(path.resolve("dist/index.html"));
     for (const expression of [
       "window.companion.overlayVoice()",
+      "window.companion.rediscoverContact('a'.repeat(64))",
       "window.companion.cancelMessage({peerId:'a'.repeat(64),localId:'b'.repeat(32)})",
       "window.companion.endOverlayCall({callId:'ab'.repeat(16)})",
     ]) {

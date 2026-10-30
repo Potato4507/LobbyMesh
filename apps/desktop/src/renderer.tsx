@@ -43,6 +43,9 @@ declare global {
       overlayMode(interactive: boolean): Promise<OverlayStatus>;
       messaging(): Promise<{ available: boolean; contacts: ContactView[] }>;
       messages(peerId: string): Promise<MessageView[]>;
+      rediscoverContact(
+        peerId: string,
+      ): Promise<import("./messaging.js").ContactSearchResult>;
       sendText(
         peerId: string,
         text: string,

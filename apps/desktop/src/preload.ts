@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld(
     messaging: () => ipcRenderer.invoke("companion:messaging"),
     messages: (peerId: unknown) =>
       ipcRenderer.invoke("companion:messages", peerId),
+    rediscoverContact: (peerId: unknown) =>
+      ipcRenderer.invoke("companion:messages:discover", peerId),
     sendText: (peerId: unknown, text: unknown) =>
       ipcRenderer.invoke("companion:messages:send", { peerId, text }),
     clearMessages: (peerId: unknown) =>

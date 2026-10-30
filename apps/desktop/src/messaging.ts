@@ -35,6 +35,15 @@ export interface ContactView {
   peerId: string;
   discovered: boolean;
 }
+export interface ContactSearchResult {
+  state: "found" | "not-located" | "incomplete";
+}
+// Trusted backend adapter: authenticate the requested app identity before
+// returning a binding. Unverified referrals or wire booleans are insufficient.
+export type ContactLookup = (
+  peerId: string,
+  signal: AbortSignal,
+) => Promise<{ contact: DirectContact | null; complete: boolean }>;
 export class DesktopMessaging {
   private readonly messenger: DirectMessenger;
   private readonly conversations = new Map<string, MessageView[]>();
@@ -42,9 +51,11 @@ export class DesktopMessaging {
     string,
     { contact: DirectContact; expiresAt: number }
   >();
-  // Confirmed by local signed pairing + authenticated handshake, not incidental
+  // Approved app identity with a verified transport binding, not incidental
   // inbound traffic. Memory-only; lifetime ends with permission or this network.
   private readonly approvedBindings = new Map<string, DirectContact>();
+  private search: { peerId: string; controller: AbortController } | undefined;
+  private lastSearchAt: number | undefined;
   private readonly pending = new Map<
     string,
     { peerId: string; controller: AbortController }
@@ -68,6 +79,7 @@ export class DesktopMessaging {
     private readonly policy: MessagingPolicy,
     private readonly authenticatedContacts: () => DirectContact[],
     private readonly now = Date.now,
+    private readonly lookupContact?: ContactLookup,
   ) {
     this.messenger = new DirectMessenger(self, exchange, {
       authorized: (id) => policy.authorized(id) && !policy.blocked(id),
@@ -282,8 +294,108 @@ export class DesktopMessaging {
     if (!contact) throw new Error("CONTACT_NOT_DISCOVERED");
     return { ...contact };
   }
+  async rediscover(peerId: string): Promise<ContactSearchResult> {
+    this.permit(peerId);
+    const lookup = this.lookupContact;
+    if (!lookup) throw new Error("CONTACT_SEARCH_UNAVAILABLE");
+    if (this.search) throw new Error("CONTACT_SEARCH_BUSY");
+    const now = this.now();
+    if (
+      this.lastSearchAt !== undefined &&
+      now >= this.lastSearchAt &&
+      now - this.lastSearchAt < 5000
+    )
+      throw new Error("CONTACT_SEARCH_RATE_LIMIT");
+    this.lastSearchAt = now;
+    const owner = { peerId, controller: new AbortController() };
+    this.search = owner;
+    let settled = false,
+      returned = false;
+    const release = () => {
+      if (settled && returned && this.search === owner) this.search = undefined;
+    };
+    const work = Promise.resolve().then(() => {
+      if (owner.controller.signal.aborted || this.closed)
+        throw new Error("CONTACT_SEARCH_CANCELED");
+      this.permit(peerId);
+      return lookup(peerId, owner.controller.signal);
+    });
+    void work.then(
+      () => {
+        settled = true;
+        release();
+      },
+      () => {
+        settled = true;
+        release();
+      },
+    );
+    let rejectAbort: (error: Error) => void = () => {};
+    const aborted = new Promise<never>((_, reject) => {
+      rejectAbort = reject;
+    });
+    const onAbort = () =>
+      rejectAbort(
+        new Error(
+          owner.controller.signal.reason === "timeout"
+            ? "CONTACT_SEARCH_TIMEOUT"
+            : "CONTACT_SEARCH_CANCELED",
+        ),
+      );
+    owner.controller.signal.addEventListener("abort", onAbort, { once: true });
+    const timer = setTimeout(() => owner.controller.abort("timeout"), 5000);
+    try {
+      const result = await Promise.race([work, aborted]);
+      if (owner.controller.signal.aborted || this.closed)
+        throw new Error("CONTACT_SEARCH_CANCELED");
+      this.permit(peerId);
+      if (
+        !result ||
+        typeof result !== "object" ||
+        Array.isArray(result) ||
+        Object.keys(result).sort().join(",") !== "complete,contact" ||
+        typeof result.complete !== "boolean"
+      )
+        throw new Error("CONTACT_SEARCH_INVALID_RESULT");
+      if (result.contact === null)
+        return { state: result.complete ? "not-located" : "incomplete" };
+      const contact = result.contact;
+      if (
+        !contact ||
+        typeof contact !== "object" ||
+        Array.isArray(contact) ||
+        Object.keys(contact).sort().join(",") !== "id,transportKey" ||
+        contact.id !== peerId ||
+        typeof contact.transportKey !== "string" ||
+        !/^[a-f0-9]{64}$/.test(contact.transportKey)
+      )
+        throw new Error("CONTACT_SEARCH_INVALID_RESULT");
+      this.rememberContact(contact);
+      return { state: "found" };
+    } catch (error) {
+      if (owner.controller.signal.reason === "timeout")
+        return { state: "incomplete" };
+      if (owner.controller.signal.aborted || this.closed)
+        throw new Error("CONTACT_SEARCH_CANCELED");
+      if (
+        error instanceof Error &&
+        ["CONTACT_NOT_AUTHORIZED", "CONTACT_SEARCH_INVALID_RESULT"].includes(
+          error.message,
+        )
+      )
+        throw error;
+      return { state: "incomplete" };
+    } finally {
+      clearTimeout(timer);
+      owner.controller.signal.removeEventListener("abort", onAbort);
+      owner.controller.abort();
+      returned = true;
+      release();
+    }
+  }
   policyChanged(peerId: string): void {
     if (this.policy.authorized(peerId) && !this.policy.blocked(peerId)) return;
+    if (this.search?.peerId === peerId) this.search.controller.abort();
     for (const value of this.pending.values())
       if (value.peerId === peerId) value.controller.abort("permission-changed");
     this.incomingContacts.delete(peerId);
@@ -318,6 +430,7 @@ export class DesktopMessaging {
     this.prune();
   }
   close(): void {
+    this.search?.controller.abort();
     this.expiry.close();
     this.closed = true;
     for (const value of this.pending.values()) value.controller.abort();

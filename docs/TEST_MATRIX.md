@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+2026-10-29 approved contact rediscovery: explicit Find contact for already-approved identities uses authenticated app-DHT results; exact IPC exports only fixed outcome. One global slot/cooldown, bounded caller, withdrawal/close abort and late-result suppression; memory-only binding. Full183/183/typecheck/lint181/build and all four native desktop modes pass. Actual independent-process Noise lookup followed by ACK after fresh message owner/routing-view omission passes; not whole-process restart or cross-host. See evidence/approved-contact-rediscovery.md. Prior22fe2c1 Ubuntu41000105553 succeeded; native intermittency remains open. Next commit this verified runtime, build/pin-check a clean Windows package, inspect source CI, then continue another unblocked improvement. Sustained goal remains ACTIVE.
+
+
 Namespace-helper follow-up:8/8 unprivileged Bash command-model tests and source parsing pass; nested helper failure reproduced missing rollback before set-E repair. Ownership/preflight/PID/enumeration failure/idempotence/collision/unrelated namespace retention covered. UNIT/SIMULATION only, no Linux kernel or privileged operation. See evidence/pi-netlab-safety.md. Added same tests to CI without removing existing tests.
 
 Overlay follow-up:131/131, typecheck/lint152/build/native desktop/protected reopen pass. New optional voice widget persists order/defaults; native redacted status/current-call End tests reject malformed/stale/foreign/capture-grant actions, preserve failed cleanup unknown and confirm successful End. Screenshot reviewed; synthetic media only. See evidence/overlay-current-call.md. Headless commit63ef7ea Ubuntu Actions40804657189 success.

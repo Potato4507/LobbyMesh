@@ -34,6 +34,8 @@ export function Messages({
   const cancellations = useRef(new Set<string>()),
     noticeRevision = useRef(0);
   const [clearing, setClearing] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const searchPending = useRef(false);
   const clearPending = useRef(false),
     historyRevision = useRef(0);
   const current = useRef(selected);
@@ -262,6 +264,43 @@ export function Messages({
       setBlocking(false);
     }
   }
+  async function findContact() {
+    const peerId = current.current;
+    if (!peerId || searchPending.current || connection?.state !== "online")
+      return;
+    searchPending.current = true;
+    setSearching(true);
+    const revision = historyRevision.current,
+      notice = ++noticeRevision.current;
+    setNotice("Looking for this approved app contact…");
+    try {
+      const result = await window.companion.rediscoverContact(peerId);
+      if (
+        current.current === peerId &&
+        revision === historyRevision.current &&
+        notice === noticeRevision.current
+      )
+        setNotice(
+          result.state === "found"
+            ? "Verified connection details found for this approved app contact. Reachability and the peer's permissions still apply."
+            : result.state === "not-located"
+              ? "Contact not located in this attempt. They may be offline or unreachable."
+              : "Contact search was incomplete. You can try again later.",
+        );
+    } catch {
+      if (
+        current.current === peerId &&
+        revision === historyRevision.current &&
+        notice === noticeRevision.current
+      )
+        setNotice(
+          "Contact search stopped, is already running, or was requested too recently. Wait a few seconds and check connection and contact permissions before trying again.",
+        );
+    } finally {
+      searchPending.current = false;
+      setSearching(false);
+    }
+  }
   return (
     <section id="messagesPanel" className="panel">
       <h2>Messages</h2>
@@ -323,6 +362,20 @@ export function Messages({
               </option>
             ))}
           </select>
+          <div className="message-actions">
+            <button
+              id="findContact"
+              type="button"
+              className="secondary"
+              disabled={!selected || searching || contactPending || blocking}
+              onClick={() => void findContact()}
+            >
+              {searching ? "Looking for contact…" : "Find contact"}
+            </button>
+            <span className="hint">
+              Look for current connection details for this approved app contact.
+            </span>
+          </div>
           {!compact && onBlockContact && (
             <div className="message-actions">
               <button

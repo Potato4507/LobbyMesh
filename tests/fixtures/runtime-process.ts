@@ -34,24 +34,34 @@ voice = new VoiceSignaling(
     runtime.overlay.directRequest(contact, request, signal),
   { authorized: (id) => authorized.has(id), mediaAvailable: () => true },
 );
-messenger = new DesktopMessaging(
-  runtime.peerId,
-  (contact, request, signal) =>
-    runtime.overlay.directRequest(contact, request, signal),
-  {
-    authorized: (id) => authorized.has(id),
-    blocked: () => false,
-    allowed: () => [...authorized],
-  },
-  () =>
-    (omitMessageRouting ? [] : runtime.overlay.authenticatedContacts()).map(
-      (peer) => ({
-        id: peer.id,
-        transportKey: Buffer.from(peer.publicKey).toString("hex"),
-      }),
-    ),
-  () => Date.now() + messageClockOffset,
-);
+const createMessenger = () =>
+  new DesktopMessaging(
+    runtime.peerId,
+    (contact, request, signal) =>
+      runtime.overlay.directRequest(contact, request, signal),
+    {
+      authorized: (id) => authorized.has(id),
+      blocked: () => false,
+      allowed: () => [...authorized],
+    },
+    () =>
+      (omitMessageRouting ? [] : runtime.overlay.authenticatedContacts()).map(
+        (peer) => ({
+          id: peer.id,
+          transportKey: Buffer.from(peer.publicKey).toString("hex"),
+        }),
+      ),
+    () => Date.now() + messageClockOffset,
+    async (peerId, signal) => {
+      const result = await runtime.overlay.findNodes(peerId, undefined, signal);
+      return {
+        contact:
+          result.authenticated.find((contact) => contact.id === peerId) ?? null,
+        complete: result.state === "exhausted",
+      };
+    },
+  );
+messenger = createMessenger();
 await runtime.start();
 const provider = new MockSessionProvider();
 const pairing = new DesktopPairing(
@@ -132,6 +142,12 @@ process.on(
           omitMessageRouting = true;
           messageClockOffset += 120001;
           return messenger.contacts();
+        case "reset-message-owner":
+          messenger.close();
+          messenger = createMessenger();
+          return messenger.contacts();
+        case "rediscover-contact":
+          return messenger.rediscover(message.peerId ?? "");
         case "inbound-diagnostics":
           return runtime.inboundDiagnostics();
         case "direct-allow":
