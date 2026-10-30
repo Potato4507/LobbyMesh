@@ -1,5 +1,8 @@
 # Release readiness
 
+Clean source d81821fbe5bb7c9bba0a8c98058beb3fe8487dcf packaged at dist/LobbyMesh-win32-x64-1793335650700/LobbyMesh.exe. Copied executable/default-off/protected reopen and pinned656-file integrity415663119 bytes pass, NotSigned. Retained digest/limits: evidence/windows-bootstrap-recovery-package-summary.json. Source Ubuntu41004841981 in progress at checkpoint; prior UIe91d22c/41003831482 succeeded. Branch codex/lobbymesh-pi-lab-and-reliability, no unrelated dirty files. Goal ACTIVE. Next propagate owned discovery cancellation into pending backend queries, test timeout/withdrawal cleanup without weakening search bounds, then commit and continue.
+
+
 Clean runtime76b2867 Windows artifact dist/LobbyMesh-win32-x64-1793334465911/LobbyMesh.exe: copied executable/default-off/protected reopen and pinned656-file integrity415659987 bytes pass, NotSigned. Includes native Escape, queued microphone-enumeration cancellation and session generation/membership cancellation. Exact digest/limits: evidence/windows-session-cancellation-package-summary.json. Source Ubuntu41003021282 still in progress at verification; preceding56c2684/41002740319 succeeded. Goal ACTIVE. Next improve conversation navigation so readers can keep position during incoming text and explicitly jump to latest, with native browser evidence and no message retention expansion.
 
 

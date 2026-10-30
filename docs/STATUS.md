@@ -1,5 +1,8 @@
 # Continuation — 2026-10-29 UTC
 
+Clean source d81821fbe5bb7c9bba0a8c98058beb3fe8487dcf packaged at dist/LobbyMesh-win32-x64-1793335650700/LobbyMesh.exe. Copied executable/default-off/protected reopen and pinned656-file integrity415663119 bytes pass, NotSigned. Retained digest/limits: evidence/windows-bootstrap-recovery-package-summary.json. Source Ubuntu41004841981 in progress at checkpoint; prior UIe91d22c/41003831482 succeeded. Branch codex/lobbymesh-pi-lab-and-reliability, no unrelated dirty files. Goal ACTIVE. Next propagate owned discovery cancellation into pending backend queries, test timeout/withdrawal cleanup without weakening search bounds, then commit and continue.
+
+
 Bootstrap-assisted approved contact recovery implemented after native full-restart zero-route failure. Existing graph first, bounded public-entrypoint authentication if missing, exact requested authenticated target only; existing5s caller/slot/cooldown/public quotas unchanged. Focused10/10/full194/194/typecheck/lint185/build and new explicit independent native contact-recovery scenario pass (two processes,three launches, real IPC/Noise/ACK, approved identity+permission retained, voice off). Final positive startup peers1; cold-path UNIT and earlier native cold failure documented without overstating proof. See evidence/contact-bootstrap-recovery.md. Existing full native media failures retained; strict default voice/crash assertions unchanged. Goal ACTIVE. Next commit/push verified runtime, refresh clean Windows package and source CI, then continue an unblocked integration/reliability increment.
 
 
