@@ -1,4 +1,10 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { createRoot } from "react-dom/client";
 import type { NetworkStatus } from "../../../packages/app-dht/src/lifecycle.js";
 import type {
@@ -104,6 +110,14 @@ function App() {
   const [matching, setMatching] = useState<DesktopSessionStatus | null>(null);
   const [statusFailed, setStatusFailed] = useState(false);
   const [microphone, setMicrophone] = useState("off");
+  const microphoneObservation = useRef(0);
+  const observeVoiceMicrophone = useCallback(
+    (value: "off" | "capturing" | "unknown") => {
+      microphoneObservation.current++;
+      setMicrophone(value);
+    },
+    [],
+  );
   const [networkPending, setNetworkPending] = useState(false);
   const [networkNotice, setNetworkNotice] = useState("");
   const [pending, setPending] = useState(false),
@@ -113,6 +127,7 @@ function App() {
   useEffect(() => {
     let active = true;
     void (async () => {
+      const microphoneRevision = microphoneObservation.current;
       const status = await window.companion.status().catch((error) => {
         if (active) setStatusFailed(true);
         throw error;
@@ -122,7 +137,8 @@ function App() {
         setConnection(status.connection);
         setDetection(status.detection);
         setMatching(status.matching);
-        setMicrophone(status.microphone);
+        if (microphoneRevision === microphoneObservation.current)
+          setMicrophone(status.microphone);
       }
       if (status.preferences !== "ready") throw new Error("UNAVAILABLE");
       const value = await window.companion.preferences();
@@ -146,6 +162,7 @@ function App() {
     const timer = setInterval(() => {
       if (busy) return;
       busy = true;
+      const microphoneRevision = microphoneObservation.current;
       void window.companion
         .status()
         .then((status) => {
@@ -154,7 +171,10 @@ function App() {
             setConnection(status.connection);
             setDetection(status.detection);
             setMatching(status.matching);
-            setMicrophone(status.microphone);
+            // A newer voice action/read owns capture feedback. An older
+            // dashboard snapshot cannot restore its previous microphone state.
+            if (microphoneRevision === microphoneObservation.current)
+              setMicrophone(status.microphone);
           }
         })
         .catch(() => {
@@ -604,7 +624,7 @@ function App() {
           <Messages
             onBlockContact={(peerId) => contact("block", peerId)}
             contactPending={contactPending}
-            onMicrophone={setMicrophone}
+            onMicrophone={observeVoiceMicrophone}
             active={view === "messages"}
             connection={connection}
             onAddContact={() => setView("preferences")}

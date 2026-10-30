@@ -126,6 +126,9 @@ async function run() {
     holdVoiceRead = false,
     rejectHeldVoiceRead = false;
   const heldVoiceReads: (() => void)[] = [];
+  const heldDashboardReads: (() => void)[] = [];
+  let holdDashboardRead = false;
+  let heldDashboardMicrophone: unknown;
   let heldCapture: unknown;
   const registerHandler = ipcMain.handle;
   // Fault only the renderer status read. Keep production sender validation,
@@ -139,6 +142,10 @@ async function run() {
       if (channel === "companion:overlay:voice" && failOverlayVoiceRead)
         throw new Error("private synthetic overlay read failure");
       const value = await listener(event, ...args);
+      if (channel === "companion:status" && holdDashboardRead) {
+        heldDashboardMicrophone = (value as { microphone: unknown }).microphone;
+        await new Promise<void>((resolve) => heldDashboardReads.push(resolve));
+      }
       if (channel === "companion:voice" && holdVoiceRead) {
         heldCapture = (value as { capturing: unknown }).capturing;
         await new Promise<void>((resolve) => heldVoiceReads.push(resolve));
@@ -524,24 +531,57 @@ async function run() {
       };
       await navigate("messages");
       for (const rejectLate of [false, true]) {
+        if (rejectLate) {
+          holdDashboardRead = true;
+          for (let n = 0; n < 250 && !heldDashboardReads.length; n++)
+            await delay(20);
+          assert.ok(heldDashboardReads.length);
+          assert.equal(heldDashboardMicrophone, "off");
+        }
         await startCall();
+        await until(
+          "document.querySelector('#microphoneStatus')?.textContent === 'On · call in progress'",
+        );
+        if (rejectLate) {
+          await execute(
+            "(() => {window.staleMicrophoneOff=false;window.microphoneObserver=new MutationObserver(()=>{if(document.querySelector('#microphoneStatus')?.textContent !== 'On · call in progress')window.staleMicrophoneOff=true;});window.microphoneObserver.observe(document.querySelector('#microphoneStatus'),{childList:true,characterData:true,subtree:true});})()",
+          );
+          holdDashboardRead = false;
+          for (const finish of heldDashboardReads.splice(0)) finish();
+          await delay(400);
+          assert.equal(
+            await execute(
+              "window.microphoneObserver.disconnect(); window.staleMicrophoneOff",
+            ),
+            false,
+          );
+        }
         await until(
           "document.querySelector('#hangupCall') && !document.querySelector('#hangupCall').disabled",
         );
         holdVoiceRead = true;
+        holdDashboardRead = !rejectLate;
         for (let n = 0; n < 250 && !heldVoiceReads.length; n++) await delay(20);
         assert.ok(heldVoiceReads.length);
+        if (holdDashboardRead) {
+          for (let n = 0; n < 250 && !heldDashboardReads.length; n++)
+            await delay(20);
+          assert.ok(heldDashboardReads.length);
+          assert.equal(heldDashboardMicrophone, "capturing");
+        }
         assert.equal(heldCapture, true);
         await execute("document.querySelector('#hangupCall').click()");
         await until(
-          "document.querySelector('#voiceCapture')?.textContent === 'Microphone off' && document.querySelector('#hangupCall') === null",
+          "document.querySelector('#voiceCapture')?.textContent === 'Microphone off' && document.querySelector('#microphoneStatus')?.textContent === 'Off' && document.querySelector('#hangupCall') === null",
         );
         await execute(
-          "(() => {window.staleVoiceRestored=false;window.voiceObserver=new MutationObserver(()=>{if(document.querySelector('#voicePanel')?.dataset.callId || document.querySelector('#voiceCapture')?.textContent !== 'Microphone off')window.staleVoiceRestored=true;});window.voiceObserver.observe(document.querySelector('#voicePanel'),{childList:true,attributes:true,subtree:true,characterData:true});})()",
+          "(() => {window.staleVoiceRestored=false;window.voiceObserver=new MutationObserver(()=>{if(document.querySelector('#voicePanel')?.dataset.callId || document.querySelector('#voiceCapture')?.textContent !== 'Microphone off' || document.querySelector('#microphoneStatus')?.textContent !== 'Off')window.staleVoiceRestored=true;});window.voiceObserver.observe(document.querySelector('.workspace'),{childList:true,attributes:true,subtree:true,characterData:true});})()",
         );
         holdVoiceRead = false;
         rejectHeldVoiceRead = rejectLate;
         for (const finish of heldVoiceReads.splice(0)) finish();
+        holdDashboardRead = false;
+        for (const finish of heldDashboardReads.splice(0)) finish();
         await delay(400);
         assert.equal(
           await execute(
@@ -741,6 +781,8 @@ async function run() {
             "unknown-retained-stop-and-peer-notification-notice",
           actionObservation:
             "immediate-End-result-late-snapshot-and-rejection-discarded",
+          headerObservation:
+            "late-dashboard-on-and-off-discarded-after-newer-voice",
           overlayDraftRecovery:
             "same-owner-retained-unsent-and-hidden-on-failure",
           microphone: false,
@@ -2511,6 +2553,7 @@ async function run() {
   } finally {
     ipcMain.handle = registerHandler;
     for (const finish of heldVoiceReads.splice(0)) finish();
+    for (const finish of heldDashboardReads.splice(0)) finish();
     foreign?.destroy();
     desktop?.window.destroy();
     await desktop?.close();

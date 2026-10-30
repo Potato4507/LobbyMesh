@@ -1,0 +1,9 @@
+# Microphone header observation ownership — 2026-10-30
+
+An actual native regression held a companion:status response captured while synthetic capture was on, then ended the call through the renderer and waited for confirmed Off. Releasing the held dashboard snapshot restored the old header state even though the call panel correctly discarded its separate old voice response. A MutationObserver recorded the transient restoration; the assertion failed before the repair.
+
+The parent renderer now records a microphone observation revision whenever its voice component reports a fresh result or unavailable state. Startup and periodic dashboard reads capture that revision before I/O; they update the microphone header only if no newer voice observation has arrived. The callback is stable, preserving voice effect ownership. Session and network fields remain independently observed. This changes display ownership only, with no microphone activation or teardown changes.
+
+The native fixture verifies both directions with actual held IPC snapshots: delayed On cannot replace confirmed Off after End, and delayed Off cannot replace observed On after starting a new synthetic call. It asserts the held snapshot's microphone value and observes DOM mutations, catching transient incorrect display rather than checking only eventual recovery. Existing delayed voice snapshot/rejection, PTT release, retained End, unknown read and overlay draft assertions remain. The original30s per-process bound is unchanged. This uses synthetic media only; physical microphone, audible output, LAN and NAT remain unverified.
+
+Focused native overlay mode passed after the repair. Current full native regression results are recorded in STATUS. Ubuntu Actions41137776218 passed the preceding dashboard failure commit16c2b7c. Node239 total238pass/1POSIX skip remains the preceding full regression; this increment changes renderer and native-only fixture code.
