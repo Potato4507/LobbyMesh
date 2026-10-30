@@ -3,6 +3,7 @@ import type {
   VoiceAction,
   VoiceView,
 } from "../../../packages/protocol/src/voice.js";
+import { voiceEndNotice } from "../../../packages/protocol/src/voice.js";
 import { CallDevices } from "./call-devices.js";
 import { CallInput } from "./call-input.js";
 import { CallOutput } from "./call-output.js";
@@ -138,16 +139,19 @@ export function VoiceControls({
     } catch (error) {
       if (alive.current && revision === actionRevision.current) {
         const message = error instanceof Error ? error.message : "";
+        const endNotice =
+          request.action === "hangup" ? voiceEndNotice(error) : null;
         setNotice(
-          message.includes("MEDIA_PERMISSION_DENIED")
-            ? "Microphone access was denied. Check Windows microphone privacy settings before trying again."
-            : message.includes("MEDIA_DEVICE_UNAVAILABLE")
-              ? "No usable microphone is available. Check your input device."
-              : message.includes("CONTACT_NOT_DISCOVERED")
-                ? "This contact is not reachable yet."
-                : message.includes("VOICE_WINDOW_NOT_FOCUSED")
-                  ? "Focus this window and try again."
-                  : "The voice action could not be completed. You can cancel or try again.",
+          endNotice ??
+            (message.includes("MEDIA_PERMISSION_DENIED")
+              ? "Microphone access was denied. Check Windows microphone privacy settings before trying again."
+              : message.includes("MEDIA_DEVICE_UNAVAILABLE")
+                ? "No usable microphone is available. Check your input device."
+                : message.includes("CONTACT_NOT_DISCOVERED")
+                  ? "This contact is not reachable yet."
+                  : message.includes("VOICE_WINDOW_NOT_FOCUSED")
+                    ? "Focus this window and try again."
+                    : "The voice action could not be completed. You can cancel or try again."),
         );
       }
     } finally {

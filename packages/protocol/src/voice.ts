@@ -90,3 +90,39 @@ export function parseVoiceAction(value: unknown): VoiceAction {
     return { ...action };
   throw new Error("INVALID_VOICE_ACTION");
 }
+
+// Main-process observation only. A peer error or renderer assertion cannot
+// establish local teardown; missing facts always retain uncertainty.
+export function voiceEndFailure(
+  capturing: unknown,
+  transmitting: unknown,
+  callId: unknown,
+) {
+  return capturing === false && transmitting === false && callId === null
+    ? "VOICE_END_NOTIFICATION_UNCONFIRMED"
+    : "VOICE_END_UNCONFIRMED";
+}
+export function voiceEndNotice(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  let code = error.message;
+  for (const channel of [
+    "companion:voice:action",
+    "companion:overlay:voice:end",
+  ]) {
+    for (const candidate of [
+      "VOICE_END_NOTIFICATION_UNCONFIRMED",
+      "VOICE_END_UNCONFIRMED",
+    ]) {
+      if (
+        code ===
+        `Error invoking remote method '${channel}': Error: ${candidate}`
+      )
+        code = candidate;
+    }
+  }
+  return code === "VOICE_END_NOTIFICATION_UNCONFIRMED"
+    ? "Call ended on this computer. Peer notification was not confirmed; the other app may still show the call."
+    : code === "VOICE_END_UNCONFIRMED"
+      ? "Call cleanup could not be confirmed. Check microphone status and disconnect."
+      : null;
+}

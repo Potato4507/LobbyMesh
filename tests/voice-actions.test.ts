@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseVoiceAction } from "../packages/protocol/src/voice.js";
+import {
+  parseVoiceAction,
+  voiceEndFailure,
+  voiceEndNotice,
+} from "../packages/protocol/src/voice.js";
 
 test("voice UI actions require exact local consent, bounded IDs and no endpoint or SDP fields", () => {
   const peerId = "a".repeat(64),
@@ -76,4 +80,54 @@ test("voice UI actions require exact local consent, bounded IDs and no endpoint 
     },
   ])
     assert.throws(() => parseVoiceAction(action), /INVALID_VOICE_ACTION/);
+});
+
+test("terminal call projection requires confirmed local capture, transmission and control teardown", () => {
+  for (const capture of [false, true, null, undefined, 0, "false"])
+    for (const transmitting of [false, true, null, undefined, 0, "false"])
+      for (const callId of [null, undefined, "a".repeat(32)])
+        assert.equal(
+          voiceEndFailure(capture, transmitting, callId),
+          capture === false && transmitting === false && callId === null
+            ? "VOICE_END_NOTIFICATION_UNCONFIRMED"
+            : "VOICE_END_UNCONFIRMED",
+        );
+});
+
+test("terminal call notices accept only fixed trusted IPC errors without echoing raw failure text", () => {
+  for (const code of [
+    "VOICE_END_NOTIFICATION_UNCONFIRMED",
+    "VOICE_END_UNCONFIRMED",
+  ]) {
+    const notice = voiceEndNotice(new Error(code));
+    assert.ok(notice);
+    for (const channel of [
+      "companion:voice:action",
+      "companion:overlay:voice:end",
+    ])
+      assert.equal(
+        voiceEndNotice(
+          new Error(
+            `Error invoking remote method '${channel}': Error: ${code}`,
+          ),
+        ),
+        notice,
+      );
+    for (const error of [
+      code,
+      { message: code },
+      new Error(`private endpoint ${code}`),
+      new Error(`Error invoking remote method 'foreign': Error: ${code}`),
+      new Error(`${code} private detail`),
+    ])
+      assert.equal(voiceEndNotice(error), null);
+  }
+  assert.match(
+    voiceEndNotice(new Error("VOICE_END_NOTIFICATION_UNCONFIRMED")) ?? "",
+    /other app may still show the call/,
+  );
+  assert.match(
+    voiceEndNotice(new Error("VOICE_END_UNCONFIRMED")) ?? "",
+    /Check microphone status/,
+  );
 });

@@ -111,6 +111,7 @@ async function run() {
     holdVoiceMute = false,
     holdVoiceInput = false;
   let failVoiceClose = false,
+    failVoiceHangup = false,
     failVoiceQuality = true;
   let inputActivityMode: "unknown" | "measured" | "peaking" = "unknown";
   let mediaConnectionState: ((phase: string) => void) | undefined;
@@ -260,12 +261,21 @@ async function run() {
     };
     const localVoice: VoiceCalls = new VoiceCalls(
       self,
-      (_contact, request, signal) =>
-        otherVoice.handle(
+      (_contact, request, signal) => {
+        if (
+          failVoiceHangup &&
+          request &&
+          typeof request === "object" &&
+          "op" in request &&
+          request.op === "hangup"
+        )
+          throw new Error("private transport notification detail");
+        return otherVoice.handle(
           { id: self, publicKey: "synthetic app", transportKey },
           request,
           signal,
-        ),
+        );
+      },
       {
         authorized: (id) => value.authorized(id) && !value.blocked(id),
         createMedia: () => makeMedia(true),
@@ -428,8 +438,11 @@ async function run() {
       await remoteVoice.answer(call.callId, true);
       await indicator("LobbyMesh microphone on");
       failVoiceClose = true;
-      await execute(
-        "window.companion.voiceAction({action:'consent',enabled:false})",
+      assert.equal(
+        await execute(
+          `window.companion.voiceAction({action:'hangup',callId:${JSON.stringify(call.callId)}}).then(()=>false,error=>error.message === "Error invoking remote method 'companion:voice:action': Error: VOICE_END_UNCONFIRMED")`,
+        ),
+        true,
       );
       await indicator("LobbyMesh microphone state unknown");
       await overlayExecute(
@@ -453,6 +466,106 @@ async function run() {
         "window.companion.voiceAction({action:'consent',enabled:false})",
       );
       await indicator("LobbyMesh microphone off");
+      await remoteVoice.hangup().catch(() => {});
+      assert.equal(remoteVoice.status().capturing, false);
+      const remote = remoteVoice;
+      const startCall = async () => {
+        desktop?.window.show();
+        desktop?.window.focus();
+        await until("document.hasFocus()");
+        await execute(
+          "window.companion.voiceAction({action:'consent',enabled:true})",
+        );
+        remote.setConsent(true);
+        const next = await execute<{ callId: string }>(
+          `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true})`,
+        );
+        await remote.answer(next.callId, true);
+        await indicator("LobbyMesh microphone on");
+        return next;
+      };
+      await navigate("messages");
+      const mainCall = await startCall();
+      await until(
+        "document.querySelector('#hangupCall') && !document.querySelector('#hangupCall').disabled",
+      );
+      failVoiceHangup = true;
+      await execute("document.querySelector('#hangupCall').click()");
+      await until(
+        "document.querySelector('#voiceNotice')?.textContent.includes('Call ended on this computer. Peer notification was not confirmed')",
+      );
+      await indicator("LobbyMesh microphone off");
+      assert.equal(remote.status().capturing, true);
+      assert.equal(
+        await execute(
+          "window.companion.voice().then(s=>s.capturing===false && s.transmitting===false && s.callId===null)",
+        ),
+        true,
+      );
+      assert.equal(
+        await execute(
+          "document.querySelector('#voiceNotice').textContent.includes('private transport')",
+        ),
+        false,
+      );
+      assert.equal(
+        await execute(
+          `window.companion.voiceAction({action:'hangup',callId:${JSON.stringify(mainCall.callId)}}).then(()=>false,e=>e.message === "Error invoking remote method 'companion:voice:action': Error: VOICE_STATE_MISMATCH")`,
+        ),
+        true,
+      );
+      await execute(
+        "(() => {const notice=document.querySelector('#voiceNotice'); const label=document.createElement('p'); label.id='endFixture'; label.className='eyebrow'; label.textContent='SYNTHETIC CALL · NO AUDIO'; notice.before(label); notice.scrollIntoView({block:'center'});})()",
+      );
+      await captureDesktop("docs/evidence/lobbymesh-call-end-notice-test.png");
+      await execute("document.querySelector('#endFixture').remove()");
+      await remote.hangup().catch(() => {});
+      const overlayCall = await startCall();
+      await execute(
+        "window.companion.preferences().then(p=>window.companion.updatePreferences({overlay:{...p.overlay,widgets:['voice']}}))",
+      );
+      await execute("window.companion.overlayMode(true)");
+      for (let n = 0; n < 250; n++) {
+        if (
+          await overlayExecute(
+            "document.querySelector('#overlayEndCall') !== null",
+          )
+        )
+          break;
+        await delay(20);
+      }
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('#overlayEndCall') !== null",
+        ),
+        true,
+      );
+      await overlayExecute("document.querySelector('#overlayEndCall').click()");
+      for (let n = 0; n < 250; n++) {
+        if (
+          await overlayExecute(
+            "document.querySelector('#overlayCallError')?.textContent.includes('Call ended on this computer. Peer notification was not confirmed')",
+          )
+        )
+          break;
+        await delay(20);
+      }
+      assert.equal(
+        await overlayExecute(
+          "document.querySelector('#overlayCallError')?.textContent.includes('Call ended on this computer. Peer notification was not confirmed')",
+        ),
+        true,
+      );
+      await indicator("LobbyMesh microphone off");
+      assert.equal(remote.status().capturing, true);
+      failVoiceHangup = false;
+      assert.equal(
+        await overlayExecute(
+          `window.companion.endOverlayCall({callId:${JSON.stringify(overlayCall.callId)}}).then(()=>false,e=>e.message === "Error invoking remote method 'companion:overlay:voice:end': Error: VOICE_STATE_MISMATCH")`,
+        ),
+        true,
+      );
+      await remote.hangup().catch(() => {});
       assert.equal(
         await execute("window.companion.status().then(s=>s.network)"),
         "online",
@@ -463,6 +576,8 @@ async function run() {
           optionalCaptureWidgets: false,
           indicatorVisibleAfterScroll: true,
           states: ["off", "on", "unknown", "off"],
+          endFailureProjection:
+            "main-and-overlay-local-off-peer-notification-unconfirmed",
           microphone: false,
           physicalAudio: false,
         }),

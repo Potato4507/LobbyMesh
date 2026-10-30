@@ -1,5 +1,8 @@
 # Continuation — 2026-10-29 UTC
 
+2026-10-30 End call now projects fixed local-ended/peer-notification-unconfirmed vs local-cleanup-unconfirmed from actual false/false/null capture/transmission/control facts. Only attempted valid call-bound actions classify; stale IDs and foreign callers retain existing denial. Low-level signaling/ACK/deadlines unchanged. Focused3/3/full200/200/typecheck/lint191/build and native desktop five-process suite pass, including main+overlay failed-notification UI while simulated remote remains active and failed-local-teardown negative. Synthetic screenshot reviewed. See evidence/voice-end-outcomes.md. Sourcef88cbb5 Ubuntu41007126001 succeeds after formatting repair; independent native hangup is still unresolved. Goal ACTIVE. Next commit/push this verified increment, refresh clean Windows artifact and CI, then continue the next unblocked reliability/usability behavior.
+
+
 2026-10-30: clean runtimea8d45ca544cf72174e46b08db98fd839857d2815 artifact dist/LobbyMesh-win32-x64-1793336950886/LobbyMesh.exe passes copied executable/default-off/protected reopen and pinned656-file integrity415664653 bytes, NotSigned. Retained digest/limits: evidence/windows-ptt-renewal-package-summary.json. Ubuntu41006774751 stopped at evidence JSON formatting before tests; formatter repair follows, no runtime CI acceptance inferred. Local198/198 and native/staged evidence retained. Goal ACTIVE. Next implement fixed terminal-call failure projection from actual local capture/control facts so confirmed local teardown is distinguishable from uncertain peer notification, retaining thrown errors and all strict transport assertions.
 
 

@@ -21,6 +21,7 @@ import {
 import {
   parseVoiceAction,
   type VoiceView,
+  voiceEndFailure,
 } from "../../../packages/protocol/src/voice.js";
 import { PreferenceStore } from "../../../packages/security/src/preferences.js";
 import { createWindowsActivityReader } from "../../../packages/session/src/windows-activity.js";
@@ -34,6 +35,16 @@ import { DesktopMediaHost } from "./media-host.js";
 import { DesktopMessaging } from "./messaging.js";
 import { createDesktopNetwork, type DesktopNetworkFactory } from "./network.js";
 import { DesktopOverlay } from "./overlay-window.js";
+
+function endFailure(service: VoiceCalls): string {
+  try {
+    const state = service.status();
+    return voiceEndFailure(state.capturing, state.transmitting, state.callId);
+  } catch {
+    return "VOICE_END_UNCONFIRMED";
+  }
+}
+
 import { DesktopPairing } from "./pairing.js";
 import { DesktopSessions } from "./sessions.js";
 
@@ -355,6 +366,7 @@ export async function createDesktop(
       return voiceView();
     }
     const service = voice();
+    let ending = false;
     try {
       if (action.action === "consent") {
         if (!window.isFocused()) throw new Error("VOICE_WINDOW_NOT_FOCUSED");
@@ -372,7 +384,15 @@ export async function createDesktop(
         if (service.status().callId !== action.callId)
           throw new Error("VOICE_STATE_MISMATCH");
         stopTalking();
+        ending = true;
         await service.hangup();
+        const ended = service.status();
+        if (
+          ended.capturing !== false ||
+          ended.transmitting !== false ||
+          ended.callId !== null
+        )
+          throw new Error("VOICE_END_UNCONFIRMED");
       } else if (action.action === "switch-input") {
         if (!window.isFocused()) throw new Error("VOICE_WINDOW_NOT_FOCUSED");
         if (service.status().callId !== action.callId)
@@ -429,6 +449,7 @@ export async function createDesktop(
       }
       return voiceView();
     } catch (error) {
+      if (ending) throw new Error(endFailure(service));
       const code =
         error instanceof Error &&
         [
@@ -465,7 +486,18 @@ export async function createDesktop(
     if (service.status().callId !== callId)
       throw new Error("VOICE_STATE_MISMATCH");
     stopTalking();
-    await service.hangup();
+    try {
+      await service.hangup();
+      const ended = service.status();
+      if (
+        ended.capturing !== false ||
+        ended.transmitting !== false ||
+        ended.callId !== null
+      )
+        throw new Error("VOICE_END_UNCONFIRMED");
+    } catch {
+      throw new Error(endFailure(service));
+    }
     return overlayVoiceView();
   });
   handle("companion:overlay:mode", (request) => {

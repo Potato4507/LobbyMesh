@@ -5,6 +5,7 @@ import type {
   OverlayVoiceView,
   OverlayWidget,
 } from "../../../packages/protocol/src/overlay.js";
+import { voiceEndNotice } from "../../../packages/protocol/src/voice.js";
 import { Messages } from "./messages.js";
 
 type Status = Awaited<ReturnType<Window["companion"]["status"]>>;
@@ -65,9 +66,12 @@ function Overlay() {
     setCallError("");
     try {
       setVoice(await window.companion.endOverlayCall({ callId }));
-    } catch {
+    } catch (error) {
       setVoice(null);
-      setCallError("Could not confirm call ended. Check the main window.");
+      setCallError(
+        voiceEndNotice(error) ??
+          "Could not confirm call ended. Check the main window.",
+      );
     } finally {
       voiceRevision.current++;
       endPending.current = false;
@@ -163,7 +167,11 @@ function Overlay() {
         <p>
           <small>Start, answer and hold to talk in the main window.</small>
         </p>
-        {callError && <p role="alert">{callError}</p>}
+        {callError && (
+          <p id="overlayCallError" role="alert">
+            {callError}
+          </p>
+        )}
       </section>
     ),
   };
