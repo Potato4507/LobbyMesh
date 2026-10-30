@@ -1,5 +1,8 @@
 # 2026-10-29 headless lab continuation
 
+2026-10-30 resumed active goal: shared headless restart owner checks lifetime before work and after both await boundaries, blocks replacement after cleanup failure, confirms online after startup and projects fixed private-error-free failures. Real-lifecycle held-cleanup/startup, failure/manual-recovery and no-implicit-retry cases pass; focused13/13/full206/206/typecheck/lint/build. Native headless restart/ACK/revocation/cleanup checks retained. See evidence/headless-restart-guards.md. Prior91ef4d0 Ubuntu41055537182 succeeds. Next implement automatic approved-contact lookup on explicit Send when a binding is missing, retaining bounded ownership, Stop send/clear/block cancellation and default-off permissions. Goal remains ACTIVE.
+
+
 2026-10-30 headless network-instance restart implemented using production lifecycle and an Electron-free per-instance factory. Worker retains memory-owned app/transport identity and approved IDs, resets conversations/tickets/voice consent, refuses bootstrap restart and never persists keys. New lab:pair --scenario restart works through existing local/SSH path; exact options and fixed bounds retained. Focused8/8/full201/201/typecheck/lint/build pass; actual local runner baseline8/8 plus recovery2 ACK, synthetic voice/revocation and all clean exits/bootstrap cleanup verified. SAME_HOST only; see evidence/headless-network-restart.md and safe aggregate. Pi still unavailable; no host privileges/settings changed. Prior4dfdd8e Ubuntu41053667056 succeeds; native intermittency open. Goal ACTIVE. Next commit/push verified headless recovery, inspect CI, then advance the next unblocked connection/lifecycle behavior without claiming Pi/NAT acceptance.
 
 

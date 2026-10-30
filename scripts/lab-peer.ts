@@ -5,6 +5,7 @@ import { createIdentity } from "../packages/identity/src/index.js";
 import type { KeyPair } from "../packages/public-discovery/src/hyperdht.js";
 import { createLabNetwork, type LabNetwork } from "./lab/network.js";
 import { parseLabCommand, parseLabOptions } from "./lab/options.js";
+import { restartLabNetwork } from "./lab/restart.js";
 
 // JSONL control channel, suitable for local pipes or an authorized SSH stdio
 // connection. Never write this channel to evidence: invitations are transferable.
@@ -101,16 +102,10 @@ try {
     online();
     command = async (op, value) => {
       if (op === "restart") {
-        lifecycle.setEnabled(false);
-        await lifecycle.settled();
-        if (
-          stopped ||
-          controller.signal.aborted ||
-          lifecycle.status().error === "STOP_FAILED"
-        )
-          throw new Error("LAB_NETWORK_UNAVAILABLE");
-        lifecycle.setEnabled(true);
-        await lifecycle.settled();
+        await restartLabNetwork(
+          lifecycle,
+          () => !stopped && !controller.signal.aborted,
+        );
         const fresh = online();
         return {
           networkRestarted: true,

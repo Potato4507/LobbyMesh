@@ -1,3 +1,34 @@
+# Active resumed checkpoint — 2026-10-30
+
+The user/app resumed the sustained goal after usageLimited; current status is ACTIVE. Preserve the historical checkpoint below as history, not an instruction to stop current work. Branch codex/lobbymesh-pi-lab-and-reliability, source parent91ef4d07c068513ebddb903d3b821a9a7dfb4960 pushed; only owned restart-guard/recovery edits followed.
+
+2026-10-30 resumed active goal: shared headless restart owner checks lifetime before work and after both await boundaries, blocks replacement after cleanup failure, confirms online after startup and projects fixed private-error-free failures. Real-lifecycle held-cleanup/startup, failure/manual-recovery and no-implicit-retry cases pass; focused13/13/full206/206/typecheck/lint/build. Native headless restart/ACK/revocation/cleanup checks retained. See evidence/headless-restart-guards.md. Prior91ef4d0 Ubuntu41055537182 succeeds. Next implement automatic approved-contact lookup on explicit Send when a binding is missing, retaining bounded ownership, Stop send/clear/block cancellation and default-off permissions. Goal remains ACTIVE.
+
+Next actions: inspect live git status/HEAD, inspect CI for the new guard commit, then implement/test missing-binding lookup on Send using the existing approved-contact resolver and per-send cancellation ownership. No Pi/physical proof newly claimed.
+
+---
+
+# Usage-limited recovery checkpoint — 2026-10-30
+
+The explicitly requested sustained goal now reports usageLimited (not complete or paused). Stop implementation at this boundary. Current branch codex/lobbymesh-pi-lab-and-reliability, HEAD 91ef4d07c068513ebddb903d3b821a9a7dfb4960, origin Potato4507/Roblox-app. This HEAD was committed and pushed successfully; tree was clean before writing this checkpoint. The only new uncommitted file change is this owned docs/RECOVERY.md checkpoint. Preserve it and every existing development commit.
+
+Latest verified increment: peer-only headless network-instance restart, memory-owned identity/transport/approved-contact retention, fresh conversation/tickets/voice-off, revoked permission surviving restart, exact scenario/options and local/SSH coordinator. Focused lab/control8/8; full201/201; typecheck/lint/build pass. Actual explicit local runner baseline8/8 ACK plus2 recovery ACK, synthetic voice/revocation and peer+bootstrap cleanup verified. Evidence/headless-network-restart.md and its safe aggregate retain dirty pre-commit provenance. Network-instance restart is not process restart, physical LAN, virtual NAT or external ISP proof.
+
+Current source91ef4d0 CI has not been inspected after push. Prior4dfdd8e Ubuntu41053667056 succeeded. Native media/control remains intermittent: one full independent voice pass and a subsequent strict hangup failure with confirmed local off/idle, hello1505.75ms then response abort496.91ms at the unchanged2s control budget. Receiver outcome unknown. Retained evidence/native-control-diagnostics.md and native-call-control-failure-summary.json; no tests, ACKs, retries or deadlines weakened. The earlier evidence-JSON formatting failure was repaired and sourcef88cbb5 passed Ubuntu41007126001.
+
+Latest retained clean Windows artifact is dadd424e175d57185523c68e78397e3b74b97904 at dist/LobbyMesh-win32-x64-1793337646325/LobbyMesh.exe,656 files/415667493 bytes/56 dependency copies, actual copied executable/default network+microphone off/protected reopen and pinned integrity pass, NotSigned. Manifest SHA25671822aab73127dae85cf3ba1e727600e081bb709532ab5a976828870a34f8e89; evidence/windows-call-end-package-summary.json. It predates the trusted-owner diagnostics API and the repository-only headless restart tools. No release/installer/fresh-machine/packaged-pair acceptance.
+
+Both previously authorized Pi targets were retried with strict bounded read-only SSH doctor and remain LAB_HOST_UNAVAILABLE. No installation, elevation, host networking, private credential or SSH target committed. Latest read-only real session probe remains waiting/no selected supported session, network off/self-asserted. Actual Roblox, physical audio, physical LAN/NAT and release/license/signing gates remain open.
+
+Next three shell actions, once usage is available:
+1. git status --short
+2. git log -3 --oneline
+3. git diff -- docs/RECOVERY.md
+
+Review/commit this owned checkpoint, inspect the latest91ef4d0 CI evidence, and continue the next unblocked lifecycle improvement. A useful next increment is controlled stop-during-restart/failure coverage for the headless owner using existing lifecycle cancellation, retaining strict cleanup ACK+exit requirements. Do not rerun unchanged passing suites just to accumulate passes, and do not restart development or reset history. Goal status/usage resumption is controlled by the user/app, not update_goal.
+
+---
+
 # Active checkpoint — 2026-10-29, session detection lifecycle and visibility
 
 2026-10-30 headless network-instance restart implemented using production lifecycle and an Electron-free per-instance factory. Worker retains memory-owned app/transport identity and approved IDs, resets conversations/tickets/voice consent, refuses bootstrap restart and never persists keys. New lab:pair --scenario restart works through existing local/SSH path; exact options and fixed bounds retained. Focused8/8/full201/201/typecheck/lint/build pass; actual local runner baseline8/8 plus recovery2 ACK, synthetic voice/revocation and all clean exits/bootstrap cleanup verified. SAME_HOST only; see evidence/headless-network-restart.md and safe aggregate. Pi still unavailable; no host privileges/settings changed. Prior4dfdd8e Ubuntu41053667056 succeeds; native intermittency open. Goal ACTIVE. Next commit/push verified headless recovery, inspect CI, then advance the next unblocked connection/lifecycle behavior without claiming Pi/NAT acceptance.
