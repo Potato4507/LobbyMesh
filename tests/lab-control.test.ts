@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createSocket } from "node:dgram";
 import test from "node:test";
 import { controlLabPeer } from "../scripts/lab/client.js";
 
@@ -12,6 +13,42 @@ function fixture(source: string) {
   );
 }
 const ready = `console.log(JSON.stringify({ready:true,role:'bootstrap'}));`;
+
+test("production bootstrap flushes a delayed stop reply before exiting", async (t) => {
+  const socket = createSocket("udp4");
+  await new Promise<void>((resolve) => socket.bind(0, "127.0.0.1", resolve));
+  const port = socket.address().port;
+  await new Promise<void>((resolve) => socket.close(() => resolve()));
+  const preload = `const write=process.stdout.write.bind(process.stdout);process.stdout.write=(chunk,...args)=>{if(String(chunk).includes('"cleanupVerified":true')){setTimeout(()=>write(chunk,...args),80);return true;}return write(chunk,...args);};`;
+  const peer = controlLabPeer(
+    spawn(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "--import",
+        `data:text/javascript,${encodeURIComponent(preload)}`,
+        "scripts/lab-peer.ts",
+        "--mode",
+        "bootstrap",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        String(port),
+        "--duration-ms",
+        "10000",
+      ],
+      { stdio: ["pipe", "pipe", "ignore"], windowsHide: true },
+    ),
+  );
+  t.after(async () => {
+    await peer.stop().catch(() => {});
+    await peer.exit;
+  });
+  assert.equal((await peer.ready).role, "bootstrap");
+  await peer.stop();
+  assert.equal(await peer.exit, 0);
+});
 
 test("lab process spawn failure settles readiness, pending work and exit without claiming cleanup", async () => {
   const peer = controlLabPeer(

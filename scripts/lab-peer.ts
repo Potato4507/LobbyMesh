@@ -24,13 +24,18 @@ const controller = new AbortController();
 let cleanup: (() => Promise<void>) | undefined;
 let closing: Promise<void> | undefined;
 let stopped = false;
-const write = (value: unknown) => {
+const write = (value: unknown, flushed?: () => void) => {
   if (process.stdout.writableLength > 256 * 1024) {
     finish();
     return;
   }
   if (!process.stdout.destroyed)
-    process.stdout.write(`${JSON.stringify(value)}\n`);
+    process.stdout.write(`${JSON.stringify(value)}\n`, (error) => {
+      if (error) {
+        if (flushed) process.exit(1);
+        else finish();
+      } else flushed?.();
+    });
 };
 const stop = () => {
   closing ??= (async () => {
@@ -211,12 +216,20 @@ try {
       if (request.op === "stop") {
         void stop().then(
           () => {
-            write({
-              id: request.id,
-              result: { stopped: true, cleanupVerified: true },
-            });
             clearTimeout(deadline);
-            process.exit(0);
+            // stdout is asynchronous on some pipe/SSH transports. Exiting
+            // before its callback can discard the cleanup acknowledgement.
+            const flushDeadline = setTimeout(() => process.exit(1), 1000);
+            write(
+              {
+                id: request.id,
+                result: { stopped: true, cleanupVerified: true },
+              },
+              () => {
+                clearTimeout(flushDeadline);
+                process.exit(0);
+              },
+            );
           },
           () => process.exit(1),
         );
