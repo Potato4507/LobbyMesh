@@ -1,0 +1,217 @@
+{
+  "scenario": "installed-counter-free-lan-guard-native-echo",
+  "proofTier": "SAME_HOST",
+  "serverSha256": "1decf578fa2e8ca5e98f5eaaf89164959922a27d36d0a5cf1de359ed7a6eba34",
+  "patchSha256": "0e9d708221579e713fdafccbe30ec17bc63e28fabaf9293c20196cc2370ecbcf",
+  "observed": {
+    "result": "native-handoff-observed",
+    "localBootstrap": true,
+    "independentProcesses": true,
+    "appRpc": false,
+    "hyperdhtVersion": "6.35.0",
+    "localConnection": true,
+    "reusableSocket": false,
+    "fullyBootstrapped": false,
+    "observeServerAborts": true,
+    "attempts": 32,
+    "successes": 32,
+    "oneWay": [
+      [
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 12
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 4
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        }
+      ],
+      [
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 5
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        }
+      ]
+    ],
+    "bidirectional": [
+      [
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 4
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        }
+      ],
+      [
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 4
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        }
+      ]
+    ],
+    "snapshots": [
+      {
+        "active": 0,
+        "accepted": 16,
+        "replies": 16,
+        "invalid": 0,
+        "serverAborts": {
+          "total": 0,
+          "recent": []
+        }
+      },
+      {
+        "active": 0,
+        "accepted": 16,
+        "replies": 16,
+        "invalid": 0,
+        "serverAborts": {
+          "total": 0,
+          "recent": []
+        }
+      }
+    ],
+    "cleanupVerified": true
+  },
+  "physicalAudio": false,
+  "actualRoblox": false,
+  "realExternal": false
+}

@@ -15,6 +15,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { copyNativeLanPatch } from "./dependency-patches.ts";
 import { copyProductionDependencies } from "./production-dependencies.ts";
 
 if (process.platform !== "win32" || process.arch !== "x64")
@@ -65,6 +66,9 @@ const {
   copied,
   locate,
 } = await copyProductionDependencies(root, appDirectory, output);
+const dependencyPatches = [
+  await copyNativeLanPatch(root, appDirectory, output),
+];
 const bundled = new Set();
 async function bundledNotices(source) {
   if (bundled.has(source)) return;
@@ -214,6 +218,7 @@ const manifest = {
     .digest("hex"),
   smoke: proof,
   dependencies: packageRows,
+  dependencyPatches,
   files,
 };
 await writeFile(

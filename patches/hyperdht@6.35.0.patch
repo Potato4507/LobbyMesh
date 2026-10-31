@@ -1,0 +1,18 @@
+diff --git a/lib/server.js b/lib/server.js
+index d21892ff1f1f1d875544db674bb66bed0e336864..a47447a09f4008cdadde938fab7a0424462f5fe4 100644
+--- a/lib/server.js
++++ b/lib/server.js
+@@ -569,7 +569,12 @@ module.exports = class Server extends EventEmitter {
+       if (!p.remoteHolepunching && !stable) {
+         stable = await p.analyze(true)
+         if (p.destroyed) return null
+-        if (!stable) return this._abort(h)
++        if (!stable) {
++          const pendingLan = h.replyFromPuncher === false && h.prepunching != null &&
++            h.relayToken === null && h.aborted === false && h.encryptedSocket === null &&
++            h.rawStream && h.rawStream.destroyed === false && h.rawStream.connected === false
++          if (!pendingLan) return this._abort(h)
++        }
+       }
+ 
+       // Fast mode! If we are consistent and the remote has opened a session to us (remoteAddress)

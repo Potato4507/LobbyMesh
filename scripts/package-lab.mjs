@@ -6,6 +6,7 @@ import { lstat, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { build } from "esbuild";
+import { copyNativeLanPatch } from "./dependency-patches.ts";
 import { controlLabPeer } from "./lab/client.ts";
 import { copyProductionDependencies } from "./production-dependencies.ts";
 
@@ -51,6 +52,7 @@ if (
 )
   throw new Error("LAB_PACKAGE_ELECTRON_NOT_ALLOWED");
 const dependencies = await copyProductionDependencies(root, output, output);
+const dependencyPatches = [await copyNativeLanPatch(root, output, output)];
 if (
   !dependencies.rows.some(
     (row) =>
@@ -152,6 +154,7 @@ const manifest = {
   runtimeIncluded: false,
   electronIncluded: false,
   dependencies: dependencies.rows,
+  dependencyPatches,
   linuxArm64Prebuilds: arm64,
   smoke: {
     platform: process.platform,

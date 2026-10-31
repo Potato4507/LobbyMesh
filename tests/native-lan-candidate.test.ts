@@ -1,17 +1,24 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import test from "node:test";
 import { compileFunction } from "node:vm";
-import { nativeLanCandidate } from "../scripts/native-lan-candidate.js";
+import {
+  nativeLanCandidate,
+  nativeLanPatch,
+  nativeLanUpstream,
+  productionNativeServerSha256,
+} from "../scripts/native-lan-candidate.js";
 
 const require = createRequire(import.meta.url);
 const file = path.join(
   path.dirname(require.resolve("hyperdht/package.json")),
   "lib/server.js",
 );
-const source = readFileSync(file);
+const installedBytes = readFileSync(file);
+const source = nativeLanUpstream(installedBytes);
 function load(source: Buffer) {
   const module = { exports: {} as unknown };
   compileFunction(source.toString(), ["require", "module", "exports"], {
@@ -30,6 +37,8 @@ function load(source: Buffer) {
 const changed = nativeLanCandidate(source);
 const upstream = load(source),
   candidate = load(changed);
+const production = load(nativeLanPatch(source)),
+  installed = load(installedBytes);
 const { FIREWALL, ERROR } = require(
   path.join(path.dirname(file), "constants.js"),
 );
@@ -116,6 +125,23 @@ async function trial(
   };
 }
 
+const negativeStates = [
+  { replyFromPuncher: true },
+  { replyFromPuncher: undefined },
+  { prepunching: null },
+  { prepunching: undefined },
+  { relayToken: Buffer.alloc(32) },
+  { aborted: true },
+  { encryptedSocket: {} },
+  { rawStream: null },
+  { rawStream: { destroyed: true, connected: false } },
+  { rawStream: { destroyed: false, connected: true } },
+  { rawStream: {} },
+  { payload: null },
+  { puncher: null },
+  { puncher: { socket: null } },
+];
+
 test("candidate changes only the verified pending LAN unstable-analysis case", async () => {
   assert.equal((await trial(upstream)).aborts, 1);
   const result = await trial(candidate);
@@ -125,27 +151,45 @@ test("candidate changes only the verified pending LAN unstable-analysis case", a
     (result.value as { payload: { error: number } }).payload.error,
     ERROR.NONE,
   );
-  for (const changes of [
-    { replyFromPuncher: true },
-    { replyFromPuncher: undefined },
-    { prepunching: null },
-    { prepunching: undefined },
-    { relayToken: Buffer.alloc(32) },
-    { aborted: true },
-    { encryptedSocket: {} },
-    { rawStream: null },
-    { rawStream: { destroyed: true, connected: false } },
-    { rawStream: { destroyed: false, connected: true } },
-    { rawStream: {} },
-    { payload: null },
-    { puncher: null },
-    { puncher: { socket: null } },
-  ]) {
+  for (const changes of negativeStates) {
     const result = await trial(candidate, changes);
     assert.equal(result.aborts, 1);
     assert.equal(result.deferred, 0);
     assert.equal(result.value, result.aborted);
   }
+});
+
+test("installed dependency is the exact counter-free guard and retains every abort control", async () => {
+  assert.equal(
+    createHash("sha256").update(installedBytes).digest("hex"),
+    productionNativeServerSha256,
+  );
+  assert.deepEqual(installedBytes, nativeLanPatch(source));
+  assert.equal(
+    installedBytes.includes(Buffer.from("_lobbymeshLanAbortDeferrals")),
+    false,
+  );
+  for (const Server of [production, installed]) {
+    const pending = await trial(Server);
+    assert.equal(pending.aborts, 0);
+    assert.equal(pending.deferred, 0);
+    assert.equal(
+      (pending.value as { payload: { error: number } }).payload.error,
+      ERROR.NONE,
+    );
+    for (const changes of negativeStates)
+      assert.equal((await trial(Server, changes)).aborts, 1);
+    assert.equal((await trial(Server, {}, ERROR.ABORTED)).aborts, 1);
+    assert.equal(
+      (await trial(Server, {}, ERROR.NONE, true, false, true)).aborts,
+      1,
+    );
+    assert.equal((await trial(Server, {}, ERROR.NONE, false, true)).aborts, 0);
+  }
+  assert.throws(
+    () => nativeLanUpstream(Buffer.concat([installedBytes, Buffer.from("\n")])),
+    /SOURCE_MISMATCH/,
+  );
 });
 
 test("candidate preserves remote errors, explicit holepunch denial and stable analysis", async () => {

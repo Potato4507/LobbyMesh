@@ -7,3 +7,5 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - electron@45.1.0
   - hyperdht@6.35.0
+patchedDependencies:
+  hyperdht@6.35.0: patches/hyperdht@6.35.0.patch

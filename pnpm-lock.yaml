@@ -4,13 +4,16 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  hyperdht@6.35.0: 0e9d708221579e713fdafccbe30ec17bc63e28fabaf9293c20196cc2370ecbcf
+
 importers:
 
   .:
     dependencies:
       hyperdht:
         specifier: 6.35.0
-        version: 6.35.0(bare-url@2.5.5)
+        version: 6.35.0(patch_hash=0e9d708221579e713fdafccbe30ec17bc63e28fabaf9293c20196cc2370ecbcf)(bare-url@2.5.5)
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -1276,7 +1279,7 @@ snapshots:
       - bare-buffer
       - react-native-b4a
 
-  hyperdht@6.35.0(bare-url@2.5.5):
+  hyperdht@6.35.0(patch_hash=0e9d708221579e713fdafccbe30ec17bc63e28fabaf9293c20196cc2370ecbcf)(bare-url@2.5.5):
     dependencies:
       '@hyperswarm/secret-stream': 6.9.2(bare-events@2.9.2)(bare-url@2.5.5)
       b4a: 1.9.0
