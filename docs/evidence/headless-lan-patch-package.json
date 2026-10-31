@@ -1,0 +1,30 @@
+{
+  "scenario": "clean-patched-headless-package",
+  "source": {
+    "revision": "8ef8aca5e710b49b4bfbf03a92db2459275b275d",
+    "dirty": false
+  },
+  "archive": "dist/LobbyMesh-headless-1793466791070.tar.gz",
+  "archiveSha256": "930a818f4ab629d3f7e842d627ea2d3ab487ab1a527cd53b0090ae0dbb9300bb",
+  "files": 569,
+  "dependencyPatches": [
+    {
+      "name": "hyperdht",
+      "version": "6.35.0",
+      "path": "dependency-patches/hyperdht@6.35.0.patch",
+      "sha256": "0e9d708221579e713fdafccbe30ec17bc63e28fabaf9293c20196cc2370ecbcf",
+      "upstreamServerSha256": "cdff91aee9ee1ce8aeab4daeed550ac7130f44c2750cebb794c605254b31a276",
+      "serverSha256": "1decf578fa2e8ca5e98f5eaaf89164959922a27d36d0a5cf1de359ed7a6eba34"
+    }
+  ],
+  "patchAndPayloadIndependentlyVerified": true,
+  "smoke": {
+    "platform": "win32",
+    "architecture": "x64",
+    "bootstrapReady": true,
+    "cleanupConfirmed": true,
+    "linuxArm64Executed": false,
+    "audioCapture": false
+  },
+  "linuxArm64Executed": false
+}
