@@ -1,0 +1,39 @@
+{
+  "scenario": "windows-ptt-press-ownership-package",
+  "result": "passed",
+  "source": {
+    "revision": "41c8c92fb8a173529c6ca1aaa10f35c3421a613a",
+    "dirty": false
+  },
+  "directory": "dist/LobbyMesh-win32-x64-1793464805664",
+  "executable": "dist/LobbyMesh-win32-x64-1793464805664/LobbyMesh.exe",
+  "manifestSha256": "889c1165ecb2d11e9e14c7f68193074572c1ccbb3bbdad462baa4f7bb194ef9d",
+  "manifestPinned": true,
+  "files": 656,
+  "bytes": 415682627,
+  "signature": "NotSigned",
+  "smoke": {
+    "result": "passed",
+    "packaged": true,
+    "electron": "45.1.0",
+    "sandbox": true,
+    "contextIsolation": true,
+    "network": "offline",
+    "microphone": "off",
+    "credentials": "protected-reopen"
+  },
+  "checks": {
+    "nodeTotal": 253,
+    "nodePassed": 252,
+    "nodeSkipped": 1,
+    "nativeDesktopModesPassed": 6,
+    "typecheck": true,
+    "lint": true,
+    "build": true
+  },
+  "consolidatedPipelineForThisSource": false,
+  "physicalAudio": false,
+  "actualRoblox": false,
+  "crossNat": false,
+  "releaseReady": false
+}
