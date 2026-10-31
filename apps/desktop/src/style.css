@@ -640,3 +640,26 @@ textarea:focus-visible {
   flex-basis: 100%;
   min-height: 0;
 }
+.incoming-call-notice {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 20;
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  padding: 18px;
+  border: 1px solid #85d6ce;
+  border-radius: 14px;
+  background: #142638;
+  box-shadow: 0 12px 32px #0008;
+}
+.incoming-call-notice h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.incoming-call-notice p {
+  margin: 0 0 14px;
+  color: #c1d0e3;
+  font-size: 13px;
+  line-height: 1.5;
+}

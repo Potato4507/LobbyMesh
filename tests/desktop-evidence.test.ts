@@ -60,6 +60,8 @@ test("desktop driver rejects unknown, conflicting and duplicate options before c
     ["--update-evidence", "--update-evidence"],
     ["--session-status-only", "--overlay-capture-only"],
     ["--conversation-clear-only", "--conversation-clear-only"],
+    ["--incoming-call-only", "--incoming-call-only"],
+    ["--incoming-call-only", "--overlay-capture-only"],
     ["--evidence-directory", "docs/evidence"],
   ])
     await assert.rejects(

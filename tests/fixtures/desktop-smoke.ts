@@ -794,6 +794,144 @@ async function run() {
       );
       return;
     }
+    if (process.argv[3] === "incoming-call-only") {
+      desktop.window.show();
+      desktop.window.focus();
+      await until("document.hasFocus()");
+      await execute("window.companion.network(true)");
+      await until(
+        "document.querySelector('#networkControl')?.textContent === 'Disconnect'",
+      );
+      await execute(
+        "window.companion.voiceAction({action:'consent',enabled:true})",
+      );
+      assert.ok(remoteVoice);
+      assert.ok(localVoiceOwner);
+      await navigate("overview");
+      await remoteVoice.dial({ id: self, transportKey }, true);
+      assert.equal(localVoiceOwner.status().phase, "ringing");
+      await until(
+        "document.querySelector('#incomingCallNotice')?.checkVisibility() && document.querySelector('#view-overview')?.checkVisibility() && document.activeElement?.id === 'viewTitle'",
+      );
+      assert.equal(localMediaStarts, 0);
+      assert.equal(localVoiceOwner.status().capturing, false);
+      await execute(
+        "(() => {const label=document.createElement('p');label.id='syntheticIncomingProof';label.className='eyebrow';label.textContent='SYNTHETIC INCOMING CALL · NO MICROPHONE';document.querySelector('header').before(label);})()",
+      );
+      await captureDesktop("docs/evidence/lobbymesh-incoming-call-test.png");
+      await execute(
+        "document.querySelector('#syntheticIncomingProof').remove()",
+      );
+      desktop.window.show();
+      desktop.window.focus();
+      contents.focus();
+      await until("document.hasFocus()");
+      failVoiceRead = true;
+      await until("document.querySelector('#incomingCallNotice') === null");
+      assert.equal(localVoiceOwner.status().phase, "ringing");
+      assert.equal(localMediaStarts, 0);
+      failVoiceRead = false;
+      await until(
+        "document.querySelector('#incomingCallNotice')?.checkVisibility()",
+      );
+      await execute("document.querySelector('#openIncomingCall').click()");
+      await until(
+        "document.querySelector('#view-messages')?.checkVisibility() && document.activeElement?.id === 'voiceState' && document.querySelector('#incomingCallNotice') === null",
+      );
+      assert.equal(localMediaStarts, 0);
+      await execute("document.querySelector('#hangupCall').click()");
+      await until("window.companion.voice().then(s=>s.phase==='idle')");
+      assert.equal(remoteVoice.status().phase, "idle");
+      await navigate("preferences");
+      const saved = await execute<{ displayName: string }>(
+        "window.companion.preferences()",
+      );
+      await execute(
+        "(() => {const input=document.querySelector('#displayName');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Unsent preference during call');input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();})()",
+      );
+      await remoteVoice.dial({ id: self, transportKey }, true);
+      await until(
+        "document.querySelector('#incomingCallNotice')?.checkVisibility() && document.activeElement?.id === 'displayName'",
+      );
+      desktop.window.setContentSize(720, 600);
+      await delay(60);
+      assert.equal(
+        await execute(
+          "(() => {const r=document.querySelector('#incomingCallNotice').getBoundingClientRect();return r.left>=0 && r.top>=0 && r.right<=innerWidth && r.bottom<=innerHeight && document.documentElement.scrollWidth<=innerWidth;})()",
+        ),
+        true,
+      );
+      desktop.window.show();
+      desktop.window.focus();
+      contents.focus();
+      await execute("document.querySelector('#displayName').focus()");
+      await until("document.hasFocus()");
+      await remoteVoice.hangup();
+      await until(
+        "document.querySelector('#incomingCallNotice') === null && document.activeElement?.id === 'displayName' && document.querySelector('#view-preferences')?.checkVisibility()",
+      );
+      assert.equal(localMediaStarts, 0);
+      await remoteVoice.dial({ id: self, transportKey }, true);
+      await until(
+        "document.querySelector('#incomingCallNotice')?.checkVisibility()",
+      );
+      await execute("document.querySelector('#openIncomingCall').click()");
+      await until(
+        "document.activeElement?.id === 'voiceState' && document.querySelector('#answerCall') !== null",
+      );
+      assert.equal(
+        await execute("document.querySelector('#displayName').value"),
+        "Unsent preference during call",
+      );
+      assert.equal(
+        (
+          await execute<{ displayName: string }>(
+            "window.companion.preferences()",
+          )
+        ).displayName,
+        saved.displayName,
+      );
+      assert.equal(localMediaStarts, 0);
+      // A programmatic DOM click does not activate a native Windows window.
+      console.log(
+        JSON.stringify({
+          incomingFocus: "before-answer",
+          visible: desktop.window.isVisible(),
+          nativeFocused: desktop.window.isFocused(),
+          contentsFocused: contents.isFocused(),
+          enabled: desktop.window.isEnabled(),
+          focusable: desktop.window.isFocusable(),
+          minimized: desktop.window.isMinimized(),
+        }),
+      );
+      desktop.window.show();
+      desktop.window.focus();
+      contents.focus();
+      await until("document.hasFocus()");
+      assert.equal(desktop.window.isVisible(), true);
+      assert.equal(desktop.window.isFocused(), true);
+      await execute("document.querySelector('#answerCall').click()");
+      await until("document.querySelector('#pushToTalk') !== null");
+      assert.equal(localMediaStarts, 1);
+      assert.equal(localVoiceOwner.status().capturing, true);
+      await execute("document.querySelector('#hangupCall').click()");
+      await until(
+        "window.companion.voice().then(s=>s.phase==='idle' && s.capturing===false)",
+      );
+      console.log(
+        JSON.stringify({
+          result: "incoming-call-passed",
+          freshSourceRequired: true,
+          navigationWithoutCapture: true,
+          preferenceDraftRetained: true,
+          callerWithdrawal: true,
+          explicitAnswer: true,
+          hardwareMicrophone: false,
+          physicalAudio: false,
+        }),
+      );
+      return;
+    }
     if (process.argv[3] === "session-status-only") {
       desktop.window.show();
       desktop.window.focus();

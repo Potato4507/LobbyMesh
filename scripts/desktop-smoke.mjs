@@ -9,6 +9,7 @@ const focusedModes = [
   "conversation-clear-only",
   "session-status-only",
   "overlay-capture-only",
+  "incoming-call-only",
 ];
 let requestedMode = "",
   updateEvidence = false;
@@ -58,9 +59,15 @@ try {
           "conversation-clear-only",
           "session-status-only",
           "overlay-capture-only",
+          "incoming-call-only",
           "credentials-only",
         ]
-      : ["", "conversation-clear-only", "session-status-only"])
+      : [
+          "",
+          "conversation-clear-only",
+          "session-status-only",
+          "incoming-call-only",
+        ])
     await new Promise((resolve, reject) => {
       const child = spawn(
         executable,
@@ -109,9 +116,11 @@ try {
                 ? '"result":"session-status-passed"'
                 : mode === "conversation-clear-only"
                   ? '"result":"conversation-clear-passed"'
-                  : mode
-                    ? '"result":"credential-reload-passed"'
-                    : '"result":"passed"',
+                  : mode === "incoming-call-only"
+                    ? '"result":"incoming-call-passed"'
+                    : mode
+                      ? '"result":"credential-reload-passed"'
+                      : '"result":"passed"',
           )
         )
           resolve();

@@ -96,9 +96,19 @@ function App() {
   type View = keyof typeof views;
   const [view, setView] = useState<View>("overview");
   const title = useRef<HTMLHeadingElement>(null);
+  const focusIncomingCall = useRef(false);
   useEffect(() => {
     const destination = document.getElementById(`view-${view}`);
     if (destination && !destination.hidden) {
+      if (view === "messages" && focusIncomingCall.current) {
+        focusIncomingCall.current = false;
+        const callHeading = document.getElementById("voiceState");
+        if (callHeading) {
+          callHeading.focus({ preventScroll: true });
+          callHeading.scrollIntoView({ block: "center" });
+          return;
+        }
+      }
       title.current?.focus({ preventScroll: true });
       window.scrollTo(0, 0);
     }
@@ -110,6 +120,7 @@ function App() {
   const [detection, setDetection] = useState<DetectionStatus | null>(null);
   const [matching, setMatching] = useState<DesktopSessionStatus | null>(null);
   const [statusFailed, setStatusFailed] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(false);
   const [microphone, setMicrophone] = useState("off");
   const microphoneObservation = useRef(0);
   const observeVoiceMicrophone = useCallback(
@@ -383,6 +394,30 @@ function App() {
             {!statusFailed && state === "online" ? "Connected" : networkLabel}
           </span>
         </header>
+        {incomingCall && state === "online" && view !== "messages" && (
+          <section
+            id="incomingCallNotice"
+            className="incoming-call-notice"
+            aria-labelledby="incomingCallTitle"
+            aria-live="polite"
+          >
+            <h2 id="incomingCallTitle">Incoming voice call</h2>
+            <p>
+              An approved app contact is calling. Review the call in
+              Conversations.
+            </p>
+            <button
+              id="openIncomingCall"
+              type="button"
+              onClick={() => {
+                focusIncomingCall.current = true;
+                setView("messages");
+              }}
+            >
+              View incoming call
+            </button>
+          </section>
+        )}
         <section className="status-grid" aria-label="Current connection status">
           <div>
             <span className="status-label">Peer network</span>
@@ -640,6 +675,7 @@ function App() {
             onBlockContact={(peerId) => contact("block", peerId)}
             contactPending={contactPending}
             onMicrophone={observeVoiceMicrophone}
+            onIncomingCall={setIncomingCall}
             active={view === "messages"}
             connection={connection}
             onAddContact={() => setView("preferences")}

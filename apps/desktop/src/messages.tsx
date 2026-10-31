@@ -10,6 +10,7 @@ export function Messages({
   onAddContact,
   active = true,
   onMicrophone,
+  onIncomingCall,
   onBlockContact,
   contactPending = false,
 }: {
@@ -18,6 +19,7 @@ export function Messages({
   onAddContact?: () => void;
   active?: boolean;
   onMicrophone?: (value: "off" | "capturing" | "unknown") => void;
+  onIncomingCall?: (incoming: boolean) => void;
   onBlockContact?: (peerId: string) => Promise<boolean>;
   contactPending?: boolean;
 }) {
@@ -313,6 +315,7 @@ export function Messages({
       {!compact && (
         <VoiceControls
           {...(onMicrophone ? { onMicrophone } : {})}
+          {...(onIncomingCall ? { onIncomingCall } : {})}
           peerId={selected}
           discovered={discovered}
           online={connection?.state === "online"}

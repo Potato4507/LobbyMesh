@@ -14,12 +14,14 @@ export function VoiceControls({
   online,
   active,
   onMicrophone,
+  onIncomingCall,
 }: {
   peerId: string;
   discovered: boolean;
   online: boolean;
   active: boolean;
   onMicrophone?: (value: "off" | "capturing" | "unknown") => void;
+  onIncomingCall?: (incoming: boolean) => void;
 }) {
   const [voice, setVoice] = useState<VoiceView | null>(null),
     [notice, setNotice] = useState("");
@@ -137,6 +139,25 @@ export function VoiceControls({
     }, 250);
     return () => clearInterval(timer);
   }, [held, release]);
+  useEffect(() => {
+    onIncomingCall?.(
+      Boolean(
+        online &&
+          !pollFailed &&
+          voice?.enabled &&
+          voice.phase === "ringing" &&
+          voice.callId,
+      ),
+    );
+  }, [
+    online,
+    pollFailed,
+    voice?.enabled,
+    voice?.phase,
+    voice?.callId,
+    onIncomingCall,
+  ]);
+  useEffect(() => () => onIncomingCall?.(false), [onIncomingCall]);
   async function act(request: VoiceAction) {
     const revision = ++actionRevision.current;
     observationRevision.current++;
@@ -219,7 +240,7 @@ export function VoiceControls({
       <div className="voice-heading">
         <div>
           <span className="eyebrow">PUSH TO TALK</span>
-          <h3 id="voiceState" aria-live="polite">
+          <h3 id="voiceState" tabIndex={-1} aria-live="polite">
             {label[phase] ?? "Voice unavailable"}
           </h3>
         </div>
