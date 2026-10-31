@@ -1,0 +1,7 @@
+{
+  "scenario": "independent-owned-worker-cleanup-after-public-runs",
+  "ownedWorkersRemaining": 0,
+  "labRootUnderUserHome": true,
+  "hostNetworkChanges": false,
+  "privilegedNamespaceRun": false
+}

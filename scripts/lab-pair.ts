@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { launchLabPeer } from "./lab/client.js";
 import { parseLabPairOptions } from "./lab/pair-options.js";
-import { type LabStage, labRunReport } from "./lab/report.js";
+import {
+  type LabStage,
+  labRunReport,
+  labTransportSummary,
+} from "./lab/report.js";
 import { exerciseLabRestart } from "./lab/restart-scenario.js";
 import { labRemoteArguments } from "./lab/ssh.js";
 import { exerciseLabVoice } from "./lab/voice-scenario.js";
@@ -16,6 +20,8 @@ let succeeded = 0,
   cleanupVerified = false,
   passed = false;
 let failure: unknown;
+let failureTransport: (ReturnType<typeof labTransportSummary> | null)[] | null =
+  null;
 let stage: LabStage = "preflight";
 let voiceSignaling: Awaited<ReturnType<typeof exerciseLabVoice>> | null = null;
 let networkRestart: Awaited<ReturnType<typeof exerciseLabRestart>> | null =
@@ -110,6 +116,12 @@ try {
 } catch (error) {
   failure = error;
   process.exitCode = 1;
+  const observed = await Promise.allSettled(
+    peers.map((peer) => peer.request("status")),
+  );
+  failureTransport = observed.map((result) =>
+    result.status === "fulfilled" ? labTransportSummary(result.value) : null,
+  );
 } finally {
   const cleanup = await Promise.allSettled(
     peers.reverse().map((peer) => peer.stop()),
@@ -145,6 +157,7 @@ try {
       p50AckMs: percentile(0.5),
       p95AckMs: percentile(0.95),
       cleanupVerified,
+      failureTransport,
       ...labRunReport(stage, passed, cleanupVerified, failure),
       physicalAudio: false,
       voiceSignaling,

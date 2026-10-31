@@ -8,6 +8,7 @@ import { createIdentity } from "../packages/identity/src/index.js";
 import type { ContactPreview } from "../packages/protocol/src/pairing.js";
 import { createContactCode } from "../packages/protocol/src/pairing.js";
 import type { RecordV1 } from "../packages/security/src/records.js";
+import { labTransportSummary } from "../scripts/lab/report.js";
 
 type InboundDiagnostics = ReturnType<
   Awaited<ReturnType<typeof createOverlayRuntime>>["inboundDiagnostics"]
@@ -188,8 +189,29 @@ test(
     const b = child(address, "runtime-process.ts");
     children.push(b);
     const infoB = await b.ready;
-    assert.ok(((await b.command("contacts")) as string[]).includes(infoA.id));
-    assert.ok(((await a.command("contacts")) as string[]).includes(infoB.id));
+    const discoveredA = ((await b.command("contacts")) as string[]).includes(
+      infoA.id,
+    );
+    const discoveredB = ((await a.command("contacts")) as string[]).includes(
+      infoB.id,
+    );
+    if (!discoveredA || !discoveredB) {
+      const observations = await Promise.all(
+        [a, b].map(async (peer) =>
+          labTransportSummary({
+            diagnostics: await peer.command("diagnostics"),
+            inbound: await peer.command("inbound-diagnostics"),
+          }),
+        ),
+      );
+      t.diagnostic(
+        JSON.stringify({
+          nativeDiscoveryFailure: { discoveredA, discoveredB, observations },
+        }),
+      );
+    }
+    assert.ok(discoveredA);
+    assert.ok(discoveredB);
     const key = "cd".repeat(32);
     assert.deepEqual(await a.command("put", { key }), {
       replicas: 1,

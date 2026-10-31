@@ -1,0 +1,9 @@
+{
+  "scenario": "independent-current-physical-topology",
+  "piPhysicalInterface": true,
+  "directPiReturnRoute": true,
+  "labRootUnderUserHome": true,
+  "windowsPhysicalInterface": true,
+  "sameIpv4Subnet": true,
+  "privateEndpointsExported": false
+}
