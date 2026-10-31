@@ -1,0 +1,107 @@
+{
+  "result": "passed",
+  "stage": "complete",
+  "reason": null,
+  "source": {
+    "dirty": false,
+    "revision": "95d1072dc493a1a6aed088812364d20aab5d78b1"
+  },
+  "steps": [
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "durationMs": 2117
+    },
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "durationMs": 587
+    },
+    {
+      "name": "tests",
+      "exitCode": 0,
+      "durationMs": 8163
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "durationMs": 498
+    },
+    {
+      "name": "desktop",
+      "exitCode": 0,
+      "durationMs": 73722
+    },
+    {
+      "name": "send-recovery",
+      "exitCode": 0,
+      "durationMs": 6083
+    },
+    {
+      "name": "voice-calls",
+      "exitCode": 0,
+      "durationMs": 6025
+    },
+    {
+      "name": "independent-voice",
+      "exitCode": 0,
+      "durationMs": 13012
+    },
+    {
+      "name": "package",
+      "exitCode": 0,
+      "durationMs": 3847
+    },
+    {
+      "name": "package-integrity",
+      "exitCode": 0,
+      "durationMs": 842
+    }
+  ],
+  "package": {
+    "directory": "dist/LobbyMesh-win32-x64-1793467976489",
+    "executable": "dist/LobbyMesh-win32-x64-1793467976489/LobbyMesh.exe",
+    "manifestSha256": "a25665fdb9b2717b421ec23e2f92b8fc6441f099b267d91577b730155cd1d171",
+    "signature": "NotSigned",
+    "smoke": {
+      "result": "passed",
+      "packaged": true,
+      "electron": "45.1.0",
+      "sandbox": true,
+      "contextIsolation": true,
+      "network": "offline",
+      "microphone": "off",
+      "credentials": "protected-reopen"
+    },
+    "files": 657,
+    "bytes": 415684141,
+    "dependencyPatches": [
+      {
+        "name": "hyperdht",
+        "version": "6.35.0",
+        "path": "dependency-patches/hyperdht@6.35.0.patch",
+        "sha256": "0e9d708221579e713fdafccbe30ec17bc63e28fabaf9293c20196cc2370ecbcf",
+        "upstreamServerSha256": "cdff91aee9ee1ce8aeab4daeed550ac7130f44c2750cebb794c605254b31a276",
+        "serverSha256": "1decf578fa2e8ca5e98f5eaaf89164959922a27d36d0a5cf1de359ed7a6eba34"
+      }
+    ],
+    "patchAndPayloadIndependentlyVerified": true
+  },
+  "releaseReady": false,
+  "nodeTests": {
+    "total": 264,
+    "passed": 263,
+    "skipped": 1,
+    "failed": 0
+  },
+  "nativeDesktopModes": 7,
+  "processBudgetMs": 30000,
+  "ci": {
+    "run": 41224906250,
+    "conclusion": "success"
+  },
+  "physicalAudio": false,
+  "actualRoblox": false,
+  "realExternal": false,
+  "physicalDeliveryFailureResolved": false
+}
