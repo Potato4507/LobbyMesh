@@ -2,10 +2,51 @@ import assert from "node:assert/strict";
 import { createSocket } from "node:dgram";
 import test from "node:test";
 import { launchLabPeer } from "../scripts/lab/client.js";
-import { parseLabCommand, parseLabOptions } from "../scripts/lab/options.js";
+import {
+  labBootstrapOptions,
+  parseLabCommand,
+  parseLabOptions,
+} from "../scripts/lab/options.js";
 import { parseLabPairOptions } from "../scripts/lab/pair-options.js";
 import { exerciseLabRestart } from "../scripts/lab/restart-scenario.js";
 import { exerciseLabVoice } from "../scripts/lab/voice-scenario.js";
+
+test("public bootstrap requires explicit peer and pair opt-in with no custom endpoint", () => {
+  const args = ["--network", "public-bootstrap"];
+  const peer = parseLabOptions(args);
+  assert.equal(peer.network, "public-bootstrap");
+  assert.deepEqual(labBootstrapOptions(peer), {});
+  assert.equal(parseLabPairOptions(args).network, "public-bootstrap");
+  const custom = parseLabOptions(["--bootstrap", "127.0.0.1:1234"]);
+  assert.equal(custom.network, "custom-bootstrap");
+  assert.deepEqual(labBootstrapOptions(custom), {
+    bootstrap: ["127.0.0.1:1234"],
+  });
+  for (const invalid of [
+    [],
+    ["--bootstrap", "public"],
+    ["--network", "automatic"],
+    ["--network", "custom-bootstrap"],
+    [...args, "--bootstrap", "127.0.0.1:1234"],
+    [...args, "--bootstrap", ""],
+    [...args, "--network", "custom-bootstrap"],
+  ]) {
+    assert.throws(() => parseLabOptions(invalid), /INVALID_LAB_OPTIONS/);
+    assert.throws(
+      () => parseLabPairOptions(invalid),
+      /INVALID_LAB_(PAIR_)?OPTIONS/,
+    );
+  }
+  for (const tail of [
+    ["--mode", "bootstrap"],
+    ["--host", "127.0.0.1"],
+    ["--port", "1234"],
+  ])
+    assert.throws(
+      () => parseLabOptions([...args, ...tail]),
+      /INVALID_LAB_OPTIONS/,
+    );
+});
 
 test("lab options require explicit endpoints, bounded lifetime and exact control commands", () => {
   assert.equal(

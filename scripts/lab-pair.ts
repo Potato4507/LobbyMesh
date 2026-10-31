@@ -23,8 +23,11 @@ let networkRestart: Awaited<ReturnType<typeof exerciseLabRestart>> | null =
 const started = performance.now();
 try {
   const peerArgs = [
-    "--bootstrap",
-    options.bootstrap,
+    "--network",
+    options.network,
+    ...(options.network === "custom-bootstrap"
+      ? ["--bootstrap", options.bootstrap]
+      : []),
     "--duration-ms",
     "120000",
   ];
@@ -44,6 +47,12 @@ try {
   const infoB = await b.ready;
   assert.equal(infoB.role, "peer");
   assert.notEqual(infoA.peerId, infoB.peerId);
+  for (const peer of [a, b]) {
+    const observed = (await peer.request("status")) as {
+      bootstrapMode?: string;
+    };
+    assert.equal(observed.bootstrapMode, options.network);
+  }
   stage = "pairing";
   const codeA = (await a.request("code")) as { code: string },
     codeB = (await b.request("code")) as { code: string };
@@ -121,6 +130,7 @@ try {
           ? "headless-pair-text-network-restart-revocation"
           : "headless-pair-text-revocation",
       messageMetricScope: "baseline-text",
+      bootstrapMode: options.network,
       networkRestartRequested: options.scenario === "restart",
       networkRestart,
       dateUtc: new Date().toISOString(),
@@ -128,7 +138,7 @@ try {
       proofTier: target ? "REMOTE_UNCLASSIFIED" : "SAME_HOST",
       topology: target
         ? "operator-supplied SSH worker; physical separation unverified"
-        : "two independent processes; explicit bootstrap",
+        : "two independent processes on one host",
       durationMs: Math.round(performance.now() - started),
       attempted,
       succeeded,

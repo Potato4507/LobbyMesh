@@ -2,13 +2,14 @@ import { isIP } from "node:net";
 
 export interface LabOptions {
   mode: "peer" | "bootstrap";
+  network: "custom-bootstrap" | "public-bootstrap";
   durationMs: number;
   bootstrap: string;
   host: string;
   port: number;
 }
 
-// Explicit lab endpoints only. Never fall through to public bootstrap defaults.
+// Public bootstrap requires its own explicit opt-in, never a missing endpoint.
 export function parseLabOptions(args: string[]): LabOptions {
   const fields = new Map<string, string>();
   for (let i = 0; i < args.length; i += 2) {
@@ -16,9 +17,14 @@ export function parseLabOptions(args: string[]): LabOptions {
       value = args[i + 1];
     if (
       !key ||
-      !["--mode", "--duration-ms", "--bootstrap", "--host", "--port"].includes(
-        key,
-      ) ||
+      ![
+        "--mode",
+        "--network",
+        "--duration-ms",
+        "--bootstrap",
+        "--host",
+        "--port",
+      ].includes(key) ||
       !value ||
       fields.has(key)
     )
@@ -26,6 +32,7 @@ export function parseLabOptions(args: string[]): LabOptions {
     fields.set(key, value);
   }
   const mode = fields.get("--mode") ?? "peer";
+  const network = fields.get("--network") ?? "custom-bootstrap";
   const duration = fields.get("--duration-ms") ?? "120000";
   const portText = fields.get("--port") ?? "49737";
   const durationMs = Number(duration),
@@ -35,6 +42,9 @@ export function parseLabOptions(args: string[]): LabOptions {
   const parts = bootstrap.split(":");
   if (
     (mode !== "peer" && mode !== "bootstrap") ||
+    (network !== "custom-bootstrap" && network !== "public-bootstrap") ||
+    (network === "public-bootstrap" &&
+      (mode !== "peer" || fields.has("--bootstrap"))) ||
     !/^\d+$/.test(duration) ||
     !Number.isSafeInteger(durationMs) ||
     durationMs < 1000 ||
@@ -47,15 +57,24 @@ export function parseLabOptions(args: string[]): LabOptions {
     (mode === "peer" &&
       (fields.has("--host") ||
         fields.has("--port") ||
-        parts.length !== 2 ||
-        isIP(parts[0] ?? "") !== 4 ||
-        !/^\d+$/.test(parts[1] ?? "") ||
-        Number(parts[1]) < 1 ||
-        Number(parts[1]) > 65535)) ||
+        (network === "custom-bootstrap" &&
+          (parts.length !== 2 ||
+            isIP(parts[0] ?? "") !== 4 ||
+            !/^\d+$/.test(parts[1] ?? "") ||
+            Number(parts[1]) < 1 ||
+            Number(parts[1]) > 65535)))) ||
     (mode === "bootstrap" && fields.has("--bootstrap"))
   )
     throw new Error("INVALID_LAB_OPTIONS");
-  return { mode, durationMs, bootstrap, host, port };
+  return { mode, network, durationMs, bootstrap, host, port };
+}
+
+export function labBootstrapOptions(
+  options: Pick<LabOptions, "network" | "bootstrap">,
+): { bootstrap?: string[] } {
+  return options.network === "public-bootstrap"
+    ? {}
+    : { bootstrap: [options.bootstrap] };
 }
 
 export interface LabCommand {

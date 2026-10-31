@@ -1,0 +1,39 @@
+{
+  "scenario": "headless-pair-text-network-restart-revocation",
+  "messageMetricScope": "baseline-text",
+  "bootstrapMode": "public-bootstrap",
+  "networkRestartRequested": true,
+  "networkRestart": {
+    "result": "passed",
+    "networkInstanceRestart": true,
+    "processRestart": false,
+    "identityAndTransportPreserved": true,
+    "approvedContactsRetained": true,
+    "conversationReset": true,
+    "voiceConsentReset": true,
+    "pairingTicketInvalidated": true,
+    "acknowledgedMessages": 2,
+    "physicalAudio": false
+  },
+  "dateUtc": "2026-10-31T16:19:18.198Z",
+  "platform": "win32",
+  "proofTier": "SAME_HOST",
+  "topology": "two independent processes on one host",
+  "durationMs": 21331,
+  "attempted": 4,
+  "succeeded": 4,
+  "p50AckMs": 115.76,
+  "p95AckMs": 358.21,
+  "cleanupVerified": true,
+  "result": "passed",
+  "failureReason": null,
+  "failureStage": null,
+  "physicalAudio": false,
+  "voiceSignaling": {
+    "result": "passed",
+    "syntheticSignalingOnly": true,
+    "physicalAudio": false
+  },
+  "actualRoblox": false,
+  "realExternal": false
+}

@@ -7,6 +7,7 @@ import { createOverlayRuntime } from "../../packages/app-dht/src/runtime.js";
 import type { Identity } from "../../packages/identity/src/index.js";
 import type { KeyPair } from "../../packages/public-discovery/src/hyperdht.js";
 import { VoiceSignaling } from "../../packages/voice/src/signaling.js";
+import { type LabOptions, labBootstrapOptions } from "./options.js";
 
 // Ephemeral lab identities are owned by the worker, not an individual network
 // instance. No Electron, physical media or credential files are involved.
@@ -14,13 +15,13 @@ export async function createLabNetwork(
   identity: Identity,
   keys: KeyPair,
   policy: MessagingPolicy,
-  bootstrap: string,
+  options: Pick<LabOptions, "network" | "bootstrap">,
   signal: AbortSignal,
 ) {
   let messaging: DesktopMessaging, voice: VoiceSignaling;
   const runtime = await createOverlayRuntime("", {
     credentials: { identity, transportKeys: keys },
-    bootstrap: [bootstrap],
+    ...labBootstrapOptions(options),
     signal,
     directHandler: (peer, request, requestSignal) =>
       request &&

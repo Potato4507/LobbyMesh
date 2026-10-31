@@ -4,6 +4,8 @@ Current approved setup (2026-10-30 local date): Node24.22.2 + clean1792ed9 bundl
 
 # Raspberry Pi + one-house LobbyMesh verification lab
 
+Explicit production-bootstrap alternative: `pnpm lab:pair --network public-bootstrap --count 2 --scenario restart`, with the existing optional authorized SSH fields for a remote worker. Omit `--bootstrap` in this mode; combining modes is rejected. Default custom-bootstrap mode still requires an explicit endpoint. Both peers must use a bundle supporting this flag. The report records bootstrap mode independently of topology: remote launch alone is REMOTE_UNCLASSIFIED, never physical-LAN or external-NAT proof. See evidence/lab-public-bootstrap.md. This opt-in uses the existing public DHT and synthetic content; it makes no host network changes.
+
 Portable SSH worker: after approved setup supplies an absolute private lab root containing `runtime/bin/node`, `lab-peer.mjs` and copied dependencies, use `--remote-layout bundle` with existing `--remote-root`/`--ssh-target`. Default source layout and batch authentication remain. Password-only authorized hosts can opt into `--ssh-auth askpass` with an external secure SSH_ASKPASS provider and SSH_ASKPASS_REQUIRE=force; the provider retrieves credentials outside the repo. No password argument/input field is accepted, host checking stays strict and one prompt is allowed. The same auth option is available on lab:doctor; an actual read-only inventory passed. Neither command installs anything. Physical LAN/ARM64 execution remains pending user-local runtime setup approval.
 
 

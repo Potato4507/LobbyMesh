@@ -9,6 +9,7 @@ export function parseLabPairOptions(args: string[]) {
       !key ||
       ![
         "--bootstrap",
+        "--network",
         "--ssh-target",
         "--remote-root",
         "--count",
@@ -23,8 +24,12 @@ export function parseLabPairOptions(args: string[]) {
     fields.set(key, value);
   }
   const options = parseLabOptions([
-    "--bootstrap",
-    fields.get("--bootstrap") ?? "",
+    ...(fields.has("--network")
+      ? ["--network", fields.get("--network") ?? ""]
+      : []),
+    ...(fields.has("--bootstrap")
+      ? ["--bootstrap", fields.get("--bootstrap") ?? ""]
+      : []),
   ]);
   const text = fields.get("--count") ?? "4",
     count = Number(text),
@@ -45,6 +50,7 @@ export function parseLabPairOptions(args: string[]) {
     throw new Error("INVALID_LAB_PAIR_OPTIONS");
   return {
     bootstrap: options.bootstrap,
+    network: options.network,
     count,
     scenario: scenario as "baseline" | "restart",
     target: fields.get("--ssh-target"),

@@ -85,7 +85,7 @@ try {
           identity,
           keys,
           policy,
-          options.bootstrap,
+          options,
           AbortSignal.any([controller.signal, signal]),
         ),
       { startupMs: 10000, shutdownMs: 3000, maxAttempts: 1 },
@@ -156,6 +156,7 @@ try {
           return voice.status();
         case "status":
           return {
+            bootstrapMode: options.network,
             peers: runtime.overlay.authenticatedContacts().length,
             approved: authorized.size,
             microphone: "off",
