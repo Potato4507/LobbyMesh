@@ -1,0 +1,195 @@
+{
+  "scenario": "isolated-windows-candidate-application",
+  "proofTier": "SAME_HOST",
+  "baseSource": "73e3288234871131173fe7da06631fa70941382d",
+  "candidateServerSha256": "6ba2094d1995ddcaff7c6ca5a4d1846aa06e610d4cdd5c538afc03891063722e",
+  "productionDependencyChanged": false,
+  "pairing": true,
+  "attempted": 8,
+  "acknowledged": 8,
+  "restart": {
+    "result": "passed",
+    "networkInstanceRestart": true,
+    "processRestart": false,
+    "identityAndTransportPreserved": true,
+    "approvedContactsRetained": true,
+    "conversationReset": true,
+    "voiceConsentReset": true,
+    "pairingTicketInvalidated": true,
+    "acknowledgedMessages": 2,
+    "physicalAudio": false
+  },
+  "voice": {
+    "result": "passed",
+    "syntheticSignalingOnly": true,
+    "physicalAudio": false
+  },
+  "readback": [
+    {
+      "candidateServerInstances": 1,
+      "candidateLanAbortDeferrals": 0,
+      "transport": {
+        "outgoing": {
+          "queued": 0,
+          "total": 19,
+          "outcomes": {
+            "success": 14,
+            "timeout": null,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": 5,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": [
+            {
+              "outcome": "remote-rejected",
+              "phase": "response",
+              "queueMs": 0.02,
+              "transactionMs": 3.53
+            },
+            {
+              "outcome": "remote-rejected",
+              "phase": "response",
+              "queueMs": 0.02,
+              "transactionMs": 4.48
+            },
+            {
+              "outcome": "remote-rejected",
+              "phase": "response",
+              "queueMs": 0.02,
+              "transactionMs": 3.11
+            },
+            {
+              "outcome": "remote-rejected",
+              "phase": "response",
+              "queueMs": 0.02,
+              "transactionMs": 3.43
+            },
+            {
+              "outcome": "remote-rejected",
+              "phase": "response",
+              "queueMs": 0.02,
+              "transactionMs": 3.17
+            }
+          ]
+        },
+        "inbound": {
+          "active": 0,
+          "total": 20,
+          "outcomes": {
+            "success": 20,
+            "timeout": null,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": [],
+          "admission": {
+            "accepted": 20,
+            "disabled": 0,
+            "closed": 0,
+            "quota": 0
+          }
+        }
+      }
+    },
+    {
+      "candidateServerInstances": 2,
+      "candidateLanAbortDeferrals": 0,
+      "transport": {
+        "outgoing": {
+          "queued": 0,
+          "total": 10,
+          "outcomes": {
+            "success": 10,
+            "timeout": null,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": []
+        },
+        "inbound": {
+          "active": 0,
+          "total": 11,
+          "outcomes": {
+            "success": 6,
+            "timeout": null,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": 5,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": [
+            {
+              "outcome": "handler-rejected",
+              "phase": "complete",
+              "queueMs": 0,
+              "transactionMs": 1.11
+            },
+            {
+              "outcome": "handler-rejected",
+              "phase": "complete",
+              "queueMs": 0,
+              "transactionMs": 2.42
+            },
+            {
+              "outcome": "handler-rejected",
+              "phase": "complete",
+              "queueMs": 0,
+              "transactionMs": 1.18
+            },
+            {
+              "outcome": "handler-rejected",
+              "phase": "complete",
+              "queueMs": 0,
+              "transactionMs": 1.14
+            },
+            {
+              "outcome": "handler-rejected",
+              "phase": "complete",
+              "queueMs": 0,
+              "transactionMs": 1.28
+            }
+          ],
+          "admission": {
+            "accepted": 11,
+            "disabled": 0,
+            "closed": 0,
+            "quota": 0
+          }
+        }
+      }
+    }
+  ],
+  "cleanupVerified": true,
+  "result": "passed",
+  "failureReason": null,
+  "failureStage": null,
+  "durationMs": 1694,
+  "physicalAudio": false,
+  "actualRoblox": false,
+  "realExternal": false
+}

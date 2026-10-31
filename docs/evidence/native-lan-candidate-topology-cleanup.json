@@ -1,0 +1,12 @@
+{
+  "scenario": "candidate-independent-topology-and-cleanup",
+  "piPhysicalInterface": true,
+  "directPiReturnRoute": true,
+  "ownedLabWorkersRemaining": 0,
+  "candidateFileHashesVerified": true,
+  "labRootUnderUserHome": true,
+  "privilegedNamespaceRun": false,
+  "windowsPhysicalInterface": true,
+  "sameIpv4Subnet": true,
+  "privateEndpointsExported": false
+}

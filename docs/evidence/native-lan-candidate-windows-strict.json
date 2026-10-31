@@ -1,0 +1,217 @@
+{
+  "scenario": "isolated-windows-strict-native-loopback-candidate",
+  "proofTier": "SAME_HOST",
+  "platform": "win32",
+  "architecture": "x64",
+  "candidateServerSha256": "6ba2094d1995ddcaff7c6ca5a4d1846aa06e610d4cdd5c538afc03891063722e",
+  "productionDependencyChanged": false,
+  "result": {
+    "result": "native-handoff-observed",
+    "localBootstrap": true,
+    "independentProcesses": true,
+    "appRpc": false,
+    "hyperdhtVersion": "6.35.0",
+    "localConnection": true,
+    "reusableSocket": false,
+    "fullyBootstrapped": false,
+    "observeServerAborts": true,
+    "attempts": 32,
+    "successes": 32,
+    "oneWay": [
+      [
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 13
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 4
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        }
+      ],
+      [
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 5
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        }
+      ]
+    ],
+    "bidirectional": [
+      [
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        }
+      ],
+      [
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 3
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        },
+        {
+          "outcome": "success",
+          "phase": "reply",
+          "elapsedMs": 2
+        }
+      ]
+    ],
+    "snapshots": [
+      {
+        "active": 0,
+        "accepted": 16,
+        "replies": 16,
+        "invalid": 0,
+        "serverAborts": {
+          "total": 0,
+          "recent": []
+        }
+      },
+      {
+        "active": 0,
+        "accepted": 16,
+        "replies": 16,
+        "invalid": 0,
+        "serverAborts": {
+          "total": 0,
+          "recent": []
+        },
+        "candidateLanAbortDeferrals": 3
+      }
+    ],
+    "cleanupVerified": true
+  }
+}

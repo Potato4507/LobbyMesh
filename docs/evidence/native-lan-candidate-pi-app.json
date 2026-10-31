@@ -1,0 +1,202 @@
+{
+  "scenario": "isolated-windows-pi-candidate-application",
+  "bootstrapMode": "public-bootstrap",
+  "proofTier": "REMOTE_UNCLASSIFIED",
+  "baseSource": "73e3288234871131173fe7da06631fa70941382d",
+  "candidateServerSha256": "6ba2094d1995ddcaff7c6ca5a4d1846aa06e610d4cdd5c538afc03891063722e",
+  "candidatePeerSha256": "faadc4a7a6e71cf3fcd497682f6059abb5e07c85fd32d19ac695c1cb37c8fe3c",
+  "productionDependencyChanged": false,
+  "pairing": true,
+  "baselineAttempted": 4,
+  "baselineAcknowledged": 3,
+  "restart": null,
+  "voice": null,
+  "readback": [
+    {
+      "candidateServerInstances": 1,
+      "candidateLanAbortDeferrals": 0,
+      "transport": {
+        "outgoing": {
+          "queued": 0,
+          "total": 7,
+          "outcomes": {
+            "success": 5,
+            "timeout": 2,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": [
+            {
+              "outcome": "timeout",
+              "phase": "transport",
+              "queueMs": 0.12,
+              "transactionMs": 1515.06
+            },
+            {
+              "outcome": "timeout",
+              "phase": "hello",
+              "queueMs": 0.05,
+              "transactionMs": 1509.77
+            }
+          ]
+        },
+        "inbound": {
+          "active": 0,
+          "total": 10,
+          "outcomes": {
+            "success": 7,
+            "timeout": null,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": 3
+          },
+          "recentFailures": [
+            {
+              "outcome": "transport",
+              "phase": "hello",
+              "queueMs": 0,
+              "transactionMs": 0.24
+            },
+            {
+              "outcome": "transport",
+              "phase": "proof",
+              "queueMs": 0,
+              "transactionMs": 158.04
+            },
+            {
+              "outcome": "transport",
+              "phase": "hello",
+              "queueMs": 0,
+              "transactionMs": 0.23
+            }
+          ],
+          "admission": {
+            "accepted": 10,
+            "disabled": 0,
+            "closed": 0,
+            "quota": 0
+          }
+        }
+      }
+    },
+    {
+      "candidateServerInstances": 1,
+      "candidateLanAbortDeferrals": 0,
+      "transport": {
+        "outgoing": {
+          "queued": 0,
+          "total": 14,
+          "outcomes": {
+            "success": 7,
+            "timeout": 4,
+            "aborted": 3,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": [
+            {
+              "outcome": "timeout",
+              "phase": "transport",
+              "queueMs": 236.19,
+              "transactionMs": 1502.42
+            },
+            {
+              "outcome": "timeout",
+              "phase": "hello",
+              "queueMs": 0.12,
+              "transactionMs": 1500.78
+            },
+            {
+              "outcome": "aborted",
+              "phase": "hello",
+              "queueMs": 0,
+              "transactionMs": 499.63
+            },
+            {
+              "outcome": "timeout",
+              "phase": "transport",
+              "queueMs": 0.04,
+              "transactionMs": 1501.47
+            },
+            {
+              "outcome": "aborted",
+              "phase": "transport",
+              "queueMs": 0,
+              "transactionMs": 499.2
+            },
+            {
+              "outcome": "timeout",
+              "phase": "transport",
+              "queueMs": 0.04,
+              "transactionMs": 1500.38
+            },
+            {
+              "outcome": "aborted",
+              "phase": "hello",
+              "queueMs": 0,
+              "transactionMs": 500.22
+            }
+          ]
+        },
+        "inbound": {
+          "active": 0,
+          "total": 6,
+          "outcomes": {
+            "success": 5,
+            "timeout": null,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": 1
+          },
+          "recentFailures": [
+            {
+              "outcome": "transport",
+              "phase": "hello",
+              "queueMs": 0,
+              "transactionMs": 0.82
+            }
+          ],
+          "admission": {
+            "accepted": 6,
+            "disabled": 0,
+            "closed": 0,
+            "quota": 0
+          }
+        }
+      }
+    }
+  ],
+  "cleanupVerified": true,
+  "result": "failed",
+  "failureReason": "LAB_RUN_FAILED",
+  "failureStage": "text",
+  "durationMs": 34660,
+  "physicalAudio": false,
+  "actualRoblox": false,
+  "realExternal": false
+}

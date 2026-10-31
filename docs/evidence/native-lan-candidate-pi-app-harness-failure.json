@@ -1,0 +1,128 @@
+{
+  "scenario": "isolated-windows-pi-candidate-application",
+  "bootstrapMode": "public-bootstrap",
+  "proofTier": "REMOTE_UNCLASSIFIED",
+  "baseSource": "73e3288234871131173fe7da06631fa70941382d",
+  "candidateServerSha256": "6ba2094d1995ddcaff7c6ca5a4d1846aa06e610d4cdd5c538afc03891063722e",
+  "candidatePeerSha256": "61e952e1feeb19569fddaf4e0be1f3592276b682fd5f7675cb114d2ef2379338",
+  "productionDependencyChanged": false,
+  "pairing": false,
+  "baselineAttempted": 0,
+  "baselineAcknowledged": 0,
+  "restart": null,
+  "voice": null,
+  "readback": [
+    {
+      "candidateServerInstances": 2,
+      "candidateLanAbortDeferrals": 0,
+      "transport": {
+        "outgoing": {
+          "queued": 0,
+          "total": 0,
+          "outcomes": {
+            "success": null,
+            "timeout": null,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": []
+        },
+        "inbound": {
+          "active": 0,
+          "total": 0,
+          "outcomes": {
+            "success": null,
+            "timeout": null,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": [],
+          "admission": {
+            "accepted": 0,
+            "disabled": 0,
+            "closed": 0,
+            "quota": 0
+          }
+        }
+      }
+    },
+    {
+      "candidateServerInstances": 2,
+      "candidateLanAbortDeferrals": 0,
+      "transport": {
+        "outgoing": {
+          "queued": 0,
+          "total": 1,
+          "outcomes": {
+            "success": null,
+            "timeout": 1,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": [
+            {
+              "outcome": "timeout",
+              "phase": "transport",
+              "queueMs": 0.2,
+              "transactionMs": 1504.6
+            }
+          ]
+        },
+        "inbound": {
+          "active": 0,
+          "total": 0,
+          "outcomes": {
+            "success": null,
+            "timeout": null,
+            "aborted": null,
+            "closed": null,
+            "remote-rejected": null,
+            "handler-rejected": null,
+            "identity": null,
+            "protocol": null,
+            "blocked": null,
+            "queue-quota": null,
+            "transport": null
+          },
+          "recentFailures": [],
+          "admission": {
+            "accepted": 0,
+            "disabled": 0,
+            "closed": 0,
+            "quota": 0
+          }
+        }
+      }
+    }
+  ],
+  "cleanupVerified": true,
+  "result": "failed",
+  "failureReason": "LAB_RUN_FAILED",
+  "failureStage": "second-start",
+  "durationMs": 12652,
+  "physicalAudio": false,
+  "actualRoblox": false,
+  "realExternal": false,
+  "harnessFailure": "SERVER_OBSERVER_DOUBLE_COUNT"
+}

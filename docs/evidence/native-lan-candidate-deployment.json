@@ -1,0 +1,10 @@
+{
+  "result": "isolated-candidate-deployed",
+  "baseFilesVerified": 568,
+  "baseSource": "73e3288234871131173fe7da06631fa70941382d",
+  "candidateServerSha256": "6ba2094d1995ddcaff7c6ca5a4d1846aa06e610d4cdd5c538afc03891063722e",
+  "candidatePeerSha256": "faadc4a7a6e71cf3fcd497682f6059abb5e07c85fd32d19ac695c1cb37c8fe3c",
+  "productionDependencyChanged": false,
+  "observerUsesOwnRequireBinding": true,
+  "observerDeduplicatesServerInstances": true
+}
