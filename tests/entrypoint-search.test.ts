@@ -76,6 +76,65 @@ test("intermittent discovery errors and empty network are distinct", async () =>
   assert.deepEqual(empty, ["discovering", "no-reachable-candidate"]);
 });
 
+test("a discovery failure preserves in-flight authenticated probes within the original deadline", async () => {
+  const contact = entrypoint(Buffer.alloc(32, 42));
+  assert.ok(contact);
+  async function* partial() {
+    if (contact) yield contact;
+    throw new Error("directory unavailable after hint");
+  }
+  const states: SearchState[] = [];
+  const found = await searchEntrypoints(
+    partial(),
+    async (_peer, signal) => {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      assert.equal(signal.aborted, false);
+      return { version: 1, authenticated: true };
+    },
+    (state) => states.push(state),
+  );
+  assert.equal(found.length, 1);
+  assert.deepEqual(states, ["discovering", "retrying", "candidates-found"]);
+});
+
+test("partial directory failure cannot keep probes alive past deadline or caller cancellation", async () => {
+  const contact = entrypoint(Buffer.alloc(32, 43));
+  assert.ok(contact);
+  for (const cancel of [false, true]) {
+    const owner = new AbortController();
+    let release = () => {};
+    let observed: AbortSignal | undefined;
+    let started = () => {};
+    const probing = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const pending = searchEntrypoints(
+      (async function* () {
+        yield contact;
+        throw new Error("directory unavailable");
+      })(),
+      async (_peer, signal) => {
+        observed = signal;
+        started();
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return { version: 1, authenticated: true };
+      },
+      () => {},
+      { timeoutMs: 20, signal: owner.signal },
+    );
+    await probing;
+    if (cancel) owner.abort();
+    const found = await pending;
+    assert.equal(observed?.aborted, true);
+    assert.deepEqual(found, []);
+    release();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.deepEqual(found, []);
+  }
+});
+
 test("the search-owned signal closes a pending discovery query on deadline without opening a pre-canceled source", async () => {
   let supplied: AbortSignal | undefined,
     closed = false,

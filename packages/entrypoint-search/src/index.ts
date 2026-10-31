@@ -62,45 +62,51 @@ export async function searchEntrypoints(
     seen = new Set<string>();
   const run = async () => {
     let batch: Promise<void>[] = [];
-    while (!controller.signal.aborted) {
-      const next = await iterator.next();
-      if (next.done) break;
-      const contact = next.value;
-      if (controller.signal.aborted || seen.size >= 64) break;
-      if (
-        !(contact.publicKey instanceof Uint8Array) ||
-        contact.publicKey.byteLength !== 32
-      )
-        continue;
-      const key = Buffer.from(contact.publicKey).toString("hex");
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const started = now();
-      batch.push(
-        (async () => {
-          try {
-            const result = await probe(contact, controller.signal);
-            if (
-              !controller.signal.aborted &&
-              result.version === 1 &&
-              result.authenticated === true
-            )
-              results.push({
-                contact,
-                latencyMs: Math.max(0, now() - started),
-                seenAt: now(),
-              });
-          } catch {
-            /* A failed probe says nothing about global network existence. */
-          }
-        })(),
-      );
-      if (batch.length === 4) {
-        await Promise.all(batch);
-        batch = [];
+    try {
+      while (!controller.signal.aborted) {
+        const next = await iterator.next();
+        if (next.done) break;
+        const contact = next.value;
+        if (controller.signal.aborted || seen.size >= 64) break;
+        if (
+          !(contact.publicKey instanceof Uint8Array) ||
+          contact.publicKey.byteLength !== 32
+        )
+          continue;
+        const key = Buffer.from(contact.publicKey).toString("hex");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const started = now();
+        batch.push(
+          (async () => {
+            try {
+              const result = await probe(contact, controller.signal);
+              if (
+                !controller.signal.aborted &&
+                result.version === 1 &&
+                result.authenticated === true
+              )
+                results.push({
+                  contact,
+                  latencyMs: Math.max(0, now() - started),
+                  seenAt: now(),
+                });
+            } catch {
+              /* A failed probe says nothing about global network existence. */
+            }
+          })(),
+        );
+        if (batch.length === 4) {
+          await Promise.all(batch);
+          batch = [];
+        }
       }
+    } finally {
+      // A directory may fail after yielding usable hints. Complete their
+      // authentication before propagating that failure; the outer deadline
+      // still bounds this work and cancels stalled probes.
+      await Promise.all(batch);
     }
-    await Promise.all(batch);
   };
   try {
     if (options.signal?.aborted) throw new Error("SEARCH_ABORTED");

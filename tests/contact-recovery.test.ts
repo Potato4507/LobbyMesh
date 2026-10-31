@@ -18,6 +18,36 @@ const hint = {
   connectionHints: [],
 };
 
+test("partial directory failure retains authenticated reachability without claiming complete search", async () => {
+  let authenticated = false;
+  const recovered = await recoverContact(
+    target,
+    {
+      authenticatedContacts: () => [],
+      async probe(_contact, signal) {
+        await setImmediate();
+        assert.equal(signal.aborted, false);
+        authenticated = true;
+        return { version: 1, authenticated: true };
+      },
+      async findNodes() {
+        return result(authenticated);
+      },
+    },
+    {
+      async *findAppEntrypoints() {
+        yield hint;
+        throw new Error("directory interrupted");
+      },
+    },
+    new AbortController().signal,
+  );
+  assert.deepEqual(recovered, {
+    contact: { id: target, transportKey: key },
+    complete: false,
+  });
+});
+
 test("warm authenticated target avoids public search and copies only its binding", async () => {
   const original = { id: target, transportKey: key };
   const recovered = await recoverContact(
