@@ -1,0 +1,8 @@
+{
+  "scenario": "independent-owned-worker-cleanup-inspection",
+  "ownedWorkersRemaining": 0,
+  "labRootUnderUserHome": true,
+  "nftInstalled": false,
+  "tcInstalled": false,
+  "privilegedNamespaceRun": false
+}

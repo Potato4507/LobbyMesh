@@ -1,0 +1,14 @@
+{
+  "scenario": "bounded-physical-lan-udp-echo",
+  "echoed": true,
+  "datagramsSent": 1,
+  "roundTripMs": 4.8,
+  "server": {
+    "matchingDatagramsReceived": 1,
+    "closed": true
+  },
+  "serverExitCode": 0,
+  "sudo": false,
+  "firewallChanged": false,
+  "proofTier": "SAME_LAN_PHYSICAL"
+}

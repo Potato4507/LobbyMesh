@@ -1,0 +1,47 @@
+{
+  "scenario": "isolated-private-bootstrap-declared-open-control",
+  "source": "1792ed953bab6fab73c6863c45790570c2841f01",
+  "probeSha256": "6f152b302fb74a9499d24bd3bc91d68b435227f3ed98d945092b8f5e6a7e2034",
+  "constructorOverrideSha256": "15243e2fce48f28db70053be6db7ccaea477168468c7293a03384b9f7f7127b0",
+  "proofTier": "SAME_LAN_PHYSICAL",
+  "productionChanged": false,
+  "firewallChanged": false,
+  "declaredFirewalled": false,
+  "physicalAudio": false,
+  "trials": [
+    {
+      "direction": "Windows-to-Pi",
+      "outcome": "timeout",
+      "phase": "transport",
+      "elapsedMs": 1505,
+      "reusableSocket": false
+    },
+    {
+      "direction": "Pi-to-Windows",
+      "outcome": "success",
+      "phase": "reply",
+      "elapsedMs": 28,
+      "reusableSocket": false
+    }
+  ],
+  "observations": [
+    {
+      "worker": "Windows",
+      "hyperdht": "6.35.0",
+      "active": 0,
+      "accepted": 1,
+      "replies": 1,
+      "invalid": 0
+    },
+    {
+      "worker": "Pi",
+      "hyperdht": "6.35.0",
+      "active": 1,
+      "accepted": 1,
+      "replies": 0,
+      "invalid": 0
+    }
+  ],
+  "result": "observations-complete",
+  "cleanupVerified": true
+}

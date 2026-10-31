@@ -1,0 +1,16 @@
+{
+  "result": "pi-runtime-package-verified",
+  "node": "v24.22.2",
+  "platform": "linux",
+  "architecture": "arm64",
+  "source": "1792ed953bab6fab73c6863c45790570c2841f01",
+  "files": 568,
+  "nativeDependencyImport": true,
+  "remoteWrites": "approved-user-local-only",
+  "sudo": false,
+  "systemChanges": false,
+  "physicalLANProtocol": false,
+  "run": "run-1792ed9-a58cb4730901",
+  "runtimeArchiveSha256": "eb187837a2230d4047161ac0be008584e16b46f726e9c9490ee35dc6b17d9ba8",
+  "bundleArchiveSha256": "d3a7572f3d9572c945a07d548d2afa7843e484279c77d800944e3064838ff7df"
+}

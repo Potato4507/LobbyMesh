@@ -1,0 +1,275 @@
+{
+  "source": "1792ed953bab6fab73c6863c45790570c2841f01",
+  "scenario": "Pi-ARM64-two-process-native-control",
+  "proofTier": "SAME_HOST",
+  "protocolMachines": 1,
+  "controllerSeparate": true,
+  "stages": [
+    {
+      "stage": "first-code",
+      "result": "passed",
+      "durationMs": 10
+    },
+    {
+      "stage": "second-code",
+      "result": "passed",
+      "durationMs": 6
+    },
+    {
+      "stage": "first-preview",
+      "result": "passed",
+      "durationMs": 5
+    },
+    {
+      "stage": "second-preview",
+      "result": "passed",
+      "durationMs": 5
+    },
+    {
+      "stage": "first-approve",
+      "result": "passed",
+      "durationMs": 25
+    },
+    {
+      "stage": "second-approve",
+      "result": "passed",
+      "durationMs": 22
+    },
+    {
+      "stage": "forward-text",
+      "result": "passed",
+      "durationMs": 44
+    },
+    {
+      "stage": "reverse-text",
+      "result": "passed",
+      "durationMs": 42
+    }
+  ],
+  "result": "passed",
+  "physicalAudio": false,
+  "realExternal": false,
+  "observations": [
+    {
+      "worker": 0,
+      "peers": 1,
+      "approved": 1,
+      "microphone": "off",
+      "diagnostics": {
+        "queued": 0,
+        "total": 4,
+        "outcomes": {
+          "success": 4
+        },
+        "recent": [
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.26,
+            "transactionMs": 17.73
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.13,
+            "transactionMs": 10.9
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.02,
+            "transactionMs": 10.74
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.02,
+            "transactionMs": 10.51
+          }
+        ],
+        "recentFailures": []
+      },
+      "inbound": {
+        "active": 0,
+        "admission": {
+          "accepted": 7,
+          "disabled": 0,
+          "closed": 0,
+          "quota": 0
+        },
+        "queued": 0,
+        "total": 7,
+        "outcomes": {
+          "success": 7
+        },
+        "recent": [
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 9.4
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 3.84
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 3.91
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 3.47
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 3.58
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 2.94
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 3.35
+          }
+        ],
+        "recentFailures": []
+      }
+    },
+    {
+      "worker": 1,
+      "peers": 1,
+      "approved": 1,
+      "microphone": "off",
+      "diagnostics": {
+        "queued": 0,
+        "total": 7,
+        "outcomes": {
+          "success": 7
+        },
+        "recent": [
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.24,
+            "transactionMs": 35.34
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.05,
+            "transactionMs": 13.06
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.06,
+            "transactionMs": 13.69
+          },
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.11,
+            "transactionMs": 11.51
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.12,
+            "transactionMs": 10.91
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.02,
+            "transactionMs": 10.68
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0.02,
+            "transactionMs": 9.89
+          }
+        ],
+        "recentFailures": []
+      },
+      "inbound": {
+        "active": 0,
+        "admission": {
+          "accepted": 4,
+          "disabled": 0,
+          "closed": 0,
+          "quota": 0
+        },
+        "queued": 0,
+        "total": 4,
+        "outcomes": {
+          "success": 4
+        },
+        "recent": [
+          {
+            "operation": "find-node",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 4.27
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 3.59
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 3.02
+          },
+          {
+            "operation": "direct",
+            "outcome": "success",
+            "phase": "complete",
+            "queueMs": 0,
+            "transactionMs": 3.6
+          }
+        ],
+        "recentFailures": []
+      }
+    }
+  ],
+  "cleanupVerified": true
+}

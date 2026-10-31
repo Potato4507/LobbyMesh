@@ -69,6 +69,13 @@ test("lab control rejects malformed readiness and excess fields before accepting
     { ready: true, role: "peer", peerId: "unverified" },
     { ready: true, role: "bootstrap", privateData: "discard" },
     { ready: true, role: "unknown" },
+    { ready: true, role: "native-probe", transportKey: "invalid" },
+    {
+      ready: true,
+      role: "native-probe",
+      transportKey: "ab".repeat(32),
+      peerId: "cd".repeat(32),
+    },
   ]) {
     const peer = fixture(
       `console.log(${JSON.stringify(JSON.stringify(reply))});setInterval(()=>{},1000)`,

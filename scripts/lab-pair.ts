@@ -37,10 +37,12 @@ try {
   const a = launchLabPeer(peerArgs);
   peers.push(a);
   const infoA = await a.ready;
+  assert.equal(infoA.role, "peer");
   stage = "second-start";
   const b = launchLabPeer(peerArgs, remote);
   peers.push(b);
   const infoB = await b.ready;
+  assert.equal(infoB.role, "peer");
   assert.notEqual(infoA.peerId, infoB.peerId);
   stage = "pairing";
   const codeA = (await a.request("code")) as { code: string },

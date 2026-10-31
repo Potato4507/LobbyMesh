@@ -1,0 +1,47 @@
+{
+  "source": "1792ed953bab6fab73c6863c45790570c2841f01",
+  "run": "run-1792ed9-a58cb4730901",
+  "dateUtc": "2026-10-31T02:31:45.913Z",
+  "proofTier": "SAME_LAN_PHYSICAL",
+  "sudo": false,
+  "systemChanges": false,
+  "physicalAudio": false,
+  "virtualNat": false,
+  "realExternal": false,
+  "actualRoblox": false,
+  "topology": {
+    "windowsPhysicalInterface": true,
+    "piPhysicalInterface": true,
+    "piDirectRoute": true,
+    "samePiSubnet": true,
+    "distinctMachines": "Windows-x64-and-Pi5-ARM64"
+  },
+  "protocol": {
+    "scenario": "headless-pair-text-network-restart-revocation",
+    "messageMetricScope": "baseline-text",
+    "networkRestartRequested": true,
+    "networkRestart": null,
+    "dateUtc": "2026-10-31T02:31:55.643Z",
+    "platform": "win32",
+    "proofTier": "REMOTE_UNCLASSIFIED",
+    "topology": "operator-supplied SSH worker; physical separation unverified",
+    "durationMs": 5844,
+    "attempted": 0,
+    "succeeded": 0,
+    "p50AckMs": null,
+    "p95AckMs": null,
+    "cleanupVerified": true,
+    "result": "failed",
+    "failureReason": "LAB_RUN_FAILED",
+    "failureStage": "pairing",
+    "physicalAudio": false,
+    "voiceSignaling": null,
+    "actualRoblox": false,
+    "realExternal": false
+  },
+  "bootstrapCleanupVerified": true,
+  "cleanupInspection": {
+    "ownedWorkerProcessesRemaining": 0
+  },
+  "result": "failed"
+}

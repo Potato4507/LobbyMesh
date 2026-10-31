@@ -1,0 +1,85 @@
+{
+  "scenario": "cross-device-native-Windows-control-6.32",
+  "source": "1792ed953bab6fab73c6863c45790570c2841f01",
+  "probeSha256": "6f152b302fb74a9499d24bd3bc91d68b435227f3ed98d945092b8f5e6a7e2034",
+  "proofTier": "SAME_LAN_PHYSICAL",
+  "productionChanged": false,
+  "firewallChanged": false,
+  "physicalAudio": false,
+  "comparisonVersions": {
+    "hyperdht": "6.32.0",
+    "dht-rpc": "6.27.0",
+    "udx-native": "1.22.0",
+    "@hyperswarm/secret-stream": "6.9.2"
+  },
+  "trials": [
+    {
+      "round": 0,
+      "direction": "Windows-to-Pi",
+      "outcome": "timeout",
+      "phase": "reply",
+      "elapsedMs": 1504,
+      "reusableSocket": false
+    },
+    {
+      "round": 0,
+      "direction": "Pi-to-Windows",
+      "outcome": "timeout",
+      "phase": "reply",
+      "elapsedMs": 1502,
+      "reusableSocket": false
+    },
+    {
+      "round": 1,
+      "direction": "Windows-to-Pi",
+      "outcome": "timeout",
+      "phase": "reply",
+      "elapsedMs": 1509,
+      "reusableSocket": true
+    },
+    {
+      "round": 1,
+      "direction": "Pi-to-Windows",
+      "outcome": "timeout",
+      "phase": "reply",
+      "elapsedMs": 1501,
+      "reusableSocket": true
+    },
+    {
+      "round": 2,
+      "direction": "Windows-to-Pi",
+      "outcome": "timeout",
+      "phase": "reply",
+      "elapsedMs": 1505,
+      "reusableSocket": false
+    },
+    {
+      "round": 2,
+      "direction": "Pi-to-Windows",
+      "outcome": "timeout",
+      "phase": "reply",
+      "elapsedMs": 1501,
+      "reusableSocket": false
+    }
+  ],
+  "observations": [
+    {
+      "worker": "Windows",
+      "hyperdht": "6.32.0",
+      "active": 0,
+      "accepted": 0,
+      "replies": 0,
+      "invalid": 0
+    },
+    {
+      "worker": "Pi",
+      "hyperdht": "6.35.0",
+      "active": 0,
+      "accepted": 0,
+      "replies": 0,
+      "invalid": 0
+    }
+  ],
+  "result": "observations-complete",
+  "cleanupVerified": true
+}

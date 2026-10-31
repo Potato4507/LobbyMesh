@@ -6,8 +6,9 @@ import { type LabRemote, labRemoteArguments } from "./ssh.js";
 
 export interface LabReady {
   ready: true;
-  role: "peer" | "bootstrap";
+  role: "peer" | "bootstrap" | "native-probe";
   peerId?: string;
+  transportKey?: string;
 }
 export function launchLabPeer(args: string[], remote?: LabRemote) {
   const remoteArgs = remote ? labRemoteArguments(remote, args) : undefined;
@@ -107,7 +108,12 @@ export function controlLabPeer(
               (message.role === "peer" &&
                 Object.keys(message).sort().join(",") === "peerId,ready,role" &&
                 typeof message.peerId === "string" &&
-                /^[a-f0-9]{64}$/.test(message.peerId))
+                /^[a-f0-9]{64}$/.test(message.peerId)) ||
+              (message.role === "native-probe" &&
+                Object.keys(message).sort().join(",") ===
+                  "ready,role,transportKey" &&
+                typeof message.transportKey === "string" &&
+                /^[a-f0-9]{64}$/.test(message.transportKey))
             )
           )
             throw new Error("LAB_INVALID_REPLY");

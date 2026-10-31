@@ -1,0 +1,65 @@
+{
+  "scenario": "native-endpoint-selection-diagnostic",
+  "source": "1792ed953bab6fab73c6863c45790570c2841f01",
+  "probeSha256": "6f152b302fb74a9499d24bd3bc91d68b435227f3ed98d945092b8f5e6a7e2034",
+  "preloadSha256": "9079062bd893a38e8d4bf37ce8d17e11f5714c82b0e1ec9f4916cba8fc3126a4",
+  "proofTier": "SAME_LAN_PHYSICAL",
+  "productionChanged": false,
+  "firewallChanged": false,
+  "trials": [
+    {
+      "direction": "Windows-to-Pi",
+      "outcome": "timeout",
+      "phase": "reply",
+      "elapsedMs": 1508,
+      "reusableSocket": false
+    },
+    {
+      "direction": "Pi-to-Windows",
+      "outcome": "timeout",
+      "phase": "reply",
+      "elapsedMs": 1502,
+      "reusableSocket": false
+    }
+  ],
+  "observations": [
+    {
+      "worker": "Windows",
+      "hyperdht": "6.35.0",
+      "accepted": 0,
+      "firewalled": true,
+      "mainAndServerSamePort": false,
+      "externalMatchesPhysicalLAN": false,
+      "nativeInterfacesIncludePhysicalLAN": true,
+      "connections": [
+        {
+          "targetMatchesRemotePhysicalLAN": true,
+          "targetPortMatchesRemoteServer": false,
+          "targetPortMatchesRemoteMain": false,
+          "socketMatchesOwnServer": false,
+          "socketMatchesOwnMain": false
+        }
+      ]
+    },
+    {
+      "worker": "Pi",
+      "hyperdht": "6.35.0",
+      "accepted": 0,
+      "firewalled": true,
+      "mainAndServerSamePort": false,
+      "externalMatchesPhysicalLAN": false,
+      "nativeInterfacesIncludePhysicalLAN": true,
+      "connections": [
+        {
+          "targetMatchesRemotePhysicalLAN": true,
+          "targetPortMatchesRemoteServer": false,
+          "targetPortMatchesRemoteMain": false,
+          "socketMatchesOwnServer": false,
+          "socketMatchesOwnMain": false
+        }
+      ]
+    }
+  ],
+  "result": "observations-complete",
+  "cleanupVerified": true
+}
