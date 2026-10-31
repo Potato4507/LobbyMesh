@@ -33,10 +33,12 @@ export function VoiceControls({
   const starting = useRef(false);
   const previousCall = useRef<string | null>(null);
   const holding = useRef(false),
+    holdRevision = useRef(0),
     actionRevision = useRef(0),
     observationRevision = useRef(0),
     alive = useRef(true);
   const release = useCallback(() => {
+    holdRevision.current++;
     const wasHeld = holding.current;
     holding.current = false;
     if (alive.current) setHeld(false);
@@ -112,23 +114,37 @@ export function VoiceControls({
     if (!held) return;
     let busy = false;
     const renew = async () => {
-      if (busy || !holding.current || !current.current?.callId) return;
+      if (
+        busy ||
+        !alive.current ||
+        !holding.current ||
+        !current.current?.callId
+      )
+        return;
       busy = true;
+      const revision = holdRevision.current;
+      const callId = current.current.callId;
       const start = starting.current;
       starting.current = false;
       try {
         await window.companion.voiceAction({
           action: "talk",
-          callId: current.current.callId,
+          callId,
           pressed: true,
           start,
         });
       } catch {
-        release();
-        if (alive.current)
+        if (
+          alive.current &&
+          holding.current &&
+          revision === holdRevision.current &&
+          current.current?.callId === callId
+        ) {
+          release();
           setNotice(
             "Talking stopped. Wait for connected audio, focus this window and press again.",
           );
+        }
       } finally {
         busy = false;
       }

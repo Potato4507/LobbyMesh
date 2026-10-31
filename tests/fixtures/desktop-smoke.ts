@@ -131,6 +131,8 @@ async function run() {
   let heldDashboardMicrophone: unknown;
   let heldDashboardConnection: unknown;
   let heldCapture: unknown;
+  let holdNextTalkReply = false;
+  let releaseTalkReply: (() => void) | undefined;
   const registerHandler = ipcMain.handle;
   // Fault only the renderer status read. Keep production sender validation,
   // voice actions and the real synthetic media owner behind the original handler.
@@ -143,6 +145,18 @@ async function run() {
       if (channel === "companion:overlay:voice" && failOverlayVoiceRead)
         throw new Error("private synthetic overlay read failure");
       const value = await listener(event, ...args);
+      if (
+        channel === "companion:voice:action" &&
+        holdNextTalkReply &&
+        args[0]?.action === "talk" &&
+        args[0]?.pressed === true
+      ) {
+        holdNextTalkReply = false;
+        await new Promise<void>((resolve) => {
+          releaseTalkReply = resolve;
+        });
+        throw new Error("private delayed talk reply failure");
+      }
       if (channel === "companion:status" && holdDashboardRead) {
         heldDashboardMicrophone = (value as { microphone: unknown }).microphone;
         heldDashboardConnection = (value as { connection: { state: unknown } })
@@ -1766,6 +1780,35 @@ async function run() {
     );
     contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
     await execute("document.querySelector('#pushToTalk').focus()");
+    holdNextTalkReply = true;
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.transmitting)");
+    assert.ok(releaseTalkReply);
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>!s.transmitting)");
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.transmitting)");
+    releaseTalkReply();
+    await delay(100);
+    assert.equal(
+      await execute(
+        "document.querySelector('#pushToTalk').getAttribute('aria-pressed')",
+      ),
+      "true",
+      "an old talk reply must not release a fresh press",
+    );
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>!s.transmitting)");
+    releaseTalkReply = undefined;
+    holdNextTalkReply = true;
+    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+    await until("window.companion.voice().then(s=>s.transmitting)");
+    assert.ok(releaseTalkReply);
+    (releaseTalkReply as () => void)();
+    await until(
+      "document.querySelector('#pushToTalk').getAttribute('aria-pressed') === 'false' && window.companion.voice().then(s=>!s.transmitting)",
+    );
+    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
     contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
     await until("window.companion.voice().then(s=>s.transmitting)");
     await delay(900);
@@ -2699,6 +2742,7 @@ async function run() {
           "input-zero-stall-stops-capture",
           "local-call-quality-measured-and-unavailable-without-call-failure",
           "voice-focus-loss-page-change-and-stalled-mute-teardown",
+          "ptt-stale-rejection-does-not-release-new-press-current-rejection-still-mutes",
           "voice-overlay-ipc-denied",
           "explicit-contact-preview-approval-and-revocation",
           "conversation-block-under-load-stops-call-purges-text-and-preserves-unsaved-preferences",
