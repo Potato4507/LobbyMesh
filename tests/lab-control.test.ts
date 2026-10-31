@@ -106,6 +106,61 @@ test("lab stop is shared by concurrent callers and requires confirmation plus cl
   await peer.stop();
 });
 
+test("lab cleanup drains a final reply arriving after exit but before stdout close", async (t) => {
+  // A short-lived relay preserves stdout after the launcher exits. Its write
+  // callback exits the relay; the controller's close event observes pipe drain.
+  const source = `${ready}
+process.stdin.once('data', data => {
+  const request = JSON.parse(data);
+  const reply = JSON.stringify({id:request.id,result:{stopped:true,cleanupVerified:true}}) + String.fromCharCode(10);
+  const relay = "setTimeout(()=>process.stdout.write(" + JSON.stringify(reply) + ",()=>process.exit(0)),80)";
+  require('node:child_process').spawn(process.execPath, ['-e',relay], {
+    stdio:['ignore',process.stdout,'ignore'], windowsHide:true, detached:true
+  });
+  process.exit(0);
+});`;
+  const child = spawn(process.execPath, ["-e", source], {
+    stdio: ["pipe", "pipe", "ignore"],
+    windowsHide: true,
+  });
+  let exitSeen = false,
+    replyAfterExit = false;
+  child.once("exit", () => {
+    exitSeen = true;
+  });
+  child.stdout.on("data", (chunk) => {
+    if (String(chunk).includes('"stopped":true')) replyAfterExit = exitSeen;
+  });
+  const peer = controlLabPeer(child);
+  t.after(async () => {
+    await peer.stop().catch(() => {});
+    await peer.exit;
+  });
+  await peer.ready;
+  const processExited = new Promise<void>((resolve) =>
+    child.once("exit", () => resolve()),
+  );
+  const stopped = peer.stop();
+  void stopped.catch(() => {});
+  await processExited;
+  await assert.rejects(peer.request("status"), /LAB_CLIENT_UNAVAILABLE/);
+  await stopped;
+  assert.equal(replyAfterExit, true);
+  assert.equal(await peer.exit, 0);
+});
+
+test("an empty error reply still rejects rather than resolving an undefined result", async (t) => {
+  const peer = fixture(
+    `${ready}process.stdin.on('data',d=>{const r=JSON.parse(d);console.log(JSON.stringify({id:r.id,error:''}))});`,
+  );
+  t.after(async () => {
+    await peer.stop().catch(() => {});
+    await peer.exit;
+  });
+  await peer.ready;
+  await assert.rejects(peer.request("status"), /LAB_COMMAND_STATUS_FAILED/);
+});
+
 test(
   "a confirmed stop without process exit is forcibly bounded and never passes cleanup",
   { timeout: 8000 },

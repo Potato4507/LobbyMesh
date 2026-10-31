@@ -37,6 +37,7 @@ export function controlLabPeer(
   let seq = 0,
     buffer = "",
     exited = false,
+    exitObserved = false,
     failed = false,
     readySeen = false;
   const pending = new Map<
@@ -80,7 +81,13 @@ export function controlLabPeer(
     child.kill("SIGKILL");
   };
   child.once("error", terminate);
-  child.once("exit", fail);
+  // Exit can precede the last stdout data. Drain pending replies until close,
+  // while preventing any new command from being dispatched to a dead process.
+  child.once("exit", () => {
+    exitObserved = true;
+    if (!readySeen) fail();
+  });
+  child.once("close", fail);
   child.stdin.on("error", terminate);
   child.stdout.once("error", terminate);
   child.stdout.setEncoding("utf8");
@@ -136,7 +143,7 @@ export function controlLabPeer(
         if (!p) continue;
         pending.delete(message.id);
         clearTimeout(p.timer);
-        if (message.error) p.reject(new Error("LAB_REMOTE_REJECTED"));
+        if ("error" in message) p.reject(new Error("LAB_REMOTE_REJECTED"));
         else p.resolve(message.result);
       } catch {
         terminate();
@@ -145,7 +152,7 @@ export function controlLabPeer(
     }
   });
   const request = (op: LabCommand["op"], value?: string): Promise<unknown> => {
-    if (exited || failed || !readySeen || pending.size >= 8)
+    if (exited || exitObserved || failed || !readySeen || pending.size >= 8)
       return Promise.reject(new Error("LAB_CLIENT_UNAVAILABLE"));
     const id = ++seq;
     return new Promise((resolve, reject) => {

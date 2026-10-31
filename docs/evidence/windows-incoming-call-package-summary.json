@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-30",
+  "result": "verified-development-package",
+  "source": {
+    "revision": "f4c5a88bc475edb86cc2aa2b7b1d370444351224",
+    "dirty": false
+  },
+  "directory": "LobbyMesh-win32-x64-1793419794801",
+  "manifestSha256": "26382cef7d4cfdc6c03a6db505094f2df138dab3d02a45cc0cb83bcd76c43792",
+  "files": 656,
+  "bytes": 415681623,
+  "dependencyCopies": 56,
+  "signature": "NotSigned",
+  "smoke": {
+    "result": "passed",
+    "packaged": true,
+    "electron": "45.1.0",
+    "sandbox": true,
+    "contextIsolation": true,
+    "network": "offline",
+    "microphone": "off",
+    "credentials": "protected-reopen"
+  },
+  "hardwareMicrophone": false,
+  "audibleOutput": false,
+  "physicalLANApplication": false,
+  "virtualNat": false,
+  "actualRoblox": false,
+  "releaseReady": false
+}
