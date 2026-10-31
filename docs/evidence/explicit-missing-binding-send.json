@@ -1,0 +1,33 @@
+{
+  "result": "independent-send-recovery-passed",
+  "electronMainProcesses": 2,
+  "clientLaunches": 3,
+  "fullProcessRestart": true,
+  "identityPreserved": true,
+  "approvedPermissionPreserved": true,
+  "revokedRediscoveryDenied": true,
+  "revokedSendDenied": true,
+  "restoredClientManualRediscovery": false,
+  "automaticMissingBindingLookup": true,
+  "bindingPrecondition": "explicit-message-layer-mask-real-resolver",
+  "startupBindingKnown": true,
+  "observedSendLookups": 1,
+  "bindingKnownBeforeSend": false,
+  "initialAuthenticatedPeers": 1,
+  "acknowledgedText": true,
+  "voice": "off",
+  "microphone": false,
+  "physicalNetwork": false,
+  "sourceParent": "8460d005a43ff2a5823d43fd3afdebad757248ea",
+  "sourceDirty": true,
+  "fixtureFiles": [
+    {
+      "file": "scripts/independent-voice-smoke.mjs",
+      "sha256": "6f70e60faaf7704b52cf6d7824eece69a1f2d3ac108edd39090cea251f19c492"
+    },
+    {
+      "file": "tests/fixtures/independent-voice-client.ts",
+      "sha256": "0c9881e2bde310386d417728b25d228f37e16883bee2cabd5f99087343a628b2"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+# Exercise missing-binding Send independently of startup success
+
+2026-10-31: clean8460d00 Windows verification passed Node264 (263pass/1skip), build and all seven native desktop modes, then failed Send-recovery's `bindingKnownBeforeSend === false` precondition. The restarted client had already discovered its approved contact. The strict expectation remains retained in windows-bounded-send-precondition-failure.json; no package was produced.
+
+The independent native fixture now explicitly masks the selected message-layer binding before this automatic-recovery scenario. Its public resolveContact boundary still calls the original resolver/permission checks, then returns the normal CONTACT_NOT_DISCOVERED failure for the selected target. Production messaging, overlay routing, transport, stored permissions and authenticated contact recovery remain real. A wrapper counts the real rediscover call and removes the mask only after it returns found. No production API or code changed.
+
+The driver retains the missing-binding assertion and now also checks zero resolver calls before Send, exactly one call afterward, and a cleared mask. It still verifies no recovery draft was received early, encrypted text ACK and receipt, three process launches/full restart, unchanged identity and permission, denied revoked search/send, no manual rediscovery, no media hosts/capture and clean exit. The fixture command checks actual resolveContact availability rather than treating the routing-derived UI summary as the missing-binding precondition.
+
+Targeted independent native run passed: startupBindingKnown:true, bindingKnownBeforeSend:false after explicit mask, observedSendLookups:1 and acknowledged receipt. Exact observations and fixture source hashes: explicit-missing-binding-send.json. Full Node264:263pass/1 existing POSIX-only skip; typecheck/lint pass. The already passing seven-mode desktop stage is unchanged. This strengthens deterministic fault setup; it does not replace a strict assertion with retries or increase deadlines.
+
+Latest8460d00 GitHub41224483486 succeeded. Next run clean committed Windows verification, retaining this failed precondition separately. Physical Windows/Pi delivery and external acceptance gates remain open.

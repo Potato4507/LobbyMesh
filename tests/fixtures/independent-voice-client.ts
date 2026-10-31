@@ -68,6 +68,25 @@ async function run() {
     path.join(directory, "network"),
   );
   assert.ok(nativeNetwork);
+  const messages = nativeNetwork.messaging;
+  const resolveBinding = messages.resolveContact.bind(messages);
+  const rediscoverBinding = messages.rediscover.bind(messages);
+  let maskedBinding: string | undefined,
+    recoveryLookups = 0;
+  // Explicit message-layer fault only. Keep the real overlay, permissions,
+  // authenticated resolver and delivery transport behind this boundary.
+  messages.resolveContact = (peerId) => {
+    const contact = resolveBinding(peerId);
+    if (peerId === maskedBinding) throw new Error("CONTACT_NOT_DISCOVERED");
+    return contact;
+  };
+  messages.rediscover = async (peerId, signal) => {
+    const masked = peerId === maskedBinding;
+    if (masked) recoveryLookups++;
+    const result = await rediscoverBinding(peerId, signal);
+    if (masked && result.state === "found") maskedBinding = undefined;
+    return result;
+  };
   const diagnostic = nativeNetwork.diagnostics();
   assert.deepEqual(Object.keys(diagnostic).sort(), ["inbound", "outgoing"]);
   assert.ok(diagnostic.outgoing.recent.length <= 32);
@@ -132,9 +151,39 @@ async function run() {
               "window.companion.status().then(s=>({connection:s.connection,microphone:s.microphone}))",
             );
           case "binding-known":
-            return execute(
-              `window.companion.messaging().then(s=>s.contacts.find(c=>c.peerId===${JSON.stringify(message.peerId)})?.discovered===true)`,
-            );
+            try {
+              messages.resolveContact(message.peerId ?? "");
+              return true;
+            } catch (error) {
+              if (
+                error instanceof Error &&
+                error.message === "CONTACT_NOT_DISCOVERED"
+              )
+                return false;
+              throw error;
+            }
+          case "mask-recovery-binding": {
+            const peerId = message.peerId ?? "";
+            let previouslyKnown = false;
+            try {
+              resolveBinding(peerId);
+              previouslyKnown = true;
+            } catch (error) {
+              if (
+                !(error instanceof Error) ||
+                error.message !== "CONTACT_NOT_DISCOVERED"
+              )
+                throw error;
+            }
+            maskedBinding = peerId;
+            recoveryLookups = 0;
+            return { masked: true, previouslyKnown };
+          }
+          case "recovery-lookup-observation":
+            return {
+              lookups: recoveryLookups,
+              bindingStillMasked: maskedBinding !== undefined,
+            };
           case "baseline-text":
             return execute(
               `window.companion.sendText(${JSON.stringify(message.peerId)},'synthetic baseline before restart').then(row=>({status:row.status}))`,

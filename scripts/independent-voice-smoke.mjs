@@ -229,6 +229,18 @@ try {
       await b.command("received-recovery-text", { peerId: infoA.peerId }),
       false,
     );
+    let bindingMask = null;
+    if (automaticSendRecoveryMode) {
+      bindingMask = await restored.command("mask-recovery-binding", {
+        peerId: infoB.peerId,
+      });
+      assert.equal(bindingMask.masked, true);
+      assert.equal(typeof bindingMask.previouslyKnown, "boolean");
+      assert.deepEqual(await restored.command("recovery-lookup-observation"), {
+        lookups: 0,
+        bindingStillMasked: true,
+      });
+    }
     const bindingKnownBeforeSend = await restored.command("binding-known", {
       peerId: infoB.peerId,
     });
@@ -237,6 +249,11 @@ try {
       await restored.command("recovery-text", { peerId: infoB.peerId }),
       { status: "acknowledged" },
     );
+    if (automaticSendRecoveryMode)
+      assert.deepEqual(await restored.command("recovery-lookup-observation"), {
+        lookups: 1,
+        bindingStillMasked: false,
+      });
     assert.equal(
       await b.command("received-recovery-text", { peerId: infoA.peerId }),
       true,
@@ -263,7 +280,12 @@ try {
         ...(automaticSendRecoveryMode ? { revokedSendDenied: true } : {}),
         restoredClientManualRediscovery: !automaticSendRecoveryMode,
         ...(automaticSendRecoveryMode
-          ? { automaticMissingBindingLookup: true }
+          ? {
+              automaticMissingBindingLookup: true,
+              bindingPrecondition: "explicit-message-layer-mask-real-resolver",
+              startupBindingKnown: bindingMask.previouslyKnown,
+              observedSendLookups: 1,
+            }
           : { authenticatedRediscovery: true }),
         bindingKnownBeforeSend,
         initialAuthenticatedPeers: beforeLookup.connection.peers,

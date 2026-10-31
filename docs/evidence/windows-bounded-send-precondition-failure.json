@@ -1,0 +1,57 @@
+{
+  "scenario": "bounded-windows-send-recovery-precondition-failure",
+  "result": "failed",
+  "source": {
+    "dirty": false,
+    "revision": "8460d005a43ff2a5823d43fd3afdebad757248ea"
+  },
+  "stage": "send-recovery",
+  "reason": "WINDOWS_VERIFICATION_STEP_FAILED:send-recovery",
+  "steps": [
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "durationMs": 2164
+    },
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "durationMs": 568
+    },
+    {
+      "name": "tests",
+      "exitCode": 0,
+      "durationMs": 8203
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "durationMs": 492
+    },
+    {
+      "name": "desktop",
+      "exitCode": 0,
+      "durationMs": 72738
+    },
+    {
+      "name": "send-recovery",
+      "exitCode": 1,
+      "durationMs": 5913
+    }
+  ],
+  "nodeTests": {
+    "total": 264,
+    "passed": 263,
+    "skipped": 1
+  },
+  "desktopModesPassed": 7,
+  "assertion": {
+    "file": "scripts/independent-voice-smoke.mjs",
+    "line": 235,
+    "actual": true,
+    "expected": false,
+    "meaning": "binding known before automatic missing-binding test"
+  },
+  "newWindowsPackageProduced": false,
+  "releaseReady": false
+}
