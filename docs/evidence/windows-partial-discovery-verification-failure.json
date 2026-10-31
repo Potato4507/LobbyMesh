@@ -1,0 +1,162 @@
+{
+  "scenario": "clean-windows-native-burst-recurrence",
+  "source": {
+    "dirty": false,
+    "revision": "c258e2fe5cce54825ebb5e575f8a4f3855d0aaa4"
+  },
+  "result": "failed",
+  "stage": "tests",
+  "reason": "WINDOWS_VERIFICATION_STEP_FAILED:tests",
+  "steps": [
+    {
+      "name": "typecheck",
+      "exitCode": 0
+    },
+    {
+      "name": "lint",
+      "exitCode": 0
+    },
+    {
+      "name": "tests",
+      "exitCode": 1
+    }
+  ],
+  "nodeTests": {
+    "total": 253,
+    "passed": 251,
+    "failed": 1,
+    "skipped": 1
+  },
+  "assertion": {
+    "file": "tests/overlay-process.test.ts",
+    "line": 293,
+    "actual": "timeout",
+    "expected": "exhausted"
+  },
+  "transport": {
+    "a": {
+      "outgoing": {
+        "queued": 0,
+        "total": 19,
+        "outcomes": {
+          "success": 18,
+          "timeout": 1,
+          "aborted": null,
+          "closed": null,
+          "remote-rejected": null,
+          "handler-rejected": null,
+          "identity": null,
+          "protocol": null,
+          "blocked": null,
+          "queue-quota": null,
+          "transport": null
+        },
+        "recentFailures": [
+          {
+            "outcome": "timeout",
+            "phase": "hello",
+            "queueMs": 0.02,
+            "transactionMs": 1509.88
+          }
+        ]
+      },
+      "inbound": {
+        "active": 0,
+        "total": 8,
+        "outcomes": {
+          "success": 8,
+          "timeout": null,
+          "aborted": null,
+          "closed": null,
+          "remote-rejected": null,
+          "handler-rejected": null,
+          "identity": null,
+          "protocol": null,
+          "blocked": null,
+          "queue-quota": null,
+          "transport": null
+        },
+        "recentFailures": [],
+        "admission": {
+          "accepted": 8,
+          "disabled": 0,
+          "closed": 0,
+          "quota": 0
+        }
+      }
+    },
+    "b": {
+      "outgoing": {
+        "queued": 0,
+        "total": 12,
+        "outcomes": {
+          "success": 8,
+          "timeout": 1,
+          "aborted": 3,
+          "closed": null,
+          "remote-rejected": null,
+          "handler-rejected": null,
+          "identity": null,
+          "protocol": null,
+          "blocked": null,
+          "queue-quota": null,
+          "transport": null
+        },
+        "recentFailures": [
+          {
+            "outcome": "timeout",
+            "phase": "hello",
+            "queueMs": 0.02,
+            "transactionMs": 1509.91
+          },
+          {
+            "outcome": "aborted",
+            "phase": "hello",
+            "queueMs": 1571.44,
+            "transactionMs": 1437.19
+          },
+          {
+            "outcome": "aborted",
+            "phase": "transport",
+            "queueMs": 3008.13,
+            "transactionMs": 0.99
+          },
+          {
+            "outcome": "aborted",
+            "phase": "transport",
+            "queueMs": 3008.88,
+            "transactionMs": 0.66
+          }
+        ]
+      },
+      "inbound": {
+        "active": 0,
+        "total": 18,
+        "outcomes": {
+          "success": 18,
+          "timeout": null,
+          "aborted": null,
+          "closed": null,
+          "remote-rejected": null,
+          "handler-rejected": null,
+          "identity": null,
+          "protocol": null,
+          "blocked": null,
+          "queue-quota": null,
+          "transport": null
+        },
+        "recentFailures": [],
+        "admission": {
+          "accepted": 18,
+          "disabled": 0,
+          "closed": 0,
+          "quota": 0
+        }
+      }
+    }
+  },
+  "newPackageProduced": false,
+  "rootCauseConfirmed": false,
+  "testsWeakened": false,
+  "deadlinesExtended": false
+}
