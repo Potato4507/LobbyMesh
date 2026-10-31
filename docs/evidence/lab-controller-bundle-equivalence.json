@@ -1,0 +1,16 @@
+{
+  "installedWorkerSource": {
+    "revision": "1792ed953bab6fab73c6863c45790570c2841f01",
+    "dirty": false
+  },
+  "newBundleSource": {
+    "revision": "376b90ab439bc38a21496c7a3b475ad65193ecd4",
+    "dirty": false
+  },
+  "newArchiveSha256": "524d463b76c85563953126d5e567a4a1cfff987b6ff3b7d8beebe70dbb0997a0",
+  "inventoriedFiles": 568,
+  "changed": 0,
+  "removed": 0,
+  "newBundleDeployed": false,
+  "comparisonScope": "inventoried file bytes; manifest source metadata differs"
+}
