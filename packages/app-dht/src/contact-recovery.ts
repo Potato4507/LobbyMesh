@@ -38,7 +38,19 @@ export async function recoverContact(
   let incomplete = false;
   await searchEntrypoints(
     (searchSignal) => discovery.findAppEntrypoints(searchSignal),
-    (contact, searchSignal) => overlay.probe(contact, searchSignal),
+    async (contact, searchSignal) => {
+      try {
+        const result = await overlay.probe(contact, searchSignal);
+        if (result.version !== 1 || result.authenticated !== true)
+          incomplete = true;
+        return result;
+      } catch (error) {
+        // Exhausting an empty local graph cannot compensate for a bootstrap
+        // candidate that could not be authenticated or reached this attempt.
+        incomplete = true;
+        throw error;
+      }
+    },
     (state) => {
       if (state === "retrying") incomplete = true;
     },

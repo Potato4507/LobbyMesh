@@ -1,0 +1,9 @@
+# Keep failed bootstrap probes visible in recovery provenance
+
+2026-10-31: reproduced misleading completeness in explicit contact recovery. A bootstrap directory yielded a valid hint, its authentication threw RPC_TIMEOUT, and the subsequent empty local routing lookup exhausted with no local failures. Recovery returned `{contact:null,complete:true}` even though it had not reached the bootstrap candidate. The new regression failed before the fix, expecting complete:false.
+
+Recovery now retains incomplete provenance for thrown probe failures and incompatible/unauthenticated probe results. Search deadlines, concurrency, quotas, cancellation, protocol validation and contact authorization remain unchanged. Directory hints still cannot directly supply an approved binding. A healthy authenticated route may still recover the exact target; another failed hint does not discard that binding, but completeness remains false.
+
+New tests cover timeout, incompatible version and failed authentication; mixed failed/successful bootstrap candidates; and production DesktopMessaging composed with production recoverContact. The latter verifies no protocol request carries the draft, no binding is retained, and local history records lookup-incomplete at the connection stage instead of a false not-located result. Existing tests retain genuinely complete empty traversal, approved exact-target resolution and cancellation coverage.
+
+Focused recovery/search/send/entrypoint tests26/26 pass. Full Node256:255pass,1 existing POSIX-only skip,0 failures; typecheck, lint246 and build pass. These are UNIT/SAME_PROCESS composition checks; the full regression also retains its existing native process tests. No new physical Pi or native desktop/package acceptance is claimed. Latest preceding8e607ab GitHub41221062579 succeeds. Historical startup/hello failures remain preserved; this change corrects failure provenance rather than repairing native transport.

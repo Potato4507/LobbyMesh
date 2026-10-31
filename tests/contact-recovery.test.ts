@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
+import { DesktopMessaging } from "../apps/desktop/src/messaging.js";
 import { recoverContact } from "../packages/app-dht/src/contact-recovery.js";
 import type { LookupResult } from "../packages/app-dht/src/lookup.js";
 
@@ -17,6 +18,125 @@ const hint = {
   publicKey: Buffer.from(key, "hex"),
   connectionHints: [],
 };
+
+test("an unreachable bootstrap projects incomplete delivery and never dispatches the draft", async () => {
+  const service = new DesktopMessaging(
+    "ef".repeat(32),
+    async () => {
+      assert.fail(
+        "incomplete contact recovery must not dispatch a protocol request",
+      );
+    },
+    {
+      authorized: (id) => id === target,
+      blocked: () => false,
+      allowed: () => [target],
+    },
+    () => [],
+    Date.now,
+    (id, signal) =>
+      recoverContact(
+        id,
+        {
+          authenticatedContacts: () => [],
+          async findNodes() {
+            return result();
+          },
+          async probe() {
+            throw new Error("RPC_TIMEOUT");
+          },
+        },
+        {
+          async *findAppEntrypoints() {
+            yield hint;
+          },
+        },
+        signal,
+      ),
+  );
+  try {
+    await assert.rejects(
+      service.send(target, "retained unsent draft"),
+      /DELIVERY_UNCONFIRMED/,
+    );
+    const history = service.history(target);
+    assert.equal(history.length, 1);
+    assert.equal(history[0]?.status, "unconfirmed");
+    assert.deepEqual(history[0]?.failure, {
+      reason: "lookup-incomplete",
+      stage: "connection",
+    });
+    assert.throws(
+      () => service.resolveContact(target),
+      /CONTACT_NOT_DISCOVERED/,
+    );
+  } finally {
+    service.close();
+  }
+});
+
+test("failed or incompatible bootstrap probes cannot make an empty recovery look complete", async () => {
+  for (const failure of ["timeout", "version", "unauthenticated"]) {
+    const recovered = await recoverContact(
+      target,
+      {
+        authenticatedContacts: () => [],
+        async findNodes() {
+          return result();
+        },
+        async probe() {
+          if (failure === "timeout") throw new Error("RPC_TIMEOUT");
+          return {
+            version: failure === "version" ? 2 : 1,
+            authenticated: failure !== "unauthenticated",
+          };
+        },
+      },
+      {
+        async *findAppEntrypoints() {
+          yield hint;
+        },
+      },
+      new AbortController().signal,
+    );
+    assert.deepEqual(recovered, { contact: null, complete: false }, failure);
+  }
+});
+
+test("a partial bootstrap can still recover the exact authenticated target without claiming completeness", async () => {
+  let authenticated = false;
+  const otherHint = {
+    ...hint,
+    id: `transport:${"01".repeat(32)}`,
+    publicKey: Buffer.alloc(32, 1),
+  };
+  const recovered = await recoverContact(
+    target,
+    {
+      authenticatedContacts: () => [],
+      async findNodes() {
+        assert.ok(authenticated);
+        return result(true);
+      },
+      async probe(contact) {
+        if (contact === hint) throw new Error("RPC_TIMEOUT");
+        authenticated = true;
+        return { version: 1, authenticated: true };
+      },
+    },
+    {
+      async *findAppEntrypoints() {
+        yield hint;
+        yield otherHint;
+      },
+    },
+    new AbortController().signal,
+  );
+  assert.deepEqual(recovered, {
+    contact: { id: target, transportKey: key },
+    complete: false,
+  });
+});
 
 test("partial directory failure retains authenticated reachability without claiming complete search", async () => {
   let authenticated = false;
