@@ -679,6 +679,7 @@ test(
       finish: () => void = () => {},
       opened: () => void = () => {},
       heldHandle: Awaited<ReturnType<typeof fs.open>> | undefined,
+      refreshing: Promise<void> | undefined,
       restore = () => {};
     const gate = new Promise<void>((resolve) => {
         finish = resolve;
@@ -726,13 +727,24 @@ test(
         mocked.mock.restore();
         syncBuiltinESMExports();
       };
-      const refreshing = provider.refresh();
+      refreshing = provider.refresh();
       await ready;
       const stopping = provider.stop();
+      let duplicateSettled = false;
+      const duplicateStop = provider.stop().then(() => {
+        duplicateSettled = true;
+      });
       assert.equal(provider.status().state, "disabled");
       assert.equal(await provider.current(), null);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      assert.equal(
+        duplicateSettled,
+        false,
+        "duplicate Stop must await the owned file handle cleanup",
+      );
       finish();
-      await Promise.all([refreshing, stopping]);
+      await Promise.all([refreshing, stopping, duplicateStop]);
+      assert.equal(duplicateSettled, true);
       assert.equal(reads, 1);
       assert.equal(await provider.current(), null);
       assert.ok(heldHandle);
@@ -740,6 +752,7 @@ test(
     } finally {
       finish();
       restore();
+      await refreshing;
       await provider.stop();
       assert.equal(path.dirname(directory), path.resolve(tmpdir()));
       assert.ok(

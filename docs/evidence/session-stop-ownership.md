@@ -1,0 +1,11 @@
+# Repeated session-monitor shutdown awaits owned handles
+
+2026-10-31: reproduced a lifecycle gap using the existing real temporary log file and held continuity read. The first Stop cleared detection immediately and waited for the read's file handle to close. A second Stop observed the disabled flag and returned before that cleanup. The new assertion failed before the fix: duplicateSettled was true while the read gate and file handle remained open.
+
+Repeated disable/Stop calls now await the same outstanding scan even when permission is already disabled. Revocation and session withdrawal remain immediate; stale scans remain generation-gated and cannot perform further reads or publish a session. Every completed Stop therefore includes the scan's existing file-handle cleanup. No new polling, timeout or detection source is introduced.
+
+Regression releases the held read only after checking that the second Stop remains pending, then awaits both shutdown callers and verifies the real handle rejects stat with closed/EBADF. The test's finally block also awaits the owned scan before removing its temporary directory. Focused log/coordinator/desktop-session tests26/26 pass; full Node253:252pass/1 existing POSIX-only skip. Typecheck, lint245, build and native session-status mode pass. Native states retain permission, missing/incomplete/stale/ambiguous log and rewrite recovery coverage. This remains fixture/native evidence, not actual Roblox gameplay or platform-verified identity.
+
+Separately, latest CI diagnostics now capture the early startup failure at41c8c92/run41220778846: both peers lacked authenticated contacts; one peer recorded a hello timeout1503.06ms and both receivers admitted zero transactions. The counterpart had no outgoing RPC attempts. There were zero quota/disabled/closed admission rejections. Exact allowlisted evidence: ci-41220778846-startup-discovery.json. The subsequent evidence-only888fa76/run41220824153 passed. No assertions or budgets were changed, and the session shutdown fix is not a native transport fix.
+
+Latest retained package remains clean41c8c92 at dist/LobbyMesh-win32-x64-1793464805664, unsigned; it predates this monitor change. No new package or consolidated pipeline acceptance is claimed for this increment.

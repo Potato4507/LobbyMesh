@@ -251,7 +251,12 @@ export class WindowsLogSessionProvider implements SessionProvider {
   }
   async setEnabled(enabled: boolean): Promise<void> {
     if (typeof enabled !== "boolean") throw new Error("INVALID_LOG_PERMISSION");
-    if (this.enabled === enabled) return;
+    if (this.enabled === enabled) {
+      // Permission withdrawal is immediate, but every shutdown caller owns the
+      // same outstanding scan until its file handles have actually closed.
+      if (!enabled) await this.scanning;
+      return;
+    }
     this.enabled = enabled;
     this.generation++;
     clearTimeout(this.timer);
