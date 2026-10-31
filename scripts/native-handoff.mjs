@@ -4,6 +4,7 @@ import { createSocket } from "node:dgram";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { observeNativeServerAborts } from "./native-server-observation.ts";
 
 // Optional trusted developer comparison install. Workers inherit the same path;
 // production never imports this script. Default resolves the repository pin.
@@ -25,6 +26,7 @@ const mode = process.argv[2];
 const noLan = process.argv.includes("--no-lan");
 const reusableSocket = process.argv.includes("--reusable-socket");
 const fullyBootstrapped = process.argv.includes("--fully-bootstrapped");
+const observeServerAborts = process.argv.includes("--observe-server-aborts");
 if (mode === "--bootstrap") {
   const socket = createSocket("udp4");
   await new Promise((resolve) => socket.bind(0, "127.0.0.1", resolve));
@@ -77,6 +79,9 @@ if (mode === "--bootstrap") {
       stream.end(response);
     });
   });
+  const serverObservation = observeServerAborts
+    ? observeNativeServerAborts(server)
+    : null;
   await server.listen(keys);
   if (fullyBootstrapped) await node.fullyBootstrapped();
   process.send({ ready: true, key: keys.publicKey.toString("hex") });
@@ -136,7 +141,21 @@ if (mode === "--bootstrap") {
       if (message.op === "snapshot") {
         process.send({
           id: message.id,
-          result: { active: streams.size, ...counts },
+          result: {
+            active: streams.size,
+            ...counts,
+            ...(serverObservation
+              ? { serverAborts: serverObservation.snapshot() }
+              : {}),
+            ...(observeServerAborts &&
+            Number.isSafeInteger(server._lobbymeshLanAbortDeferrals) &&
+            server._lobbymeshLanAbortDeferrals >= 0
+              ? {
+                  candidateLanAbortDeferrals:
+                    server._lobbymeshLanAbortDeferrals,
+                }
+              : {}),
+          },
         });
         return;
       }
@@ -220,6 +239,7 @@ if (mode === "--bootstrap") {
       ...(noLan ? ["--no-lan"] : []),
       ...(reusableSocket ? ["--reusable-socket"] : []),
       ...(fullyBootstrapped ? ["--fully-bootstrapped"] : []),
+      ...(observeServerAborts ? ["--observe-server-aborts"] : []),
     ];
     const a = participant(["--worker", address, ...flags]);
     const infoA = await a.ready;
@@ -259,6 +279,7 @@ if (mode === "--bootstrap") {
       localConnection: !noLan,
       reusableSocket,
       fullyBootstrapped,
+      observeServerAborts,
       attempts: attempts.length,
       successes: attempts.filter((value) => value.outcome === "success").length,
       oneWay,

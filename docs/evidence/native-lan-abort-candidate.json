@@ -1,0 +1,443 @@
+{
+  "proofTier": "SAME_HOST",
+  "productionDependencyChanged": false,
+  "initialCandidate": {
+    "scenario": "isolated-native-server-lan-abort-candidate",
+    "productionDependencyChanged": false,
+    "officialServerSha256": "cdff91aee9ee1ce8aeab4daeed550ac7130f44c2750cebb794c605254b31a276",
+    "candidateServerSha256": "c0da01497e89a166a06ad9a39073225dd0eaa9c95701fd9fb6dd5cbf622269b9",
+    "guard": {
+      "before": "if (!stable) return this._abort(h)",
+      "after": "if (!stable && !(!h.replyFromPuncher && h.prepunching !== null && h.rawStream && !h.rawStream.destroyed)) return this._abort(h)"
+    },
+    "observed": {
+      "result": "native-handoff-observed",
+      "localBootstrap": true,
+      "independentProcesses": true,
+      "appRpc": false,
+      "hyperdhtVersion": "6.35.0",
+      "localConnection": true,
+      "reusableSocket": false,
+      "fullyBootstrapped": false,
+      "observeServerAborts": true,
+      "attempts": 32,
+      "successes": 32,
+      "oneWay": [
+        [
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 11
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 5
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          }
+        ],
+        [
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 6
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          }
+        ]
+      ],
+      "bidirectional": [
+        [
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          }
+        ],
+        [
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 4
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 4
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 4
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          }
+        ]
+      ],
+      "snapshots": [
+        {
+          "active": 0,
+          "accepted": 16,
+          "replies": 16,
+          "invalid": 0,
+          "serverAborts": {
+            "total": 0,
+            "recent": []
+          }
+        },
+        {
+          "active": 0,
+          "accepted": 16,
+          "replies": 16,
+          "invalid": 0,
+          "serverAborts": {
+            "total": 0,
+            "recent": []
+          }
+        }
+      ],
+      "cleanupVerified": true
+    }
+  },
+  "candidateWithReadback": {
+    "scenario": "isolated-native-server-lan-abort-candidate-with-readback",
+    "productionDependencyChanged": false,
+    "officialServerSha256": "cdff91aee9ee1ce8aeab4daeed550ac7130f44c2750cebb794c605254b31a276",
+    "candidateServerSha256": "4c989df9521e90ba13500c2afb5100727e2316d74d974998c7939cd121df9311",
+    "guard": {
+      "before": "if (!stable) return this._abort(h)",
+      "after": "if (!stable) {\n          const pendingLan = !h.replyFromPuncher && h.prepunching !== null && h.rawStream && !h.rawStream.destroyed\n          if (!pendingLan) return this._abort(h)\n          this._lobbymeshLanAbortDeferrals = (this._lobbymeshLanAbortDeferrals || 0) + 1\n        }"
+    },
+    "observed": {
+      "result": "native-handoff-observed",
+      "localBootstrap": true,
+      "independentProcesses": true,
+      "appRpc": false,
+      "hyperdhtVersion": "6.35.0",
+      "localConnection": true,
+      "reusableSocket": false,
+      "fullyBootstrapped": false,
+      "observeServerAborts": true,
+      "attempts": 32,
+      "successes": 32,
+      "oneWay": [
+        [
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 12
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 4
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          }
+        ],
+        [
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 6
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          }
+        ]
+      ],
+      "bidirectional": [
+        [
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 4
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          }
+        ],
+        [
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 4
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 2
+          },
+          {
+            "outcome": "success",
+            "phase": "reply",
+            "elapsedMs": 3
+          }
+        ]
+      ],
+      "snapshots": [
+        {
+          "active": 0,
+          "accepted": 16,
+          "replies": 16,
+          "invalid": 0,
+          "serverAborts": {
+            "total": 0,
+            "recent": []
+          },
+          "candidateLanAbortDeferrals": 2
+        },
+        {
+          "active": 0,
+          "accepted": 16,
+          "replies": 16,
+          "invalid": 0,
+          "serverAborts": {
+            "total": 0,
+            "recent": []
+          },
+          "candidateLanAbortDeferrals": 2
+        }
+      ],
+      "cleanupVerified": true
+    }
+  },
+  "productionServerStillOfficial": true
+}
