@@ -151,8 +151,14 @@ export function controlLabPeer(
       }
     }
   });
-  const request = (op: LabCommand["op"], value?: string): Promise<unknown> => {
-    if (exited || exitObserved || failed || !readySeen || pending.size >= 8)
+  const dispatch = (op: LabCommand["op"], value?: string): Promise<unknown> => {
+    if (
+      exited ||
+      exitObserved ||
+      failed ||
+      !readySeen ||
+      pending.size >= (op === "stop" ? 9 : 8)
+    )
       return Promise.reject(new Error("LAB_CLIENT_UNAVAILABLE"));
     const id = ++seq;
     return new Promise((resolve, reject) => {
@@ -167,6 +173,20 @@ export function controlLabPeer(
     }).catch(() => {
       throw new Error(`LAB_COMMAND_${op.toUpperCase()}_FAILED`);
     });
+  };
+  let stopRequested = false;
+  let terminalRequest: Promise<unknown> | undefined;
+  const request = (op: LabCommand["op"], value?: string): Promise<unknown> => {
+    if (op === "stop") {
+      stopRequested = true;
+      // Exactly one terminal slot is reserved beyond the ordinary quota.
+      // Publish ownership before dispatch, including reentrant/concurrent calls.
+      terminalRequest ??= Promise.resolve().then(() => dispatch(op, value));
+      return terminalRequest;
+    }
+    if (stopRequested)
+      return Promise.reject(new Error("LAB_CLIENT_UNAVAILABLE"));
+    return dispatch(op, value);
   };
   let stopping: Promise<void> | undefined;
   const stop = () => {

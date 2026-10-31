@@ -1,0 +1,16 @@
+{
+  "scenario": "production-bootstrap-shutdown-at-command-quota",
+  "result": "passed",
+  "ordinaryQuota": 8,
+  "ordinaryFulfilled": 0,
+  "ordinaryRejected": 8,
+  "duplicateStopShared": true,
+  "cleanupConfirmed": true,
+  "exitCode": 0,
+  "proofTier": "SAME_HOST",
+  "physicalAudio": false,
+  "source": {
+    "revision": "3f12abcfa6814971fae14fce7bbae42dd468519e",
+    "dirty": true
+  }
+}

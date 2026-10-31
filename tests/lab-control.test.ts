@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createSocket } from "node:dgram";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 import { controlLabPeer } from "../scripts/lab/client.js";
 
 function fixture(source: string) {
@@ -13,6 +14,78 @@ function fixture(source: string) {
   );
 }
 const ready = `console.log(JSON.stringify({ready:true,role:'bootstrap'}));`;
+
+function shutdownFixture(hold: boolean) {
+  const source = `${ready}
+let input = '', held = 0, stops = 0;
+const newline = String.fromCharCode(10);
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => {
+  input += chunk;
+  while (input.includes(newline)) {
+    const end = input.indexOf(newline);
+    const request = JSON.parse(input.slice(0,end));
+    input = input.slice(end+1);
+    if (request.op === 'stop') {
+      process.stderr.write('STOP '+(++stops)+newline, () => {
+        setTimeout(() => process.stdout.write(JSON.stringify({id:request.id,result:{stopped:true,cleanupVerified:true}})+newline, () => process.exit(0)),80);
+      });
+    } else if (${hold}) {
+      if (++held === 8) process.stderr.write('HELD8'+newline);
+    } else process.stdout.write(JSON.stringify({id:request.id,result:true})+newline);
+  }
+});`;
+  const child = spawn(process.execPath, ["-e", source], {
+    stdio: ["pipe", "pipe", "pipe"],
+    windowsHide: true,
+  });
+  let audit = "";
+  child.stderr.on("data", (chunk) => {
+    audit = (audit + String(chunk)).slice(-1024);
+  });
+  return {
+    peer: controlLabPeer(child),
+    held: () => audit.includes("HELD8"),
+    stops: () => audit.match(/STOP \d+/g)?.length ?? 0,
+  };
+}
+
+test("lab shutdown has one priority slot under eight held ordinary commands", async (t) => {
+  const { peer, held, stops } = shutdownFixture(true);
+  t.after(async () => {
+    await peer.stop().catch(() => {});
+    await peer.exit;
+  });
+  await peer.ready;
+  const work = Promise.allSettled(
+    Array.from({ length: 8 }, () => peer.request("status")),
+  );
+  for (let n = 0; n < 100 && !held(); n++) await delay(20);
+  assert.equal(held(), true);
+  await assert.rejects(peer.request("status"), /LAB_CLIENT_UNAVAILABLE/);
+  await Promise.all([peer.stop(), peer.stop(), peer.request("stop")]);
+  assert.equal(stops(), 1);
+  assert.equal(await peer.exit, 0);
+  assert.equal(
+    (await work).every((row) => row.status === "rejected"),
+    true,
+  );
+});
+
+test("lab shutdown rejects fresh ordinary work before the terminal reply arrives", async (t) => {
+  const { peer, stops } = shutdownFixture(false);
+  t.after(async () => {
+    await peer.stop().catch(() => {});
+    await peer.exit;
+  });
+  await peer.ready;
+  const stopped = peer.stop();
+  void stopped.catch(() => {});
+  await assert.rejects(peer.request("status"), /LAB_CLIENT_UNAVAILABLE/);
+  await stopped;
+  assert.equal(stops(), 1);
+  assert.equal(await peer.exit, 0);
+});
 
 test("production bootstrap flushes a delayed stop reply before exiting", async (t) => {
   const socket = createSocket("udp4");
