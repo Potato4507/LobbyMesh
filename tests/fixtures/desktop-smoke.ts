@@ -1212,10 +1212,17 @@ async function run() {
       holdSends = true;
       await draft("cancel this send with clear");
       await execute(
-        "document.querySelector('#messagesPanel form').requestSubmit()",
+        "(()=>{const form=document.querySelector('#messagesPanel form');form.requestSubmit();form.requestSubmit();})()",
       );
       await until(
         "document.querySelector('#sendMessage')?.textContent.includes('Sending') && !document.querySelector('#clearMessages').disabled",
+      );
+      assert.equal(
+        messaging
+          .history(allowed)
+          .filter((message) => message.direction === "outgoing").length,
+        1,
+        "same-turn form submissions must own one send",
       );
       await execute("document.querySelector('#clearMessages').click()");
       await until(
@@ -1458,6 +1465,7 @@ async function run() {
       console.log(
         JSON.stringify({
           result: "conversation-clear-passed",
+          sameTurnSubmission: "one-owned-send-and-release-after-settlement",
           oldReadDiscarded: true,
           lostAckRetrySuppressed: true,
           pendingSendCanceled: true,

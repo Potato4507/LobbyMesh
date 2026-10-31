@@ -29,6 +29,7 @@ export function Messages({
     [history, setHistory] = useState<MessageView[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({}),
     [sending, setSending] = useState<string[]>([]);
+  const pendingSends = useRef(new Set<string>());
   const [notice, setNotice] = useState("");
   const [pollError, setPollError] = useState(false);
   const [blocking, setBlocking] = useState(false);
@@ -129,7 +130,7 @@ export function Messages({
       !selected ||
       !draft.trim() ||
       bytes > 4096 ||
-      sending.includes(selected) ||
+      pendingSends.current.has(selected) ||
       clearPending.current
     )
       return;
@@ -137,6 +138,7 @@ export function Messages({
       text = draft;
     const revision = historyRevision.current;
     const notice = ++noticeRevision.current;
+    pendingSends.current.add(peerId);
     setSending((previous) => [...previous, peerId]);
     setNotice("");
     follow.current = true;
@@ -156,6 +158,7 @@ export function Messages({
           "Delivery was not confirmed. Sending again could create a duplicate.",
         );
     } finally {
+      pendingSends.current.delete(peerId);
       setSending((previous) => previous.filter((id) => id !== peerId));
       if (
         current.current === peerId &&
