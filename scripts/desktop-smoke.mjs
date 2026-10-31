@@ -4,8 +4,13 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { build } from "esbuild";
+import {
+  desktopSmokeModes,
+  desktopSmokeProcessTimeoutMs,
+} from "./desktop-modes.ts";
 
 const focusedModes = [
+  "voice-controls-only",
   "conversation-clear-only",
   "session-status-only",
   "overlay-capture-only",
@@ -51,23 +56,7 @@ try {
   const executable = createRequire(import.meta.url)("electron"),
     environment = { ...process.env };
   delete environment.ELECTRON_RUN_AS_NODE;
-  for (const mode of requestedMode
-    ? [requestedMode]
-    : process.platform === "win32"
-      ? [
-          "",
-          "conversation-clear-only",
-          "session-status-only",
-          "overlay-capture-only",
-          "incoming-call-only",
-          "credentials-only",
-        ]
-      : [
-          "",
-          "conversation-clear-only",
-          "session-status-only",
-          "incoming-call-only",
-        ])
+  for (const mode of desktopSmokeModes(process.platform, requestedMode))
     await new Promise((resolve, reject) => {
       const child = spawn(
         executable,
@@ -100,7 +89,7 @@ try {
             .filter((line) => line.startsWith('{"desktopStage":'))
             .at(-1) ?? "no-stage";
         reject(new Error(`DESKTOP_SMOKE_TIMEOUT ${stage} ${diagnostic}`));
-      }, 30_000);
+      }, desktopSmokeProcessTimeoutMs);
       child.on("error", (error) => {
         clearTimeout(timer);
         reject(error);
@@ -110,17 +99,19 @@ try {
         if (
           code === 0 &&
           output.includes(
-            mode === "overlay-capture-only"
-              ? '"result":"overlay-capture-passed"'
-              : mode === "session-status-only"
-                ? '"result":"session-status-passed"'
-                : mode === "conversation-clear-only"
-                  ? '"result":"conversation-clear-passed"'
-                  : mode === "incoming-call-only"
-                    ? '"result":"incoming-call-passed"'
-                    : mode
-                      ? '"result":"credential-reload-passed"'
-                      : '"result":"passed"',
+            mode === "voice-controls-only"
+              ? '"result":"voice-controls-passed"'
+              : mode === "overlay-capture-only"
+                ? '"result":"overlay-capture-passed"'
+                : mode === "session-status-only"
+                  ? '"result":"session-status-passed"'
+                  : mode === "conversation-clear-only"
+                    ? '"result":"conversation-clear-passed"'
+                    : mode === "incoming-call-only"
+                      ? '"result":"incoming-call-passed"'
+                      : mode
+                        ? '"result":"credential-reload-passed"'
+                        : '"result":"passed"',
           )
         )
           resolve();

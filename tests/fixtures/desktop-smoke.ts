@@ -30,6 +30,18 @@ import { WindowsLogSessionProvider } from "../../packages/session/src/windows-lo
 import { VoiceCalls } from "../../packages/voice/src/calls.js";
 import { desktopEvidencePath } from "../../scripts/desktop-evidence.js";
 
+const voiceControlChecks = [
+  "explicit-voice-consent-call-answer-decline-and-ptt",
+  "call-output-volume-mute-and-unknown-level",
+  "call-input-gain-coalesced-reset-and-stale-id-denied",
+  "input-activity-meter-peak-and-unknown-without-call-failure",
+  "explicit-input-device-selection-current-call-and-fresh-ptt",
+  "input-zero-stall-stops-capture",
+  "local-call-quality-measured-and-unavailable-without-call-failure",
+  "voice-focus-loss-page-change-and-stalled-mute-teardown",
+  "ptt-stale-rejection-does-not-release-new-press-current-rejection-still-mutes",
+];
+
 async function run() {
   const evidenceDirectory = process.argv[4];
   if (!evidenceDirectory)
@@ -456,6 +468,361 @@ async function run() {
         (await contents.capturePage()).toPNG(),
       );
       if (!visible) window.hide();
+    }
+    async function exerciseVoiceControls() {
+      assert.ok(desktop);
+      stage("voice-controls-start");
+      desktop.window.show();
+      desktop.window.focus();
+      contents.focus();
+      await until("document.hasFocus()");
+      await until("!document.querySelector('#voiceConsent').disabled");
+      await execute("document.querySelector('#voiceConsent').click()");
+      await until(
+        "window.companion.voice().then(s=>s.enabled && s.phase==='idle')",
+      );
+      await until("document.querySelector('#callContact')?.disabled === false");
+      await execute("document.querySelector('#callContact').click()");
+      await until("window.companion.voice().then(s=>s.phase==='offering')");
+      assert.ok(remoteVoice);
+      const outbound = remoteVoice.status().callId;
+      assert.ok(outbound);
+      await remoteVoice.answer(outbound, true);
+      await until("document.querySelector('#pushToTalk') !== null");
+      await until(
+        "document.querySelector('#callQuality')?.textContent.includes('Unavailable')",
+      );
+      failVoiceQuality = false;
+      await until(
+        "document.querySelector('#callQuality')?.textContent.includes('18.3 ms') && document.querySelector('#callQuality')?.textContent.includes('2.8 ms')",
+      );
+      failVoiceQuality = true;
+      await until(
+        "document.querySelector('#callQuality')?.textContent.includes('Unavailable')",
+      );
+      assert.equal(
+        (await execute<{ phase: string }>("window.companion.voice()")).phase,
+        "connected",
+      );
+      await execute(
+        "(() => { const input=document.querySelector('#callVolume'); for(const value of [...Array.from({length:40},(_,i)=>String(i+30)),'25']) { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true})); } })()",
+      );
+      await until("window.companion.voice().then(s=>s.outputVolume === 0.25)");
+      await execute(
+        "(() => { const input=document.querySelector('#callInputGain'); for(const value of ['140','90','0','25']) {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true}));}})()",
+      );
+      await until("window.companion.voice().then(s=>s.inputGain === 0.25)");
+      await execute(
+        "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Refresh microphones').click()",
+      );
+      await until(
+        "document.querySelectorAll('#callMicrophone option').length === 2",
+      );
+      await execute(
+        "(() => {const select=document.querySelector('#callMicrophone'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'f'.repeat(32)); select.dispatchEvent(new Event('change',{bubbles:true}));})()",
+      );
+      await execute(
+        "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Use microphone').click()",
+      );
+      await until(
+        "document.querySelector('#callDevices output')?.textContent.includes('Press Hold to talk again')",
+      );
+      assert.equal(
+        await execute(
+          "window.companion.voice().then(s=>s.phase==='connected' && !s.transmitting && s.inputGain===0.25)",
+        ),
+        true,
+      );
+      assert.equal(
+        await execute(
+          "window.companion.voiceInputs({callId:'0'.repeat(32)}).then(()=>false,()=>true)",
+        ),
+        true,
+      );
+      assert.equal(
+        await execute(
+          "window.companion.voice().then(s=>window.companion.voiceInputs({callId:s.callId,extra:true})).then(()=>false,()=>true)",
+        ),
+        true,
+      );
+      assert.equal(
+        await execute(
+          "window.companion.voiceAction({action:'switch-input',callId:'0'.repeat(32),choice:'system-default',consent:true}).then(()=>false,()=>true)",
+        ),
+        true,
+      );
+      assert.equal(
+        (await execute<{ transmitting: boolean }>("window.companion.voice()"))
+          .transmitting,
+        false,
+      );
+      assert.equal(
+        await execute(
+          "window.companion.voice().then(s=>window.companion.voiceAction({action:'input-gain',callId:'0'.repeat(32),gain:0})).then(()=>false,()=>true)",
+        ),
+        true,
+      );
+      await execute("document.querySelector('#muteIncoming').click()");
+      await until("window.companion.voice().then(s=>s.outputMuted)");
+      assert.equal(
+        (await execute<{ capturing: boolean }>("window.companion.voice()"))
+          .capturing,
+        true,
+      );
+      await execute("document.querySelector('#muteIncoming').click()");
+      await until("window.companion.voice().then(s=>!s.outputMuted)");
+      await execute("document.querySelector('#pushToTalk').focus()");
+      contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      inputActivityMode = "measured";
+      await until("document.querySelector('#callInputLevel')?.value === 0.25");
+      inputActivityMode = "peaking";
+      await until("document.querySelector('#inputClippingNotice') !== null");
+      inputActivityMode = "unknown";
+      await until(
+        "document.querySelector('#callInputLevel') === null && document.querySelector('#voiceState')?.textContent === 'Connected'",
+      );
+      inputActivityMode = "measured";
+      await execute(
+        "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Use microphone').click()",
+      );
+      await until(
+        "window.companion.voice().then(s=>s.phase==='connected' && !s.transmitting)",
+      );
+      await delay(600);
+      assert.equal(
+        await execute("window.companion.voice().then(s=>s.transmitting)"),
+        false,
+      );
+      contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      await execute("document.querySelector('#pushToTalk').focus()");
+      holdNextTalkReply = true;
+      contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      assert.ok(releaseTalkReply);
+      contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>!s.transmitting)");
+      contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      releaseTalkReply();
+      await delay(100);
+      assert.equal(
+        await execute(
+          "document.querySelector('#pushToTalk').getAttribute('aria-pressed')",
+        ),
+        "true",
+        "an old talk reply must not release a fresh press",
+      );
+      contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>!s.transmitting)");
+      releaseTalkReply = undefined;
+      holdNextTalkReply = true;
+      contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      assert.ok(releaseTalkReply);
+      (releaseTalkReply as () => void)();
+      await until(
+        "document.querySelector('#pushToTalk').getAttribute('aria-pressed') === 'false' && window.companion.voice().then(s=>!s.transmitting)",
+      );
+      contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      await delay(900);
+      assert.equal(
+        (await execute<{ transmitting: boolean }>("window.companion.voice()"))
+          .transmitting,
+        true,
+      );
+      assert.ok(mediaConnectionState);
+      mediaConnectionState("reconnecting");
+      await until(
+        "document.querySelector('#voiceState')?.textContent === 'Reconnecting audio…' && document.querySelector('#pushToTalk') === null && document.querySelector('#hangupCall') !== null",
+      );
+      await until(
+        "window.companion.voice().then(s=>s.capturing && !s.transmitting)",
+      );
+      mediaConnectionState("connected");
+      await until("document.querySelector('#pushToTalk') !== null");
+      await delay(300);
+      assert.equal(
+        (await execute<{ transmitting: boolean }>("window.companion.voice()"))
+          .transmitting,
+        false,
+      );
+      contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      await execute("document.querySelector('#pushToTalk').focus()");
+      contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      console.log("desktop voice: recovered with fresh press and released");
+      await until("window.companion.voice().then(s=>!s.transmitting)");
+      assert.ok(
+        await execute(
+          "window.companion.voice().then(s=>window.companion.voiceAction({action:'talk',callId:s.callId,pressed:true,start:false})).then(()=>false,()=>true)",
+        ),
+      );
+      await execute(
+        "document.querySelector('#pushToTalk').scrollIntoView({block:'center'})",
+      );
+      const pttPoint = await execute<{ x: number; y: number }>(
+        "(() => { const r=document.querySelector('#pushToTalk').getBoundingClientRect(); return {x:Math.floor(r.left+r.width/2),y:Math.floor(r.top+r.height/2)}; })()",
+      );
+      contents.sendInputEvent({ type: "mouseMove", ...pttPoint });
+      contents.sendInputEvent({
+        type: "mouseDown",
+        button: "left",
+        clickCount: 1,
+        ...pttPoint,
+      });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      contents.sendInputEvent({
+        type: "mouseUp",
+        button: "left",
+        clickCount: 1,
+        ...pttPoint,
+      });
+      await until("window.companion.voice().then(s=>!s.transmitting)");
+      contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      const focusTarget = new BrowserWindow({
+        show: true,
+        width: 180,
+        height: 100,
+        skipTaskbar: true,
+        webPreferences: {
+          sandbox: true,
+          contextIsolation: true,
+          nodeIntegration: false,
+        },
+      });
+      focusTarget.focus();
+      await until("!document.hasFocus()");
+      await until("window.companion.voice().then(s=>!s.transmitting)");
+      const focusTargetClosed = new Promise<void>((resolve) =>
+        focusTarget.once("closed", () => resolve()),
+      );
+      focusTarget.destroy();
+      await focusTargetClosed;
+      desktop.window.show();
+      desktop.window.focus();
+      contents.focus();
+      for (
+        let n = 0;
+        n < 250 && (!desktop.window.isFocused() || !contents.isFocused());
+        n++
+      )
+        await delay(20);
+      assert.equal(desktop.window.isFocused(), true);
+      assert.equal(contents.isFocused(), true);
+      await until("document.hasFocus()");
+      contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      await execute("document.querySelector('#pushToTalk').focus()");
+      contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      await navigate("overview");
+      await until("window.companion.voice().then(s=>!s.transmitting)");
+      contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      await navigate("messages");
+      await execute("document.querySelector('#hangupCall').click()");
+      await until("window.companion.voice().then(s=>s.phase==='idle')");
+      const beforeIncoming = localMediaStarts;
+      const incomingCall = await remoteVoice.dial(
+        { id: self, transportKey },
+        true,
+      );
+      await until("document.querySelector('#answerCall') !== null");
+      assert.equal(localMediaStarts, beforeIncoming);
+      await execute("document.querySelector('#hangupCall').click()");
+      await until("window.companion.voice().then(s=>s.phase==='idle')");
+      assert.equal(remoteVoice.status().phase, "idle");
+      const answered = await remoteVoice.dial({ id: self, transportKey }, true);
+      assert.notEqual(answered, incomingCall);
+      await until("document.querySelector('#answerCall') !== null");
+      await until(
+        `document.querySelector('#voicePanel')?.dataset.callId === ${JSON.stringify(answered)}`,
+      );
+      await execute("document.querySelector('#answerCall').click()");
+      await until("document.querySelector('#pushToTalk') !== null");
+      assert.equal(localMediaStarts, beforeIncoming + 1);
+      assert.equal(
+        (await execute<{ inputGain: number }>("window.companion.voice()"))
+          .inputGain,
+        1,
+      );
+      const originalVoiceBounds = desktop.window.getBounds();
+      desktop.window.setContentSize(720, 600);
+      await delay(60);
+      assert.ok(
+        await execute(
+          "document.documentElement.scrollWidth <= document.documentElement.clientWidth",
+        ),
+        "active call output overflow",
+      );
+      desktop.window.setBounds(originalVoiceBounds);
+      await delay(60);
+      await execute(
+        "(() => { const label=document.createElement('p'); label.className='eyebrow'; label.textContent='SYNTHETIC VOICE · NO MICROPHONE OR NETWORK'; document.querySelector('#voicePanel').prepend(label); document.querySelector('#voicePanel').scrollIntoView(); })()",
+      );
+      await execute(
+        "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Refresh microphones').click()",
+      );
+      await until(
+        "document.querySelectorAll('#callMicrophone option').length === 2",
+      );
+      await captureDesktop("docs/evidence/lobbymesh-voice-test.png");
+      await execute("document.querySelector('#pushToTalk').focus()");
+      contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.transmitting)");
+      holdVoiceMute = true;
+      contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      await until("window.companion.voice().then(s=>s.phase==='idle')");
+      holdVoiceMute = false;
+      await remoteVoice.hangup();
+      const gainCall = await execute<{ callId: string }>(
+        `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true})`,
+      );
+      await remoteVoice.answer(gainCall.callId, true);
+      await until("window.companion.voice().then(s=>s.phase==='connected')");
+      holdVoiceInput = true;
+      assert.equal(
+        await execute(
+          "window.companion.voice().then(s=>window.companion.voiceAction({action:'input-gain',callId:s.callId,gain:0})).then(()=>false,()=>true)",
+        ),
+        true,
+      );
+      await until(
+        "window.companion.voice().then(s=>s.capturing===false && s.callId===null)",
+      );
+      holdVoiceInput = false;
+      await execute("document.querySelector('#voicePanel .eyebrow').remove()");
+      await execute("document.querySelector('#voiceConsent').click()");
+      await until("window.companion.voice().then(s=>!s.enabled)");
+      desktop.window.hide();
+      stage("voice-controls-complete");
+    }
+    if (process.argv[3] === "voice-controls-only") {
+      await execute("window.companion.network(true)");
+      await until("window.companion.status().then(s=>s.network==='online')");
+      await navigate("messages");
+      await until(
+        `document.querySelector('#contactSelect')?.value === ${JSON.stringify(allowed)}`,
+      );
+      assert.equal(
+        (await execute<{ enabled: boolean }>("window.companion.voice()"))
+          .enabled,
+        false,
+      );
+      assert.equal(localMediaStarts, 0);
+      await exerciseVoiceControls();
+      console.log(
+        JSON.stringify({
+          result: "voice-controls-passed",
+          checks: voiceControlChecks,
+          hardwareMicrophone: false,
+          physicalAudio: false,
+        }),
+      );
+      return;
     }
     if (process.argv[3] === "overlay-capture-only") {
       assert.equal(process.platform, "win32");
@@ -1657,317 +2024,7 @@ async function run() {
         `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true,transportKey:'ignored'}).then(()=>false,()=>true)`,
       ),
     );
-    desktop.window.show();
-    desktop.window.focus();
-    await until("document.hasFocus()");
-    await until("!document.querySelector('#voiceConsent').disabled");
-    await execute("document.querySelector('#voiceConsent').click()");
-    await until(
-      "window.companion.voice().then(s=>s.enabled && s.phase==='idle')",
-    );
-    await until("document.querySelector('#callContact')?.disabled === false");
-    await execute("document.querySelector('#callContact').click()");
-    await until("window.companion.voice().then(s=>s.phase==='offering')");
-    assert.ok(remoteVoice);
-    const outbound = remoteVoice.status().callId;
-    assert.ok(outbound);
-    await remoteVoice.answer(outbound, true);
-    await until("document.querySelector('#pushToTalk') !== null");
-    await until(
-      "document.querySelector('#callQuality')?.textContent.includes('Unavailable')",
-    );
-    failVoiceQuality = false;
-    await until(
-      "document.querySelector('#callQuality')?.textContent.includes('18.3 ms') && document.querySelector('#callQuality')?.textContent.includes('2.8 ms')",
-    );
-    failVoiceQuality = true;
-    await until(
-      "document.querySelector('#callQuality')?.textContent.includes('Unavailable')",
-    );
-    assert.equal(
-      (await execute<{ phase: string }>("window.companion.voice()")).phase,
-      "connected",
-    );
-    await execute(
-      "(() => { const input=document.querySelector('#callVolume'); for(const value of [...Array.from({length:40},(_,i)=>String(i+30)),'25']) { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true})); } })()",
-    );
-    await until("window.companion.voice().then(s=>s.outputVolume === 0.25)");
-    await execute(
-      "(() => { const input=document.querySelector('#callInputGain'); for(const value of ['140','90','0','25']) {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value); input.dispatchEvent(new Event('input',{bubbles:true}));}})()",
-    );
-    await until("window.companion.voice().then(s=>s.inputGain === 0.25)");
-    await execute(
-      "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Refresh microphones').click()",
-    );
-    await until(
-      "document.querySelectorAll('#callMicrophone option').length === 2",
-    );
-    await execute(
-      "(() => {const select=document.querySelector('#callMicrophone'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'f'.repeat(32)); select.dispatchEvent(new Event('change',{bubbles:true}));})()",
-    );
-    await execute(
-      "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Use microphone').click()",
-    );
-    await until(
-      "document.querySelector('#callDevices output')?.textContent.includes('Press Hold to talk again')",
-    );
-    assert.equal(
-      await execute(
-        "window.companion.voice().then(s=>s.phase==='connected' && !s.transmitting && s.inputGain===0.25)",
-      ),
-      true,
-    );
-    assert.equal(
-      await execute(
-        "window.companion.voiceInputs({callId:'0'.repeat(32)}).then(()=>false,()=>true)",
-      ),
-      true,
-    );
-    assert.equal(
-      await execute(
-        "window.companion.voice().then(s=>window.companion.voiceInputs({callId:s.callId,extra:true})).then(()=>false,()=>true)",
-      ),
-      true,
-    );
-    assert.equal(
-      await execute(
-        "window.companion.voiceAction({action:'switch-input',callId:'0'.repeat(32),choice:'system-default',consent:true}).then(()=>false,()=>true)",
-      ),
-      true,
-    );
-    assert.equal(
-      (await execute<{ transmitting: boolean }>("window.companion.voice()"))
-        .transmitting,
-      false,
-    );
-    assert.equal(
-      await execute(
-        "window.companion.voice().then(s=>window.companion.voiceAction({action:'input-gain',callId:'0'.repeat(32),gain:0})).then(()=>false,()=>true)",
-      ),
-      true,
-    );
-    await execute("document.querySelector('#muteIncoming').click()");
-    await until("window.companion.voice().then(s=>s.outputMuted)");
-    assert.equal(
-      (await execute<{ capturing: boolean }>("window.companion.voice()"))
-        .capturing,
-      true,
-    );
-    await execute("document.querySelector('#muteIncoming').click()");
-    await until("window.companion.voice().then(s=>!s.outputMuted)");
-    await execute("document.querySelector('#pushToTalk').focus()");
-    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    inputActivityMode = "measured";
-    await until("document.querySelector('#callInputLevel')?.value === 0.25");
-    inputActivityMode = "peaking";
-    await until("document.querySelector('#inputClippingNotice') !== null");
-    inputActivityMode = "unknown";
-    await until(
-      "document.querySelector('#callInputLevel') === null && document.querySelector('#voiceState')?.textContent === 'Connected'",
-    );
-    inputActivityMode = "measured";
-    await execute(
-      "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Use microphone').click()",
-    );
-    await until(
-      "window.companion.voice().then(s=>s.phase==='connected' && !s.transmitting)",
-    );
-    await delay(600);
-    assert.equal(
-      await execute("window.companion.voice().then(s=>s.transmitting)"),
-      false,
-    );
-    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    await execute("document.querySelector('#pushToTalk').focus()");
-    holdNextTalkReply = true;
-    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    assert.ok(releaseTalkReply);
-    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>!s.transmitting)");
-    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    releaseTalkReply();
-    await delay(100);
-    assert.equal(
-      await execute(
-        "document.querySelector('#pushToTalk').getAttribute('aria-pressed')",
-      ),
-      "true",
-      "an old talk reply must not release a fresh press",
-    );
-    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>!s.transmitting)");
-    releaseTalkReply = undefined;
-    holdNextTalkReply = true;
-    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    assert.ok(releaseTalkReply);
-    (releaseTalkReply as () => void)();
-    await until(
-      "document.querySelector('#pushToTalk').getAttribute('aria-pressed') === 'false' && window.companion.voice().then(s=>!s.transmitting)",
-    );
-    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    await delay(900);
-    assert.equal(
-      (await execute<{ transmitting: boolean }>("window.companion.voice()"))
-        .transmitting,
-      true,
-    );
-    assert.ok(mediaConnectionState);
-    mediaConnectionState("reconnecting");
-    await until(
-      "document.querySelector('#voiceState')?.textContent === 'Reconnecting audio…' && document.querySelector('#pushToTalk') === null && document.querySelector('#hangupCall') !== null",
-    );
-    await until(
-      "window.companion.voice().then(s=>s.capturing && !s.transmitting)",
-    );
-    mediaConnectionState("connected");
-    await until("document.querySelector('#pushToTalk') !== null");
-    await delay(300);
-    assert.equal(
-      (await execute<{ transmitting: boolean }>("window.companion.voice()"))
-        .transmitting,
-      false,
-    );
-    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    await execute("document.querySelector('#pushToTalk').focus()");
-    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    console.log("desktop voice: recovered with fresh press and released");
-    await until("window.companion.voice().then(s=>!s.transmitting)");
-    assert.ok(
-      await execute(
-        "window.companion.voice().then(s=>window.companion.voiceAction({action:'talk',callId:s.callId,pressed:true,start:false})).then(()=>false,()=>true)",
-      ),
-    );
-    await execute(
-      "document.querySelector('#pushToTalk').scrollIntoView({block:'center'})",
-    );
-    const pttPoint = await execute<{ x: number; y: number }>(
-      "(() => { const r=document.querySelector('#pushToTalk').getBoundingClientRect(); return {x:Math.floor(r.left+r.width/2),y:Math.floor(r.top+r.height/2)}; })()",
-    );
-    contents.sendInputEvent({ type: "mouseMove", ...pttPoint });
-    contents.sendInputEvent({
-      type: "mouseDown",
-      button: "left",
-      clickCount: 1,
-      ...pttPoint,
-    });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    contents.sendInputEvent({
-      type: "mouseUp",
-      button: "left",
-      clickCount: 1,
-      ...pttPoint,
-    });
-    await until("window.companion.voice().then(s=>!s.transmitting)");
-    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    const focusTarget = new BrowserWindow({
-      show: true,
-      width: 180,
-      height: 100,
-      skipTaskbar: true,
-      webPreferences: {
-        sandbox: true,
-        contextIsolation: true,
-        nodeIntegration: false,
-      },
-    });
-    focusTarget.focus();
-    await until("!document.hasFocus()");
-    await until("window.companion.voice().then(s=>!s.transmitting)");
-    focusTarget.destroy();
-    desktop.window.focus();
-    await until("document.hasFocus()");
-    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    await execute("document.querySelector('#pushToTalk').focus()");
-    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    await navigate("overview");
-    await until("window.companion.voice().then(s=>!s.transmitting)");
-    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    await navigate("messages");
-    await execute("document.querySelector('#hangupCall').click()");
-    await until("window.companion.voice().then(s=>s.phase==='idle')");
-    const beforeIncoming = localMediaStarts;
-    const incomingCall = await remoteVoice.dial(
-      { id: self, transportKey },
-      true,
-    );
-    await until("document.querySelector('#answerCall') !== null");
-    assert.equal(localMediaStarts, beforeIncoming);
-    await execute("document.querySelector('#hangupCall').click()");
-    await until("window.companion.voice().then(s=>s.phase==='idle')");
-    assert.equal(remoteVoice.status().phase, "idle");
-    const answered = await remoteVoice.dial({ id: self, transportKey }, true);
-    assert.notEqual(answered, incomingCall);
-    await until("document.querySelector('#answerCall') !== null");
-    await until(
-      `document.querySelector('#voicePanel')?.dataset.callId === ${JSON.stringify(answered)}`,
-    );
-    await execute("document.querySelector('#answerCall').click()");
-    await until("document.querySelector('#pushToTalk') !== null");
-    assert.equal(localMediaStarts, beforeIncoming + 1);
-    assert.equal(
-      (await execute<{ inputGain: number }>("window.companion.voice()"))
-        .inputGain,
-      1,
-    );
-    const originalVoiceBounds = desktop.window.getBounds();
-    desktop.window.setContentSize(720, 600);
-    await delay(60);
-    assert.ok(
-      await execute(
-        "document.documentElement.scrollWidth <= document.documentElement.clientWidth",
-      ),
-      "active call output overflow",
-    );
-    desktop.window.setBounds(originalVoiceBounds);
-    await delay(60);
-    await execute(
-      "(() => { const label=document.createElement('p'); label.className='eyebrow'; label.textContent='SYNTHETIC VOICE · NO MICROPHONE OR NETWORK'; document.querySelector('#voicePanel').prepend(label); document.querySelector('#voicePanel').scrollIntoView(); })()",
-    );
-    await execute(
-      "[...document.querySelectorAll('#callDevices button')].find(b=>b.textContent==='Refresh microphones').click()",
-    );
-    await until(
-      "document.querySelectorAll('#callMicrophone option').length === 2",
-    );
-    await captureDesktop("docs/evidence/lobbymesh-voice-test.png");
-    await execute("document.querySelector('#pushToTalk').focus()");
-    contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.transmitting)");
-    holdVoiceMute = true;
-    contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
-    await until("window.companion.voice().then(s=>s.phase==='idle')");
-    holdVoiceMute = false;
-    await remoteVoice.hangup();
-    const gainCall = await execute<{ callId: string }>(
-      `window.companion.voiceAction({action:'call',peerId:${JSON.stringify(allowed)},consent:true})`,
-    );
-    await remoteVoice.answer(gainCall.callId, true);
-    await until("window.companion.voice().then(s=>s.phase==='connected')");
-    holdVoiceInput = true;
-    assert.equal(
-      await execute(
-        "window.companion.voice().then(s=>window.companion.voiceAction({action:'input-gain',callId:s.callId,gain:0})).then(()=>false,()=>true)",
-      ),
-      true,
-    );
-    await until(
-      "window.companion.voice().then(s=>s.capturing===false && s.callId===null)",
-    );
-    holdVoiceInput = false;
-    await execute("document.querySelector('#voicePanel .eyebrow').remove()");
-    await execute("document.querySelector('#voiceConsent').click()");
-    await until("window.companion.voice().then(s=>!s.enabled)");
-    desktop.window.hide();
+    // Comprehensive voice controls run in their own default bounded process.
     const draft = (text: string) =>
       execute(`(() => {
       const input = document.querySelector('#messageDraft');
@@ -1990,6 +2047,7 @@ async function run() {
       receiver?.history(self)[0]?.envelope.text,
       "native UI message",
     );
+    assert.ok(remoteVoice);
     stage("overlay-start");
     if (process.platform === "win32") {
       await navigate("overlay");
@@ -2734,15 +2792,6 @@ async function run() {
           "live-policy-callbacks",
           "electron-native-runtime-cancellation",
           "authorized-messaging-ui",
-          "explicit-voice-consent-call-answer-decline-and-ptt",
-          "call-output-volume-mute-and-unknown-level",
-          "call-input-gain-coalesced-reset-and-stale-id-denied",
-          "input-activity-meter-peak-and-unknown-without-call-failure",
-          "explicit-input-device-selection-current-call-and-fresh-ptt",
-          "input-zero-stall-stops-capture",
-          "local-call-quality-measured-and-unavailable-without-call-failure",
-          "voice-focus-loss-page-change-and-stalled-mute-teardown",
-          "ptt-stale-rejection-does-not-release-new-press-current-rejection-still-mutes",
           "voice-overlay-ipc-denied",
           "explicit-contact-preview-approval-and-revocation",
           "conversation-block-under-load-stops-call-purges-text-and-preserves-unsaved-preferences",

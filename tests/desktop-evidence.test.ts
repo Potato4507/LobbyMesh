@@ -6,6 +6,33 @@ import path from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 import { desktopEvidencePath } from "../scripts/desktop-evidence.js";
+import {
+  desktopSmokeModes,
+  desktopSmokeProcessTimeoutMs,
+} from "../scripts/desktop-modes.js";
+
+test("default desktop runs retain every original mode plus isolated voice with the same process budget", () => {
+  assert.equal(desktopSmokeProcessTimeoutMs, 30000);
+  assert.deepEqual(desktopSmokeModes("win32", ""), [
+    "",
+    "voice-controls-only",
+    "conversation-clear-only",
+    "session-status-only",
+    "overlay-capture-only",
+    "incoming-call-only",
+    "credentials-only",
+  ]);
+  assert.deepEqual(desktopSmokeModes("linux", ""), [
+    "",
+    "voice-controls-only",
+    "conversation-clear-only",
+    "session-status-only",
+    "incoming-call-only",
+  ]);
+  assert.deepEqual(desktopSmokeModes("win32", "voice-controls-only"), [
+    "voice-controls-only",
+  ]);
+});
 
 const execute = promisify(execFile);
 test("native evidence maps canonical image names into the run directory without changing their identity", () => {
@@ -57,6 +84,8 @@ test("desktop driver rejects unknown, conflicting and duplicate options before c
   });
   for (const args of [
     ["--unknown"],
+    ["--voice-controls-only", "--voice-controls-only"],
+    ["--voice-controls-only", "--incoming-call-only"],
     ["--update-evidence", "--update-evidence"],
     ["--session-status-only", "--overlay-capture-only"],
     ["--conversation-clear-only", "--conversation-clear-only"],

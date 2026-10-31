@@ -1,0 +1,170 @@
+{
+  "scenario": "bounded-default-native-desktop-suite",
+  "result": "passed",
+  "platform": "win32",
+  "modeCount": 7,
+  "processBudgetMs": 30000,
+  "assertionMoveAudit": {
+    "movedBytes": 13996,
+    "movedAssertCalls": 25,
+    "sourceBlockSha256": "58b56560cb0832225a2361a278b702c848870476469292656a62ef6f2b450f7b",
+    "originalBlockRetainedVerbatim": true,
+    "assertionAstCount": 25,
+    "originalAssertionsRetainedInOrder": true,
+    "currentAssertions": 28,
+    "additionalSetupAndFocusAssertions": 3,
+    "defaultWindowsModes": 7,
+    "processBudgetMs": 30000
+  },
+  "stages": [
+    {
+      "desktopStage": "overlay-start",
+      "elapsedMs": 2602
+    },
+    {
+      "desktopStage": "overlay-complete",
+      "elapsedMs": 13075
+    },
+    {
+      "desktopStage": "safety-start",
+      "elapsedMs": 16026
+    },
+    {
+      "desktopStage": "safety-complete",
+      "elapsedMs": 16254
+    },
+    {
+      "desktopStage": "foreign-sender-start",
+      "elapsedMs": 17614
+    },
+    {
+      "desktopStage": "voice-controls-start",
+      "elapsedMs": 1182
+    },
+    {
+      "desktopStage": "voice-controls-complete",
+      "elapsedMs": 9747
+    }
+  ],
+  "modes": [
+    {
+      "result": "passed",
+      "electron": "45.1.0",
+      "checks": [
+        "sandbox",
+        "context-isolation",
+        "no-renderer-node",
+        "preload-ipc",
+        "form-persistence",
+        "consent-default-off",
+        "network-and-mic-off",
+        "unknown-field-rejected",
+        "block-unblock-no-reauthorization",
+        "foreign-window-ipc-rejected",
+        "network-opt-in-and-disconnect",
+        "sleep-resume-app-events",
+        "persisted-network-permission-resumes",
+        "live-policy-callbacks",
+        "electron-native-runtime-cancellation",
+        "authorized-messaging-ui",
+        "voice-overlay-ipc-denied",
+        "explicit-contact-preview-approval-and-revocation",
+        "conversation-block-under-load-stops-call-purges-text-and-preserves-unsaved-preferences",
+        "desktop-navigation-focus-and-retained-drafts",
+        "consent-controlled-log-session-matching",
+        "native-overlay-widgets-and-authorized-chat",
+        "overlay-capture-on-unknown-and-confirmed-off",
+        "overlay-current-call-redaction-stale-id-denial-and-end-only-control",
+        "overlay-input-modes-and-ipc-restrictions",
+        "incoming-text-escaped",
+        "message-byte-limit-and-clear",
+        "disconnect-under-ipc-load",
+        "windows-os-credential-migration"
+      ]
+    },
+    {
+      "result": "voice-controls-passed",
+      "checks": [
+        "explicit-voice-consent-call-answer-decline-and-ptt",
+        "call-output-volume-mute-and-unknown-level",
+        "call-input-gain-coalesced-reset-and-stale-id-denied",
+        "input-activity-meter-peak-and-unknown-without-call-failure",
+        "explicit-input-device-selection-current-call-and-fresh-ptt",
+        "input-zero-stall-stops-capture",
+        "local-call-quality-measured-and-unavailable-without-call-failure",
+        "voice-focus-loss-page-change-and-stalled-mute-teardown",
+        "ptt-stale-rejection-does-not-release-new-press-current-rejection-still-mutes"
+      ],
+      "hardwareMicrophone": false,
+      "physicalAudio": false
+    },
+    {
+      "result": "conversation-clear-passed",
+      "sameTurnSubmission": "one-owned-send-and-release-after-settlement",
+      "oldReadDiscarded": true,
+      "lostAckRetrySuppressed": true,
+      "pendingSendCanceled": true,
+      "clearUnderFullQuota": true,
+      "networkStayedOnline": true,
+      "dashboardReadFailure": "unavailable-retained-disconnect-and-draft-recovered",
+      "deliveryReasons": "bounded-unconfirmed-and-draft-retained",
+      "individualCancel": "one-row-draft-retained-and-priority-quota",
+      "historyNavigation": "reading-position-retained-explicit-jump-and-focused-scroll-region",
+      "contactSearch": "incomplete-not-located-found-draft-retained-and-block-canceled",
+      "automaticSendLookup": "stop-cancels-owned-search-then-found-ACK",
+      "microphone": false
+    },
+    {
+      "result": "session-status-passed",
+      "sameFileRewriteRecovered": true,
+      "dashboardReadRecovery": true,
+      "states": [
+        "player-not-running",
+        "player-log-pending",
+        "log-without-session-markers",
+        "incomplete",
+        "detected",
+        "stale",
+        "ambiguous",
+        "unavailable",
+        "disabled"
+      ],
+      "recovered": true,
+      "verification": "self-asserted",
+      "network": "offline",
+      "microphone": "off",
+      "actualRoblox": false
+    },
+    {
+      "result": "overlay-capture-passed",
+      "optionalCaptureWidgets": false,
+      "indicatorVisibleAfterScroll": true,
+      "states": ["off", "on", "unknown", "off"],
+      "endFailureProjection": "main-and-overlay-local-off-peer-notification-unconfirmed",
+      "statusReadFailure": "unknown-release-PTT-retain-End-recover-without-transmission",
+      "overlayReadFailure": "unknown-retained-stop-and-peer-notification-notice",
+      "actionObservation": "immediate-End-result-late-snapshot-and-rejection-discarded",
+      "headerObservation": "late-dashboard-on-and-off-discarded-after-newer-voice",
+      "overlayDraftRecovery": "same-owner-retained-unsent-and-hidden-on-failure",
+      "microphone": false,
+      "physicalAudio": false
+    },
+    {
+      "result": "incoming-call-passed",
+      "freshSourceRequired": true,
+      "navigationWithoutCapture": true,
+      "preferenceDraftRetained": true,
+      "callerWithdrawal": true,
+      "explicitAnswer": true,
+      "hardwareMicrophone": false,
+      "physicalAudio": false
+    },
+    {
+      "result": "credential-reload-passed",
+      "independentProcess": true
+    }
+  ],
+  "canonicalScreenshotsUpdated": false,
+  "hardwareMicrophone": false,
+  "physicalAudio": false
+}
