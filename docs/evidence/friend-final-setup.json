@@ -1,0 +1,42 @@
+{
+  "result": "private-friend-setup-passed",
+  "installerSource": {
+    "revision": "99457cf33b6919e06a07f58e234fffc1861fe925",
+    "dirty": false
+  },
+  "runtimeSource": {
+    "revision": "95d1072dc493a1a6aed088812364d20aab5d78b1",
+    "dirty": false
+  },
+  "executable": "D:\\LobbyMesh\\dist\\friend-setup-1793588129133-310a05ff\\delivery\\LobbyMesh-Setup.exe",
+  "setupSha256": "fc3a3c3787d888226bcbed294825e4633870b2c740b1479d741a771cd1997acb",
+  "signature": "NotSigned",
+  "runtimeManifestSha256": "a25665fdb9b2717b421ec23e2f92b8fc6441f099b267d91577b730155cd1d171",
+  "compiler": {
+    "version": "3.13",
+    "archiveSha256": "ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8",
+    "executableSha256": "4ec390d0f96f9728507fbc2f4e91311dd90bfc6c8ddfe2159357b3651ae151c0"
+  },
+  "smoke": {
+    "installedPayloadIntegrity": true,
+    "installedExecutable": {
+      "result": "passed",
+      "packaged": true,
+      "electron": "45.1.0",
+      "sandbox": true,
+      "contextIsolation": true,
+      "network": "offline",
+      "microphone": "off",
+      "credentials": "protected-reopen"
+    },
+    "uninstallVerified": true,
+    "unknownFilePreserved": true,
+    "profilePreserved": true,
+    "administrativePrivileges": false,
+    "realProfileTouched": false,
+    "realShortcutsTested": false
+  },
+  "hardwareAudio": false,
+  "realExternal": false,
+  "releaseReady": false
+}

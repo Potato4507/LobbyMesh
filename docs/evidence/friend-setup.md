@@ -1,5 +1,21 @@
 # Private Windows friend setup
 
+Final clean installer source: `99457cf33b6919e06a07f58e234fffc1861fe925`.
+Delivery: `dist/friend-setup-1793588129133-310a05ff/delivery/LobbyMesh-Setup.exe`
+(171,443,455 bytes). SHA256:
+`fc3a3c3787d888226bcbed294825e4633870b2c740b1479d741a771cd1997acb`.
+`friend-final-setup.json` records actual installed-payload verification, installed
+executable launch and preservation-aware uninstall. `friend-final-registration.json`
+independently verifies this final executable's normal per-user Start-menu and
+Installed-apps registration, then restoration of all pre-test absences.
+`realShortcutsTested:false` in the isolated build summary describes that isolated
+build stage only; the separate normal-registration test passed afterward.
+The final setup and application runtime are both from clean committed source.
+The executable is NotSigned. Forward the single setup file; the user instructions
+are also embedded in the installation and supplied alongside the executable.
+The installer-source GitHub verify job succeeded: frozen install, Pi shell syntax,
+typecheck, lint, full Node tests and build. See `friend-installer-ci.json`.
+
 Implemented `pnpm package:friend`: a single per-user Windows x64 setup executable,
 Start-menu entry and Windows Installed-apps uninstaller. The recipient needs no
 developer tools. First use still requires a display name, peer-discovery consent
