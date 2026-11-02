@@ -1,0 +1,94 @@
+{
+  "result": "passed",
+  "stage": "complete",
+  "reason": null,
+  "source": {
+    "revision": "970291408051faf0e2115534221d2a26e3a42531",
+    "dirty": false
+  },
+  "steps": [
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "durationMs": 2839,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\typecheck.log"
+    },
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "durationMs": 675,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\lint.log"
+    },
+    {
+      "name": "tests",
+      "exitCode": 0,
+      "durationMs": 9323,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\tests.log"
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "durationMs": 586,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\build.log"
+    },
+    {
+      "name": "desktop",
+      "exitCode": 0,
+      "durationMs": 78469,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\desktop.log"
+    },
+    {
+      "name": "identity-ui",
+      "exitCode": 0,
+      "durationMs": 2487,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\identity-ui.log"
+    },
+    {
+      "name": "send-recovery",
+      "exitCode": 0,
+      "durationMs": 9889,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\send-recovery.log"
+    },
+    {
+      "name": "voice-calls",
+      "exitCode": 0,
+      "durationMs": 6536,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\voice-calls.log"
+    },
+    {
+      "name": "independent-voice",
+      "exitCode": 0,
+      "durationMs": 14036,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\independent-voice.log"
+    },
+    {
+      "name": "package",
+      "exitCode": 0,
+      "durationMs": 4429,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\package.log"
+    },
+    {
+      "name": "package-integrity",
+      "exitCode": 0,
+      "durationMs": 1019,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-6f268a7f5a5443fd8cd6a44af3f7b0ff\\package-integrity.log"
+    }
+  ],
+  "package": {
+    "directory": "D:\\LobbyMesh\\dist\\LobbyMesh-win32-x64-1793590863549",
+    "executable": "D:\\LobbyMesh\\dist\\LobbyMesh-win32-x64-1793590863549\\LobbyMesh.exe",
+    "manifestSha256": "0e7f7621377441ac7e47466aaf57330eb98310f845eb3264b1c3c5e6c960dfec",
+    "signature": "NotSigned",
+    "smoke": {
+      "result": "passed",
+      "packaged": true,
+      "electron": "45.1.0",
+      "sandbox": true,
+      "contextIsolation": true,
+      "network": "offline",
+      "microphone": "off",
+      "credentials": "protected-reopen"
+    }
+  },
+  "releaseReady": false
+}

@@ -18,8 +18,7 @@ import { friendInstallerScript } from "./friend-installer.ts";
 
 const args = process.argv.slice(2);
 let development = false;
-let verificationSummary =
-  "docs/evidence/windows-lan-repair-complete-summary.json";
+let verificationSummary = "docs/evidence/windows-identity-preview-summary.json";
 let summarySelected = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--development" && !development) development = true;
