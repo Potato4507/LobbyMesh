@@ -1495,7 +1495,31 @@ async function run() {
         `(() => { const history = document.querySelector('#messageHistory'); history.scrollTop = 0; history.dispatchEvent(new Event('scroll')); })()`,
       );
       await until("document.querySelector('#jumpToLatest') !== null");
+      console.log(
+        JSON.stringify({
+          conversationKeyboardFocus: "before-acquire",
+          native: desktop.window.isFocused(),
+          renderer: await execute("document.hasFocus()"),
+        }),
+      );
+      desktop.window.focus();
+      contents.focus();
       await execute("document.querySelector('#messageHistory').focus()");
+      await until(
+        "document.hasFocus() && document.activeElement?.id === 'messageHistory'",
+      );
+      assert.equal(
+        desktop.window.isFocused(),
+        true,
+        "CONVERSATION_NATIVE_FOCUS_REQUIRED",
+      );
+      assert.equal(
+        await execute(
+          "document.querySelector('#messageHistory').scrollHeight > document.querySelector('#messageHistory').clientHeight",
+        ),
+        true,
+        "CONVERSATION_SCROLL_FIXTURE_REQUIRED",
+      );
       desktop.window.webContents.sendInputEvent({
         type: "keyDown",
         keyCode: "PageDown",
