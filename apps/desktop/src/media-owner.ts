@@ -2,6 +2,7 @@ import {
   AudioPeer,
   type AudioPeerOptions,
 } from "../../../packages/voice/src/audio-peer.js";
+import { publicVoiceIceServers } from "../../../packages/voice/src/description.js";
 import { InputRegistry } from "../../../packages/voice/src/inputs.js";
 import {
   type MediaOutput,
@@ -68,6 +69,7 @@ export function installMediaOwner(
     if (peer || closed) throw new Error("MEDIA_OWNER_USED");
     peer = new AudioPeer({
       permitted: () => !closed,
+      iceServers: options.capture ? [] : publicVoiceIceServers(),
       ...(options.capture ? { capture: options.capture } : {}),
       onFailure: close,
       onRemoteStream: (stream) => {

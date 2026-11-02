@@ -29,6 +29,7 @@ LobbyMesh - Windows preview quick start
    One person calls; the other chooses Answer and allows microphone access.
    Audio starts muted. Hold the talk button to speak; release it to mute.
    End call or disconnect when finished.
+   Calls use public STUN for direct-route discovery; it does not carry audio.
 
 No IP addresses, router changes, paid server or Roblox login are required.
 Roblox session detection is optional and still experimental. This test does

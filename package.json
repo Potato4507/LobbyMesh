@@ -40,7 +40,9 @@
   "dependencies": {
     "hyperdht": "6.35.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "sdp": "3.2.2",
+    "webrtc-adapter": "9.0.6"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.4",

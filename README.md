@@ -7,7 +7,7 @@ guaranteed on every home network.
 
 **[Download Windows setup](https://github.com/Potato4507/LobbyMesh/releases/download/v0.1.0-alpha.1/LobbyMesh-Setup.exe)** ·
 [Release notes and checksum](https://github.com/Potato4507/LobbyMesh/releases/tag/v0.1.0-alpha.1) ·
-[Quick start](docs/FRIEND_QUICK_START.txt) · [Contribute](CONTRIBUTING.md)
+[Quick start](docs/FRIEND_QUICK_START.txt) · [Detailed installation](docs/INSTALLATION.md) · [Contribute](CONTRIBUTING.md)
 
 Run the setup file; no Node installation or network-address configuration is
 needed. Exchange contact codes and approve each other. The download is unsigned;
@@ -23,6 +23,8 @@ See [identity guarantees and limits](docs/IDENTITY.md).
 
 Open source under the [MIT license](LICENSE). Forks, issues and pull requests
 are welcome. See [contribution instructions](CONTRIBUTING.md).
+Chat uses HyperDHT/Noise encrypted streams; voice uses Chromium WebRTC, upstream
+adapter.js/SDP parsing and public STUN. See [component reuse and limits](docs/REUSED_COMPONENTS.md).
 
 ![Identity panel preview with explicitly synthetic profiles](docs/images/identity-preview.png)
 

@@ -106,7 +106,7 @@ async function bundledNotices(source) {
   for (const name of Object.keys(info.dependencies ?? {}))
     await bundledNotices(await locate(source, name));
 }
-for (const name of ["react", "react-dom"])
+for (const name of ["react", "react-dom", "webrtc-adapter", "sdp"])
   await bundledNotices(await locate(root, name));
 await writeFile(
   path.join(output, "DEVELOPMENT-PREVIEW.txt"),

@@ -1,0 +1,37 @@
+{
+  "result": "synthetic-audio-passed",
+  "syntheticSources": 22,
+  "receivedPackets": 47,
+  "receivedBytes": 2854,
+  "receivedEnergy": 0,
+  "mutedRms": 0.000002336051101031902,
+  "talkingRms": 0.7048692643818003,
+  "quarterInputRms": 0.1778687232624288,
+  "zeroInputRms": 0,
+  "inputUnity": { "level": 0.7171842581964253, "peak": false },
+  "inputQuarter": { "level": 0.1740445076858549, "peak": false },
+  "inputHigh": { "level": 1, "peak": true },
+  "quality": { "roundTripMs": 0, "jitterMs": 0, "packetsLost": 0 },
+  "statsStallRecovered": true,
+  "syntheticTrackInterruptions": [
+    "source-muted",
+    "source-ended",
+    "remote-ended",
+    "input-suspended",
+    "initial-muted"
+  ],
+  "releasedRms": 0,
+  "inputSwitch": {
+    "oldTracksStopped": true,
+    "mutedUntilFreshPress": true,
+    "gainPreserved": true,
+    "switchedRms": 0.1765081677561804,
+    "faultCleanup": ["cancel", "timeout", "device-failure"]
+  },
+  "microphone": false,
+  "audibleOutput": false,
+  "crossNat": false,
+  "electron": "45.1.0",
+  "sandbox": true,
+  "permissionRequests": 1
+}

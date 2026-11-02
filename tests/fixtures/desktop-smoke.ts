@@ -725,8 +725,15 @@ async function run() {
       assert.equal(desktop.window.isFocused(), true);
       assert.equal(contents.isFocused(), true);
       await until("document.hasFocus()");
+      await execute(
+        "window.nativeSpaceReleased=false;window.addEventListener('keyup',function released(event){if(event.code==='Space'){window.nativeSpaceReleased=true;window.removeEventListener('keyup',released);}})",
+      );
       contents.sendInputEvent({ type: "keyUp", keyCode: "Space" });
+      await until("window.nativeSpaceReleased === true");
       await execute("document.querySelector('#pushToTalk').focus()");
+      await until(
+        "document.hasFocus() && document.activeElement?.id === 'pushToTalk'",
+      );
       contents.sendInputEvent({ type: "keyDown", keyCode: "Space" });
       await until("window.companion.voice().then(s=>s.transmitting)");
       await navigate("overview");

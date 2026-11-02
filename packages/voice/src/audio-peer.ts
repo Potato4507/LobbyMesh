@@ -1,5 +1,7 @@
 // Browser-only media owner primitive. Main-process permission/identity IPC is a
 // separate boundary; only the dedicated media owner loads this primitive.
+import "webrtc-adapter";
+import { validAudioDescription as validDescription } from "./description.js";
 
 import {
   type InputActivity,
@@ -17,26 +19,7 @@ export interface AudioPeerOptions {
   onRemoteStream?: (stream: MediaStream) => void;
   onFailure?: (reason: string) => void;
   timeoutMs?: number;
-}
-function validDescription(sdp: unknown): sdp is string {
-  if (typeof sdp !== "string" || new TextEncoder().encode(sdp).length > 12_288)
-    return false;
-  const media = sdp.match(/^m=.+$/gm) ?? [];
-  const fingerprints = [
-    ...sdp.matchAll(/^a=fingerprint:sha-256 ([A-Fa-f0-9:]+)\r?$/gm),
-  ].map((match) => match[1]?.toUpperCase());
-  return (
-    media.length === 1 &&
-    media[0]?.startsWith("m=audio ") === true &&
-    /^a=rtpmap:\d+ opus\/48000(?:\/2)?\r?$/im.test(sdp) &&
-    fingerprints.length > 0 &&
-    fingerprints.every(
-      (value) =>
-        typeof value === "string" &&
-        /^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/.test(value),
-    ) &&
-    new Set(fingerprints).size === 1
-  );
+  iceServers?: RTCIceServer[];
 }
 
 export class AudioPeer {
@@ -67,9 +50,10 @@ export class AudioPeer {
       (options.timeoutMs ?? 5000) > 5000
     )
       throw new Error("INVALID_MEDIA_LIMITS");
-    // No project relay, TURN credential, public STUN request or fallback service.
+    // Public STUN is supplied only by the explicit production call owner.
+    // Isolated synthetic media tests keep the empty list; no TURN credentials.
     this.connection = new RTCPeerConnection({
-      iceServers: [],
+      iceServers: options.iceServers?.map((server) => ({ ...server })) ?? [],
       bundlePolicy: "max-bundle",
     });
     this.connection.ontrack = (event) => {

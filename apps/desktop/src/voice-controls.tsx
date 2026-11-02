@@ -279,7 +279,9 @@ export function VoiceControls({
         Calls are for contacts you approve. Answering or calling requests
         microphone access and starts muted. Your microphone stays on during a
         call; audio is sent only while you hold the talk button. Voice
-        permission resets when you disconnect.
+        permission resets when you disconnect. Calls use public STUN to discover
+        a direct route; STUN does not carry your audio. Restrictive networks may
+        still prevent calls.
       </p>
       {(voice?.peerId || peerId) && (
         <p className="voice-peer">
