@@ -4,7 +4,7 @@
 Continue implementing **LobbyMesh**, a Windows-first, open-source, no-owner-operated-backend, self-organizing P2P communication companion. **Write and test code, not just plans.** Read `MASTER_PROMPT.md`, the relevant parts of `IMPLEMENTATION_PLAN.md`, and current `docs/STATUS.md` before editing. Keep doing the next unblocked task during the active session; do not ask for routine approvals between modules.
 
 ## /repository
-- Expected existing GitHub repository: `Potato4507/Roblox-app` (current repository name does **not** need to be changed). This is an **existing partial implementation**, not a blank scaffold.
+- Expected existing GitHub repository: `Potato4507/LobbyMesh`, renamed from `Potato4507/Roblox-app`. This is an **existing partial implementation**, not a blank scaffold. Preserve its existing history and branches.
 - If source files or a repo branch differ from these notes, **trust the inspected repository**, not this historical snapshot. Preserve ALL existing Cloud Codex source, tests, branches, uncommitted work, and valuable docs.
 - Current implementation has partial M00–M15 work, including same-host public bootstrap, Windows log detection, desktop matching and modular overlay. No module is fully product-accepted. Check `docs/STATUS.md` and `docs/evidence` for authoritative details and the next dependency.
 - Use the repo's existing Node/pnpm/Electron stack. Do not regenerate package files, delete tests, reset history, or replace the architecture just because the master plan describes what an empty repository would look like.

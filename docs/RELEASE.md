@@ -1,3 +1,31 @@
+## Public alpha published — 2026-11-01
+
+The existing repository is now public at https://github.com/Potato4507/LobbyMesh,
+with main updated by fast-forward and all prior development history preserved.
+Release v0.1.0-alpha.1 contains the Windows installer, SHA256, quick start and MIT
+license. Anonymous repository/release access and installer HEAD returned HTTP200;
+GitHub's asset digest and the public checksum match the verified local setup.
+Installer SHA256: e806f287de848abe36c4072fef6a36f943a2b1456a1c4296b34ade43a01bf275.
+Release tag/main source 8c55948 passed GitHub run41384942106. Runtime9702914 passed
+all eleven clean Windows stages; installer973e3e1 passed isolated actual install,
+installed-exe integrity/launch/protected reopen and preservation-aware uninstall.
+Normal registration retest was blocked by automatic policy review; earlier proof
+is retained separately. No real profile was touched. Exact publication/download/
+CI evidence is in docs/evidence/public-preview-*.json. Setup is unsigned.
+
+Identity uses display name, checked canonical Roblox username and full permanent
+app-key ID, with signed claims, independent profile-proof checks and account/key
+pins. UI refreshed. Upstream WebRTC adapter/SDP parsing and public STUN integrated;
+chat retains HyperDHT/Noise. MIT forks/issues/PRs are welcome. Detailed user setup,
+troubleshooting, component provenance and contribution docs accompany the source.
+
+This is an experimental public alpha, not production-ready. Known physical native
+reliability, real distinct-network delivery, real account ownership/profile edits,
+hardware microphone/audio, fresh-machine and actual Roblox acceptance remain open.
+Next useful acceptance is a voluntary two-Windows friend run; collect typed state
+and outcomes without private messages, profiles, addresses or credentials.
+Recovery commands: git status --short --branch; git log -5 --oneline; pnpm typecheck.
+
 2026-11-01: Final clean setup from973e3e1 wraps clean verified9702914 runtime;171471954bytes;SHA256 e806f287de848abe36c4072fef6a36f943a2b1456a1c4296b34ade43a01bf275;NotSigned. Actual isolated install/integrity/installed-exe sandbox+protected-reopen/uninstall passed, unrelated file+profile preserved. Additional normal registration retest rejected by automatic policy review, not retried; prior registration proof retained separately. Exact public-preview-installer.json/public-preview-delivery.json and RELEASE_NOTES_0.1.0_ALPHA_1.md. Canonical origin now Potato4507/LobbyMesh, all history preserved. Main fast-forward/public visibility/alpha upload explicitly authorized by user; next commit/push docs, check CI, fast-forward main, stage assets in draft then make repository public and publish prerelease. Production real-external/hardware/Roblox gates remain open.
 
 2026-11-01: CLEAN9702914 Windows verification passes ALL11 stages: type/lint/Node272:271pass/1skip/build/7native desktop modes/new identity UI/explicit Send recovery/synthetic voice calls/full independent voice/actual copied executable/pinned package integrity. Exact evidence/windows-identity-preview-summary.json; runtime includes checked Roblox claims, UI refresh, independent overlay capture and upstream adapter/SDP/STUN integration. GitHub41384243657 succeeds. Prior three failed gates retained. Next build clean pnpm package:friend using this pinned summary, verify install/uninstall and registration, retain SHA256, fast-forward main then publish user-authorized public alpha; real external/hardware/actual account ownership remain unverified.

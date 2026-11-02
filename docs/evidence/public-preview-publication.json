@@ -1,0 +1,38 @@
+{
+  "repository": "https://github.com/Potato4507/LobbyMesh",
+  "visibility": "public",
+  "defaultBranch": "main",
+  "issues": true,
+  "forksAllowed": true,
+  "release": "https://github.com/Potato4507/LobbyMesh/releases/tag/v0.1.0-alpha.1",
+  "tag": "v0.1.0-alpha.1",
+  "source": "8c55948594268be77d77c09af3b4b9f2fe8b6360",
+  "setupSha256": "e806f287de848abe36c4072fef6a36f943a2b1456a1c4296b34ade43a01bf275",
+  "assets": [
+    {
+      "name": "LICENSE",
+      "size": 1079,
+      "digest": "sha256:f0c468301110871a25e21184178861ece4a3a7f92f8cee36a8fe067ce8564fc3",
+      "url": "https://github.com/Potato4507/LobbyMesh/releases/download/v0.1.0-alpha.1/LICENSE"
+    },
+    {
+      "name": "LobbyMesh-Setup.exe",
+      "size": 171471954,
+      "digest": "sha256:e806f287de848abe36c4072fef6a36f943a2b1456a1c4296b34ade43a01bf275",
+      "url": "https://github.com/Potato4507/LobbyMesh/releases/download/v0.1.0-alpha.1/LobbyMesh-Setup.exe"
+    },
+    {
+      "name": "LobbyMesh-Setup.exe.sha256",
+      "size": 86,
+      "digest": "sha256:4e3689f25af006344d3c2f035828c44c92390122bbe7e776fba2a42097f974fa",
+      "url": "https://github.com/Potato4507/LobbyMesh/releases/download/v0.1.0-alpha.1/LobbyMesh-Setup.exe.sha256"
+    },
+    {
+      "name": "START-HERE.txt",
+      "size": 2505,
+      "digest": "sha256:066584ab7ac947b3a4c319694b25e794ab7a25c538a9be16b826ccc5525e05c6",
+      "url": "https://github.com/Potato4507/LobbyMesh/releases/download/v0.1.0-alpha.1/START-HERE.txt"
+    }
+  ],
+  "prerelease": true
+}

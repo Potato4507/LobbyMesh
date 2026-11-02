@@ -1,0 +1,16 @@
+{
+  "anonymousRepositoryStatus": 200,
+  "private": false,
+  "defaultBranch": "main",
+  "license": "MIT",
+  "anonymousReleaseStatus": 200,
+  "prerelease": true,
+  "anonymousInstallerHeadStatus": 200,
+  "installerBytes": 171471954,
+  "checksumMatches": true,
+  "githubAssetDigestMatches": true,
+  "setupSha256": "e806f287de848abe36c4072fef6a36f943a2b1456a1c4296b34ade43a01bf275",
+  "repository": "https://github.com/Potato4507/LobbyMesh",
+  "release": "https://github.com/Potato4507/LobbyMesh/releases/tag/v0.1.0-alpha.1",
+  "download": "https://github.com/Potato4507/LobbyMesh/releases/download/v0.1.0-alpha.1/LobbyMesh-Setup.exe"
+}

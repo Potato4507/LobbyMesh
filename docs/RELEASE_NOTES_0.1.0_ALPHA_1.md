@@ -2,6 +2,12 @@
 
 This is an unsigned experimental Windows x64 preview. It is not production-ready.
 
+Published at [the public GitHub alpha release](https://github.com/Potato4507/LobbyMesh/releases/tag/v0.1.0-alpha.1).
+The repository is public, default branch is `main`, MIT is recognized by GitHub,
+and anonymous installer/checksum access was verified. The tag points to release
+source `8c55948594268be77d77c09af3b4b9f2fe8b6360`, whose main-branch CI passed
+(run41384942106). Later publication-evidence commits do not change the runtime.
+
 ## Downloads
 
 [Windows setup](https://github.com/Potato4507/LobbyMesh/releases/download/v0.1.0-alpha.1/LobbyMesh-Setup.exe)
