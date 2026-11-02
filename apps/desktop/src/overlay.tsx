@@ -12,7 +12,9 @@ type Status = Awaited<ReturnType<Window["companion"]["status"]>>;
 function Overlay() {
   const [status, setStatus] = useState<Status | null>(null),
     [overlay, setOverlay] = useState<OverlayStatus | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [statusFailed, setStatusFailed] = useState(false);
+  const [voiceFailed, setVoiceFailed] = useState(false);
+  const failed = statusFailed || voiceFailed;
   const [voice, setVoice] = useState<OverlayVoiceView | null>(null);
   const [ending, setEnding] = useState(false),
     [callError, setCallError] = useState("");
@@ -20,23 +22,17 @@ function Overlay() {
     endPending = useRef(false);
   useEffect(() => {
     let active = true,
-      busy = false;
+      busy = false,
+      voiceBusy = false;
     const poll = () => {
       if (busy) return;
       busy = true;
-      const revision = voiceRevision.current;
-      void Promise.all([
-        window.companion.status(),
-        window.companion.overlay(),
-        window.companion.overlayVoice(),
-      ])
-        .then(([current, view, call]) => {
+      void Promise.all([window.companion.status(), window.companion.overlay()])
+        .then(([current, view]) => {
           if (active) {
             setStatus(current);
             setOverlay(view);
-            setFailed(false);
-            if (revision === voiceRevision.current && !endPending.current)
-              setVoice(call);
+            setStatusFailed(false);
           }
         })
         .catch(() => {
@@ -44,15 +40,49 @@ function Overlay() {
             setStatus(null);
             // Keep only the last call token available for a stop attempt.
             // Failed dashboards render no cached capture/activity facts.
-            setFailed(true);
+            setStatusFailed(true);
           }
         })
         .finally(() => {
           busy = false;
         });
     };
+    // Capture safety must keep observing its own owner even while an unrelated
+    // dashboard snapshot is pending. Each channel still has one owned read.
+    const pollVoice = () => {
+      if (voiceBusy) return;
+      voiceBusy = true;
+      const revision = voiceRevision.current;
+      void window.companion
+        .overlayVoice()
+        .then((call) => {
+          if (
+            active &&
+            revision === voiceRevision.current &&
+            !endPending.current
+          ) {
+            setVoice(call);
+            setVoiceFailed(false);
+          }
+        })
+        .catch(() => {
+          if (
+            active &&
+            revision === voiceRevision.current &&
+            !endPending.current
+          )
+            setVoiceFailed(true);
+        })
+        .finally(() => {
+          voiceBusy = false;
+        });
+    };
     poll();
-    const timer = setInterval(poll, 1000);
+    pollVoice();
+    const timer = setInterval(() => {
+      poll();
+      pollVoice();
+    }, 1000);
     return () => {
       active = false;
       clearInterval(timer);
@@ -132,7 +162,10 @@ function Overlay() {
     ),
     chat: () => (
       <div data-overlay-widget="chat">
-        <Messages connection={status?.connection ?? null} compact />
+        <Messages
+          connection={failed ? null : (status?.connection ?? null)}
+          compact
+        />
       </div>
     ),
     voice: () => (
@@ -190,9 +223,9 @@ function Overlay() {
           </span>
           <p className="hint">
             <output id="overlayCaptureStatus" aria-live="polite">
-              {status?.microphone === "capturing"
+              {!failed && voice?.capturing === true
                 ? "LobbyMesh microphone on"
-                : status?.microphone === "off"
+                : !failed && voice?.capturing === false
                   ? "LobbyMesh microphone off"
                   : "LobbyMesh microphone state unknown"}
             </output>
@@ -207,7 +240,7 @@ function Overlay() {
               void window.companion
                 .overlayMode(false)
                 .then(setOverlay)
-                .catch(() => setFailed(true));
+                .catch(() => setStatusFailed(true));
             }}
           >
             Back to game

@@ -1,0 +1,43 @@
+{
+  "result": "failed",
+  "stage": "desktop",
+  "reason": "WINDOWS_VERIFICATION_STEP_FAILED:desktop",
+  "source": {
+    "revision": "b37bf99090f1c41f54f4f013730f8a6f3e8724d2",
+    "dirty": false
+  },
+  "steps": [
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "durationMs": 3377,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-3ad8c3acbd4648debfb6a2005f7cf297\\typecheck.log"
+    },
+    {
+      "name": "lint",
+      "exitCode": 0,
+      "durationMs": 823,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-3ad8c3acbd4648debfb6a2005f7cf297\\lint.log"
+    },
+    {
+      "name": "tests",
+      "exitCode": 0,
+      "durationMs": 11271,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-3ad8c3acbd4648debfb6a2005f7cf297\\tests.log"
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "durationMs": 614,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-3ad8c3acbd4648debfb6a2005f7cf297\\build.log"
+    },
+    {
+      "name": "desktop",
+      "exitCode": 1,
+      "durationMs": 72864,
+      "log": "D:\\LobbyMesh\\dist\\windows-verification-3ad8c3acbd4648debfb6a2005f7cf297\\desktop.log"
+    }
+  ],
+  "package": null,
+  "releaseReady": false
+}

@@ -139,6 +139,8 @@ async function run() {
     rejectHeldVoiceRead = false;
   const heldVoiceReads: (() => void)[] = [];
   const heldDashboardReads: (() => void)[] = [];
+  const heldOverlayDashboardReads: (() => void)[] = [];
+  let holdOverlayDashboardRead = false;
   let holdDashboardRead = false;
   let heldDashboardMicrophone: unknown;
   let heldDashboardConnection: unknown;
@@ -157,6 +159,14 @@ async function run() {
       if (channel === "companion:overlay:voice" && failOverlayVoiceRead)
         throw new Error("private synthetic overlay read failure");
       const value = await listener(event, ...args);
+      if (
+        channel === "companion:status" &&
+        holdOverlayDashboardRead &&
+        event.sender !== desktop?.window.webContents
+      )
+        await new Promise<void>((resolve) =>
+          heldOverlayDashboardReads.push(resolve),
+        );
       if (
         channel === "companion:voice:action" &&
         holdNextTalkReply &&
@@ -975,7 +985,17 @@ async function run() {
         );
         rejectHeldVoiceRead = false;
       }
+      holdOverlayDashboardRead = true;
+      for (let n = 0; n < 250 && !heldOverlayDashboardReads.length; n++)
+        await delay(20);
+      assert.ok(
+        heldOverlayDashboardReads.length,
+        "OVERLAY_DASHBOARD_READ_NOT_HELD",
+      );
       const mainCall = await startCall();
+      assert.equal(localVoiceOwner?.status().capturing, true);
+      holdOverlayDashboardRead = false;
+      for (const finish of heldOverlayDashboardReads.splice(0)) finish();
       await until("document.querySelector('#hangupCall') !== null");
       await until("document.querySelector('#pushToTalk') !== null");
       await execute(
@@ -1154,6 +1174,7 @@ async function run() {
       console.log(
         JSON.stringify({
           result: "overlay-capture-passed",
+          independentCaptureWhileDashboardHeld: true,
           optionalCaptureWidgets: false,
           indicatorVisibleAfterScroll: true,
           states: ["off", "on", "unknown", "off"],
