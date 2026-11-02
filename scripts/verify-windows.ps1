@@ -64,6 +64,7 @@ try {
     Invoke-VerificationStep 'tests' @('test')
     Invoke-VerificationStep 'build' @('build')
     Invoke-VerificationStep 'desktop' @('test:desktop')
+    Invoke-VerificationStep 'identity-ui' @('test:identity')
     Invoke-VerificationStep 'send-recovery' @('test:send-recovery')
     Invoke-VerificationStep 'voice-calls' @('test:voice-calls')
     Invoke-VerificationStep 'independent-voice' @('test:independent-voice')

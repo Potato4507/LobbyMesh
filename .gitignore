@@ -7,3 +7,5 @@ dist/
 **/identity-os-v1.bin*
 **/transport-seed-v1*
 **/transport-os-v1.bin*
+**/account-links-v1.json
+**/.account-links-*.tmp

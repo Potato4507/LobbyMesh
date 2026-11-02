@@ -367,13 +367,28 @@ export function Messages({
           >
             {contacts.map((contact) => (
               <option key={contact.peerId} value={contact.peerId}>
-                App contact {contact.peerId.slice(0, 12)} ·{" "}
+                {contact.identity
+                  ? `${contact.identity.displayName}${contact.identity.roblox ? ` · @${contact.identity.roblox.username}` : " · Roblox not linked"}`
+                  : "App contact"}{" "}
+                · {contact.peerId.slice(0, 12)} ·{" "}
                 {contact.discovered
                   ? "Connection details known"
                   : "Waiting for discovery"}
               </option>
             ))}
           </select>
+          {selected && (
+            <details className="identity-key">
+              <summary>Check this contact’s full identity</summary>
+              <code dir="ltr">{selected}</code>
+              <p className="hint">
+                {contacts.find((contact) => contact.peerId === selected)
+                  ?.identity?.roblox
+                  ? "Roblox profile ownership was checked when this app key was approved. The full ID stays pinned; a different key cannot silently replace it."
+                  : "This app contact has no checked Roblox profile. A familiar display name alone is not proof of identity."}
+              </p>
+            </details>
+          )}
           <div className="message-actions">
             <button
               id="findContact"

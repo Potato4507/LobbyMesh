@@ -33,6 +33,11 @@ contextBridge.exposeInMainWorld(
     network: (enabled: unknown) =>
       ipcRenderer.invoke("companion:network", enabled),
     preferences: () => ipcRenderer.invoke("companion:preferences"),
+    account: () => ipcRenderer.invoke("companion:account"),
+    beginAccount: (username: unknown) =>
+      ipcRenderer.invoke("companion:account:begin", username),
+    confirmAccount: (claim: unknown) =>
+      ipcRenderer.invoke("companion:account:confirm", claim),
     createPairingCode: () => ipcRenderer.invoke("companion:pairing:create"),
     previewPairingCode: (code: unknown) =>
       ipcRenderer.invoke("companion:pairing:preview", code),

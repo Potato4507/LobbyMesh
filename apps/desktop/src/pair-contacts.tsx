@@ -133,8 +133,8 @@ export function PairContacts({
       <h2>Add a contact</h2>
       <p>
         Exchange short-lived LobbyMesh codes with someone you know. Both people
-        must approve independently. This does not verify a Roblox account, age
-        or session.
+        must approve independently. Linked Roblox names are checked against a
+        public profile proof. This does not verify age or session membership.
       </p>
       {!online && (
         <p className="hint">
@@ -208,11 +208,26 @@ export function PairContacts({
           <h3>
             <bdi>{preview.displayName}</bdi>
           </h3>
+          <p className="identity-subtitle">
+            {preview.roblox && preview.profileCheckedAt ? (
+              <>
+                @{preview.roblox.username}{" "}
+                <span className="trust-chip">Public profile checked</span>
+              </>
+            ) : (
+              <span className="trust-chip unlinked">
+                Roblox account not linked
+              </span>
+            )}
+          </p>
+          <p className="hint">Permanent LobbyMesh ID</p>
+          <code dir="ltr">{preview.peerId}</code>
           <p>App fingerprint · compare with your contact</p>
           <code dir="ltr">{preview.fingerprint}</code>
           <p className="hint">
-            App key only. Signing this code proves control of that app key; it
-            does not establish a person's identity.
+            Signing proves control of this app key. A public profile check
+            proves the matching key was posted on that Roblox profile at check
+            time. Compare the full ID using a trusted conversation.
           </p>
           <label className="check">
             <input

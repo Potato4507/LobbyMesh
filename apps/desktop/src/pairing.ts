@@ -7,6 +7,7 @@ import {
   parseContactCode,
 } from "../../../packages/protocol/src/pairing.js";
 import type { MessagingPolicy } from "./messaging.js";
+import type { RobloxProfiles } from "./roblox-profiles.js";
 
 export class DesktopPairing {
   private readonly previews = new Map<
@@ -31,7 +32,11 @@ export class DesktopPairing {
       id: string;
       transportKey: string;
     }) => void = () => {},
-    private readonly options: { now?: () => number; timeoutMs?: number } = {},
+    private readonly options: {
+      now?: () => number;
+      timeoutMs?: number;
+      profiles?: RobloxProfiles;
+    } = {},
   ) {
     if (
       !Number.isSafeInteger(options.timeoutMs ?? 5_000) ||
@@ -54,6 +59,7 @@ export class DesktopPairing {
       this.transportKey,
       this.name(),
       now,
+      this.options.profiles?.view().roblox ?? undefined,
     );
     return { code, expiresAt: parseContactCode(code, now).expiresAt };
   }
@@ -75,13 +81,40 @@ export class DesktopPairing {
     this.previews.set(ticket, { code: String(code), invitation });
     return {
       ticket,
+      peerId: invitation.peerId,
       displayName: invitation.displayName,
       fingerprint:
         invitation.peerId.match(/.{4}/g)?.join(" ") ?? invitation.peerId,
       expiresAt: invitation.expiresAt,
       identityTrust: "app-key-only",
       alreadyAuthorized: this.policy.authorized(invitation.peerId),
+      ...(invitation.roblox ? { roblox: { ...invitation.roblox } } : {}),
     };
+  }
+  account() {
+    if (!this.options.profiles) throw new Error("ACCOUNT_SERVICE_UNAVAILABLE");
+    return this.options.profiles;
+  }
+  async review(code: unknown): Promise<ContactPreview> {
+    const preview = this.preview(code);
+    const revision = this.revision;
+    try {
+      if (preview.roblox) {
+        await this.account().check(preview.peerId, preview.roblox);
+        if (
+          this.closed ||
+          revision !== this.revision ||
+          !this.previews.has(preview.ticket) ||
+          this.now() >= preview.expiresAt
+        )
+          throw new Error("PAIRING_CANCELED");
+        preview.profileCheckedAt = this.now();
+      }
+      return preview;
+    } catch (error) {
+      this.cancel(preview.ticket);
+      throw error;
+    }
   }
   cancel(ticket: unknown): void {
     if (typeof ticket !== "string" || !/^[a-f0-9]{32}$/.test(ticket))
@@ -139,11 +172,31 @@ export class DesktopPairing {
         transportKey: invitation.transportKey,
       };
       await Promise.race([
-        this.authenticate(contact, controller.signal),
+        (async () => {
+          if (invitation.roblox)
+            await this.account().check(
+              invitation.peerId,
+              invitation.roblox,
+              controller.signal,
+            );
+          else if (this.options.profiles?.contact(invitation.peerId)?.roblox)
+            throw new Error("ROBLOX_CLAIM_DOWNGRADE");
+          if (!guard()) throw new Error("PAIRING_CANCELED");
+          await this.authenticate(contact, controller.signal);
+        })(),
         aborted,
       ]);
       clearTimeout(timer);
       if (!guard()) throw new Error("PAIRING_CANCELED");
+      if (this.options.profiles) {
+        await this.options.profiles.remember({
+          peerId: invitation.peerId,
+          displayName: invitation.displayName.replace(/[\p{Cc}\p{Cf}]/gu, ""),
+          roblox: invitation.roblox ?? null,
+          checkedAt: invitation.roblox ? this.now() : null,
+        });
+        if (!guard()) throw new Error("PAIRING_CANCELED");
+      }
       await save(invitation.peerId, guard);
       if (!guard() || !this.policy.authorized(invitation.peerId))
         throw new Error("PAIRING_CANCELED");

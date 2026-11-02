@@ -1,6 +1,7 @@
 {
   "name": "companion",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.25.0",
@@ -18,6 +19,7 @@
     "format": "biome check --write .",
     "start": "electron dist/main.cjs",
     "test:desktop": "node scripts/desktop-smoke.mjs",
+    "test:identity": "node scripts/identity-ui-smoke.mjs",
     "test:audio": "node scripts/audio-smoke.mjs",
     "test:media-host": "node scripts/audio-smoke.mjs host",
     "test:voice-calls": "node scripts/audio-smoke.mjs calls",

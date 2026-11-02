@@ -559,7 +559,15 @@ export async function createDesktop(
     try {
       return {
         available: true,
-        contacts: messaging((service) => service.contacts()),
+        contacts: messaging((service) => service.contacts()).map((contact) => {
+          let profile = null;
+          try {
+            profile = pairing().account().contact(contact.peerId);
+          } catch {
+            /* Test adapters may provide app-key identity only. */
+          }
+          return { ...contact, ...(profile ? { identity: profile } : {}) };
+        }),
       };
     } catch {
       return { available: false, contacts: [] };
@@ -640,7 +648,17 @@ export async function createDesktop(
     parseStatusRequest(request);
     return pairing().create();
   });
-  handle("companion:pairing:preview", (request) => pairing().preview(request));
+  handle("companion:pairing:preview", (request) => pairing().review(request));
+  handle("companion:account", (request) => {
+    parseStatusRequest(request);
+    return pairing().account().view();
+  });
+  handle("companion:account:begin", (request) =>
+    pairing().account().begin(request),
+  );
+  handle("companion:account:confirm", (request) =>
+    pairing().account().confirm(request),
+  );
   handle("companion:pairing:cancel", (request) => {
     pairing().cancel(request);
     return { canceled: true };

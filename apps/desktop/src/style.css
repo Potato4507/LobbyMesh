@@ -1,4 +1,7 @@
 :root {
+  --surface-raised: #171b2c;
+  --accent: #b7a6ff;
+  --text-muted: #a9adc5;
   color-scheme: dark;
   font-family: "Segoe UI", system-ui, sans-serif;
   color: #e9eff8;
@@ -662,4 +665,201 @@ textarea:focus-visible {
   color: #c1d0e3;
   font-size: 13px;
   line-height: 1.5;
+}
+
+.section-eyebrow {
+  color: #c3b5ff;
+  letter-spacing: 0.14em;
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+.identity-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  margin-bottom: 18px;
+}
+.identity-heading > div:last-child {
+  min-width: 0;
+}
+.identity-heading h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 25px;
+}
+.identity-heading p {
+  margin: 5px 0 0;
+}
+.identity-avatar {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  flex: 0 0 60px;
+  border-radius: 18px;
+  color: #e7e0ff;
+  font-size: 28px;
+  background: linear-gradient(150deg, #7961b5, #325e73);
+  border: 1px solid #d1bfff40;
+}
+.identity-card {
+  position: relative;
+  overflow: hidden;
+}
+.trust-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a8ead9;
+  background: #67d9ac12;
+  border: 1px solid #67d9ac40;
+  border-radius: 20px;
+  padding: 3px 9px;
+  margin-left: 7px;
+}
+.trust-chip.unlinked {
+  color: #e7ca94;
+  background: #dbb8790d;
+  border-color: #dbb87940;
+  margin-left: 0;
+}
+.identity-key {
+  border-top: 1px solid #ffffff12;
+  padding-top: 14px;
+  margin: 16px 0;
+}
+.identity-key summary {
+  color: #b8b4d4;
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.identity-key code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #d5cbff;
+  font-size: 12px;
+  line-height: 1.8;
+  user-select: all;
+}
+.inline-field {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.inline-field > span {
+  color: #b7a6ff;
+  font-size: 20px;
+}
+.inline-field input {
+  min-width: 0;
+  flex: 1;
+}
+.inline-field button {
+  flex-shrink: 0;
+}
+.profile-proof {
+  border: 1px solid #b7a6ff40;
+  background: #b7a6ff08;
+  padding: 18px;
+  margin-top: 20px;
+  border-radius: 12px;
+}
+.profile-proof h3 {
+  font-size: 16px;
+  margin: 0;
+}
+.profile-proof textarea {
+  width: 100%;
+  font:
+    12px / 1.6 ui-monospace,
+    monospace;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell * {
+    transition: none;
+    scroll-behavior: auto;
+  }
+}
+
+.app-shell {
+  background:
+    radial-gradient(ellipse at 90% 0%, #30264c66, transparent 55%), #0e101b;
+}
+.app-shell .sidebar {
+  background: #111321;
+  border-right: 1px solid #ffffff0e;
+}
+.app-shell .brand-mark {
+  background: linear-gradient(145deg, #c5b5ff, #8ddfd4);
+  color: #161428;
+  border-radius: 14px;
+  box-shadow: 0 6px 30px #ac94f523;
+}
+.app-shell .sidebar nav button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-start;
+  min-height: 46px;
+  border-radius: 10px;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+.app-shell .sidebar nav button[aria-current="page"] {
+  background: #b7a6ff18;
+  color: #ddd4ff;
+  box-shadow: inset 3px 0 #b7a6ff;
+}
+.nav-icon {
+  width: 20px;
+  font-size: 20px;
+  text-align: center;
+  color: #b7a6ff;
+}
+.app-shell .panel {
+  background: linear-gradient(130deg, #191d2f, #141827);
+  border-color: #ffffff12;
+  border-radius: 18px;
+  box-shadow: 0 6px 22px #00000012;
+  padding: 26px;
+}
+.app-shell .status-grid {
+  background: #161a2b;
+  border-color: #ffffff12;
+  border-radius: 15px;
+}
+.app-shell .status-grid > div + div {
+  border-color: #ffffff12;
+}
+.app-shell .workspace .status-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.app-shell .workspace .status-grid > div + div {
+  border-top: 0;
+  border-left: 1px solid #ffffff12;
+}
+.app-shell button:not(.secondary):not([data-view]):not(.widget-order button) {
+  background: #c0b0ff;
+  color: #211938;
+  border-radius: 9px;
+  min-height: 38px;
+}
+.app-shell button.secondary {
+  background: #ffffff07;
+  border-color: #ffffff20;
+  border-radius: 9px;
+}
+.app-shell input:not([type="checkbox"]),
+.app-shell textarea,
+.app-shell select {
+  background: #0f1220;
+  border-color: #41445c;
+  border-radius: 9px;
+}
+.app-shell .hint {
+  color: #a9adc5;
 }

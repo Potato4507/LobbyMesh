@@ -1,0 +1,7 @@
+{
+  "scope": "all locally reachable Git refs and history",
+  "objects": 2734,
+  "blobs": 1472,
+  "findings": [],
+  "exhaustive": false
+}

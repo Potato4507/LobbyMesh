@@ -7,6 +7,7 @@ import {
 import { loadDesktopCredentials } from "./credentials.js";
 import { DesktopMessaging, type MessagingPolicy } from "./messaging.js";
 import { DesktopPairing } from "./pairing.js";
+import { RobloxProfiles } from "./roblox-profiles.js";
 import { type DesktopSessionOptions, DesktopSessions } from "./sessions.js";
 
 export type ContactPolicy = MessagingPolicy;
@@ -39,6 +40,10 @@ export async function createDesktopNetwork(
   let messaging: DesktopMessaging;
   let voice: VoiceCalls;
   const credentials = await loadDesktopCredentials(directory, signal);
+  const profiles = await RobloxProfiles.open(
+    directory,
+    credentials.identity.peerId,
+  );
   const runtime = await createOverlayRuntime(directory, {
     credentials,
     ...(runtimeOptions.bootstrap
@@ -98,6 +103,7 @@ export async function createDesktopNetwork(
     (contact, signal) => runtime.overlay.authenticateContact(contact, signal),
     () => sessionOptions?.preferences().displayName ?? "LobbyMesh user",
     (contact) => messaging.rememberContact(contact),
+    { profiles },
   );
   return {
     diagnostics: () => ({
@@ -121,6 +127,7 @@ export async function createDesktopNetwork(
         .filter((peer) => !policy.blocked(peer.id)).length,
     async stop() {
       const pairingStopped = pairing.close();
+      const profilesStopped = profiles.close();
       let voiceError: unknown;
       try {
         voice.close();
@@ -130,7 +137,12 @@ export async function createDesktopNetwork(
       messaging.close();
       // Revoke local session state immediately; remote copies expire if shutdown
       // prevents a tombstone reaching them. Never keep sockets alive for presence.
-      await Promise.all([pairingStopped, sessions?.stop(), runtime.stop()]);
+      await Promise.all([
+        pairingStopped,
+        profilesStopped,
+        sessions?.stop(),
+        runtime.stop(),
+      ]);
       if (voiceError) throw voiceError;
     },
   };

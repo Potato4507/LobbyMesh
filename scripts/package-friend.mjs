@@ -17,13 +17,26 @@ import { promisify } from "node:util";
 import { friendInstallerScript } from "./friend-installer.ts";
 
 const args = process.argv.slice(2);
-if (args.length > 1 || (args.length && args[0] !== "--development"))
-  throw new Error("INVALID_FRIEND_PACKAGE_OPTIONS");
+let development = false;
+let verificationSummary =
+  "docs/evidence/windows-lan-repair-complete-summary.json";
+let summarySelected = false;
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--development" && !development) development = true;
+  else if (
+    args[i] === "--verification-summary" &&
+    !summarySelected &&
+    args[i + 1] &&
+    !args[i + 1].startsWith("--")
+  ) {
+    verificationSummary = args[++i];
+    summarySelected = true;
+  } else throw new Error("INVALID_FRIEND_PACKAGE_OPTIONS");
+}
 if (process.platform !== "win32" || process.arch !== "x64")
   throw new Error("WINDOWS_X64_REQUIRED");
 const run = promisify(execFile),
-  root = process.cwd(),
-  development = args.includes("--development");
+  root = process.cwd();
 const execute = (file, args, options = {}) =>
   run(file, args, {
     cwd: root,
@@ -39,12 +52,7 @@ if (dirty && !development)
 const installerRevision = (
   await execute("git", ["rev-parse", "HEAD"])
 ).stdout.trim();
-const verified = JSON.parse(
-  await readFile(
-    "docs/evidence/windows-lan-repair-complete-summary.json",
-    "utf8",
-  ),
-);
+const verified = JSON.parse(await readFile(verificationSummary, "utf8"));
 assert.equal(verified.result, "passed");
 const packageDirectory = path.resolve(root, verified.package.directory);
 if (!packageDirectory.startsWith(`${path.resolve(root, "dist")}${path.sep}`))

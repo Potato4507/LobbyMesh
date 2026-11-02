@@ -1,8 +1,34 @@
-# LobbyMesh (development, incomplete)
+# LobbyMesh
+
+A Windows companion for opt-in peer discovery, encrypted conversations, voice
+and a separate, non-injected Roblox overlay. Networking and microphone capture
+start only with permission. Experimental preview; direct connectivity is not
+guaranteed on every home network.
+
+**[Download Windows setup](https://github.com/Potato4507/LobbyMesh/releases/download/v0.1.0-alpha.1/LobbyMesh-Setup.exe)** ·
+[Release notes and checksum](https://github.com/Potato4507/LobbyMesh/releases/tag/v0.1.0-alpha.1) ·
+[Quick start](docs/FRIEND_QUICK_START.txt) · [Contribute](CONTRIBUTING.md)
+
+Run the setup file; no Node installation or network-address configuration is
+needed. Exchange contact codes and approve each other. The download is unsigned;
+verify its SHA256 against the release checksum and keep Windows security enabled.
+
+Your identity combines a display name, an optional checked Roblox username and
+a permanent 256-bit app-key ID. Names alone are never trusted. Link your Roblox
+profile in Preferences by posting the app-specific proof in your public About
+section. Other apps check that proof directly with Roblox, recheck on approval,
+and pin the account to its app key. This is a public-profile ownership check,
+not a Roblox endorsement, age check or session-membership proof.
+See [identity guarantees and limits](docs/IDENTITY.md).
+
+Open source under the [MIT license](LICENSE). Forks, issues and pull requests
+are welcome. See [contribution instructions](CONTRIBUTING.md).
+
+![Identity panel preview with explicitly synthetic profiles](docs/images/identity-preview.png)
 
 Read MASTER_PROMPT.md and IMPLEMENTATION_PLAN.md for scope. Resume using docs/STATUS.md.
 
-Local Windows x64 development package: `pnpm package:win` builds and smoke-tests a self-contained folder with LobbyMesh.exe; no Node installation is needed to run the copied app. Inspect `dist/windows-development-latest.json` for the generated path and `pnpm verify:package PATH` for file integrity. This remains an unsigned development build with no installer, update or public-distribution acceptance; see [release gates](docs/RELEASE.md).
+Local Windows x64 packaging: `pnpm package:win` builds and smoke-tests a self-contained folder. `pnpm package:friend --verification-summary PATH` wraps a successfully verified Windows pipeline summary in a single per-user installer, checks installed bytes, runs the installed executable and verifies uninstall. Inspect `dist/friend-setup-latest.json` for the output. No auto-updater or publisher signature is provided; see [release limits](docs/RELEASE.md).
 
 Desktop navigation: Overview controls connectivity; Conversations contains approved online chat and explicit voice controls; Preferences manages local presence/contact policy; Overlay configures widget visibility, order, position and opacity. Switching pages preserves unsent drafts and unsaved preferences. Enforceable contact-age/safety and physical audio acceptance remain unfinished.
 
@@ -16,7 +42,7 @@ The input-level meter measures the post-gain signal while you hold to talk. Its 
 
 If the microphone source becomes unavailable or muted by the system, or the remote audio track ends, the call stops capture and transmission. Start a new call explicitly after resolving the device issue; unmuting the device cannot resume an old held talk control. These lifecycle cases have synthetic native tests; physical device compatibility remains unverified. See [track interruption evidence](docs/evidence/audio-track-interruption.md).
 
-Contact onboarding: with peer discovery enabled, use Preferences → Add a contact. Exchange short-lived codes using a trusted channel, compare full app fingerprints, then approve on both sides. Preview/sharing alone grants nothing; the app authenticates the remote app key before saving. Codes do not verify Roblox identity, age or server membership. Broader contact-age/safety acceptance remains incomplete. See [pairing proof and limits](docs/evidence/contact-pairing.md).
+Contact onboarding: with peer discovery enabled, use Preferences → Add a contact. Exchange short-lived codes using a trusted channel, compare full app fingerprints, then approve on both sides. Preview/sharing alone grants nothing; the app authenticates the remote app key before saving. Linked Roblox claims require an independent current public-profile proof. Unlinked app contacts stay clearly labeled. Age and server membership are not verified. Broader contact-age/safety acceptance remains incomplete. See [identity guarantees](docs/IDENTITY.md) and [historical pairing evidence](docs/evidence/contact-pairing.md).
 
 Use **Block selected contact** in Conversations to stop that app contact's messages/calls and clear its local conversation. Blocking stays available under message load and with unsaved preference edits. Manage blocked contacts in Preferences; unblocking does not approve them again. A failed save is shown as unconfirmed. See [blocking evidence](docs/evidence/conversation-blocking.md).
 

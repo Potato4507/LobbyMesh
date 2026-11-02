@@ -32,6 +32,7 @@ export interface MessageView {
   failure: DeliveryFailure | null;
 }
 export interface ContactView {
+  identity?: import("../../../packages/protocol/src/roblox-account.js").AccountContact;
   peerId: string;
   discovered: boolean;
 }

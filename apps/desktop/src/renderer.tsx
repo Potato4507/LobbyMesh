@@ -18,6 +18,7 @@ import type {
   VoiceView,
 } from "../../../packages/protocol/src/voice.js";
 import type { DetectionStatus } from "../../../packages/session/src/windows-logs.js";
+import { IdentityCard } from "./identity-card.js";
 import { Messages } from "./messages.js";
 import type { ContactView, MessageView } from "./messaging.js";
 import { OverlaySettings } from "./overlay-settings.js";
@@ -61,6 +62,19 @@ declare global {
         request: import("../../../packages/protocol/src/delivery.js").MessageCancel,
       ): Promise<{ canceled: boolean }>;
       preferences(): Promise<Preferences>;
+      account(): Promise<
+        import("../../../packages/protocol/src/roblox-account.js").AccountView
+      >;
+      beginAccount(username: string): Promise<
+        import("../../../packages/protocol/src/roblox-account.js").RobloxClaim & {
+          proof: string;
+        }
+      >;
+      confirmAccount(
+        claim: import("../../../packages/protocol/src/roblox-account.js").RobloxClaim,
+      ): Promise<
+        import("../../../packages/protocol/src/roblox-account.js").AccountView
+      >;
       updatePreferences(request: unknown): Promise<Preferences>;
       contact(action: string, peerId: string): Promise<Preferences>;
       createPairingCode(): Promise<{ code: string; expiresAt: number }>;
@@ -353,6 +367,15 @@ function App() {
               }
               onClick={() => setView(key)}
             >
+              <span className="nav-icon" aria-hidden="true">
+                {key === "overview"
+                  ? "◈"
+                  : key === "messages"
+                    ? "◌"
+                    : key === "preferences"
+                      ? "⚙"
+                      : "▦"}
+              </span>
               {views[key].label}
               {key === "preferences" && dirty && (
                 <span className="unsaved-dot" aria-hidden="true" />
@@ -523,6 +546,10 @@ function App() {
           </section>
         </div>
         <div id="view-preferences" hidden={view !== "preferences"}>
+          <IdentityCard
+            online={connection?.state === "online"}
+            displayName={preferences?.displayName ?? "LobbyMesh user"}
+          />
           <PairContacts
             connection={connection}
             disabled={dirty || pending}

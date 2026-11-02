@@ -25,6 +25,10 @@ const metadata = JSON.parse(await readFile("package.json", "utf8"));
 const electron = path.dirname(createRequire(import.meta.url)("electron"));
 const output = path.resolve("dist", `LobbyMesh-win32-x64-${Date.now()}`);
 await mkdir(output); // Exclusive output: never remove/overwrite an existing package.
+await cp(
+  path.join(root, "LICENSE"),
+  path.join(output, "LOBBYMESH-LICENSE.txt"),
+);
 await import("./build.mjs");
 for (const entry of await readdir(electron))
   await cp(path.join(electron, entry), path.join(output, entry), {
@@ -106,7 +110,7 @@ for (const name of ["react", "react-dom"])
   await bundledNotices(await locate(root, name));
 await writeFile(
   path.join(output, "DEVELOPMENT-PREVIEW.txt"),
-  "Unsigned local development package. Run LobbyMesh.exe. Networking/session presence default off. No installer, updater, publisher signature, fresh-machine, actual Roblox, audio or cross-NAT acceptance. Project license/distribution review remains unresolved; this is not a public release. Upstream licenses are retained beside their package sources and Electron distribution.\n",
+  "Unsigned experimental preview. Run LobbyMesh.exe or use the separately supplied setup executable. Networking/session presence default off. No updater or publisher signature; fresh-machine, actual Roblox, hardware audio and cross-NAT acceptance remain unverified. LobbyMesh source is MIT licensed; upstream licenses are retained beside their package sources and Electron distribution.\n",
 );
 
 const profile = await mkdtemp(path.join(tmpdir(), "lobbymesh-packaged-smoke-"));

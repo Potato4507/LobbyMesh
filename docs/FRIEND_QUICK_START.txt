@@ -1,4 +1,4 @@
-LobbyMesh - private two-person Windows test
+LobbyMesh - Windows preview quick start
 
 1. Run LobbyMesh-Setup.exe. Choose Open LobbyMesh at the end.
    It installs only for your Windows account; no developer tools are needed.
@@ -7,17 +7,25 @@ LobbyMesh - private two-person Windows test
 2. In Preferences, choose your display name and save it.
    In Overview, enable peer discovery. Your friend does the same.
 
-3. In Preferences, choose Create my contact code. Copy your code and send
+3. In Preferences, link your Roblox username if you want friends to check it.
+   Enter your actual username, choose Link profile, then add the generated
+   proof line to your Roblox profile's public About section. Save it on Roblox
+   and choose I saved it - check my profile in LobbyMesh.
+   Only use a proof generated in YOUR OWN app. Keep it in your About section.
+   Your display name can be copied; your full LobbyMesh app ID identifies you.
+
+4. In Preferences, choose Create my contact code. Copy your code and send
    it through the trusted chat you already use. Exchange fresh codes.
    Paste your friend's code into Their contact code, choose Review contact,
-   compare the fingerprint with your friend, then confirm and Approve contact.
+   check the Roblox username/profile status and compare the FULL app fingerprint
+   with your friend, then confirm and Approve contact.
    BOTH people must approve the other's code.
 
-4. Open Conversations, select your contact and send a short message.
+5. Open Conversations, select your contact and send a short message.
    Accepted by peer app means their app acknowledged it.
    Delivery unconfirmed means it might have arrived; avoid repeated duplicates.
 
-5. For voice, both people enable Allow voice this connection.
+6. For voice, both people enable Allow voice this connection.
    One person calls; the other chooses Answer and allows microphone access.
    Audio starts muted. Hold the talk button to speak; release it to mute.
    End call or disconnect when finished.
@@ -30,8 +38,8 @@ If discovery or calling fails, keep both apps open, check that both contact
 approvals are saved, and try Find contact in Conversations. Direct connections
 can fail on restrictive networks; there is no paid relay fallback.
 
-This is an unsigned private preview. Check the setup checksum supplied by
-the person who gave you the file before running it. Keep Windows security on.
+This is an unsigned experimental preview. Check the setup checksum from the
+GitHub release before running it. Keep Windows security on.
 
 Uninstall through Windows Installed apps. Settings and app keys are retained.
 Third-party licenses and the dependency patch are included with the app.

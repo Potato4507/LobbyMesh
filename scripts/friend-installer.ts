@@ -72,7 +72,7 @@ SetCompressor zlib
 CRCCheck force
 VIProductVersion "0.1.0.0"
 VIAddVersionKey /LANG=1033 "ProductName" "LobbyMesh"
-VIAddVersionKey /LANG=1033 "FileDescription" "LobbyMesh private test setup"
+VIAddVersionKey /LANG=1033 "FileDescription" "LobbyMesh preview setup"
 VIAddVersionKey /LANG=1033 "FileVersion" "0.1.0"
 VIAddVersionKey /LANG=1033 "LegalCopyright" "See included notices"
 !include "MUI2.nsh"
@@ -122,7 +122,7 @@ Section "LobbyMesh"
   StrCmp $SmokeMode 1 done
   CreateShortCut "$SMPROGRAMS\\LobbyMesh.lnk" "$INSTDIR\\App\\LobbyMesh.exe"
   WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LobbyMesh" "DisplayName" "LobbyMesh"
-  WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LobbyMesh" "DisplayVersion" "0.1.0 (private preview)"
+  WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LobbyMesh" "DisplayVersion" "0.1.0 (preview)"
   WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LobbyMesh" "UninstallString" '$\\"$INSTDIR\\Uninstall.exe$\\"'
   WriteRegDWORD HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LobbyMesh" "NoModify" 1
   WriteRegDWORD HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LobbyMesh" "NoRepair" 1

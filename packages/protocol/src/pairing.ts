@@ -4,6 +4,7 @@ import {
   peerIdFromPublicKey,
   verify,
 } from "../../identity/src/index.js";
+import { type RobloxClaim, validRobloxClaim } from "./roblox-account.js";
 
 const DOMAIN = "companion/contact-invite/v1";
 export const PAIRING_LIFETIME_MS = 120_000;
@@ -14,6 +15,7 @@ export interface ContactInvitation {
   peerId: string;
   transportKey: string;
   displayName: string;
+  roblox?: RobloxClaim;
   nonce: string;
   issuedAt: number;
   expiresAt: number;
@@ -44,6 +46,9 @@ function transcript(invitation: Omit<ContactInvitation, "signature">): Buffer {
       invitation.nonce,
       invitation.issuedAt,
       invitation.expiresAt,
+      ...(invitation.roblox
+        ? [invitation.roblox.userId, invitation.roblox.username]
+        : []),
     ]),
   );
 }
@@ -52,9 +57,11 @@ export function createContactCode(
   transportKey: string,
   displayName: string,
   now = Date.now(),
+  roblox?: RobloxClaim,
 ): string {
   if (
     !hex(transportKey, 64) ||
+    (roblox !== undefined && !validRobloxClaim(roblox)) ||
     !validName(displayName) ||
     !Number.isSafeInteger(now) ||
     now < 0 ||
@@ -70,6 +77,7 @@ export function createContactCode(
     nonce: randomBytes(16).toString("hex"),
     issuedAt: now,
     expiresAt: now + PAIRING_LIFETIME_MS,
+    ...(roblox ? { roblox: { ...roblox } } : {}),
   };
   const value = {
     ...body,
@@ -96,8 +104,11 @@ export function parseContactCode(
     const value = JSON.parse(bytes.toString("utf8")) as ContactInvitation;
     if (
       !value ||
-      Object.keys(value).sort().join(",") !==
-        "displayName,expiresAt,issuedAt,nonce,peerId,publicKey,signature,transportKey,version" ||
+      ![
+        "displayName,expiresAt,issuedAt,nonce,peerId,publicKey,signature,transportKey,version",
+        "displayName,expiresAt,issuedAt,nonce,peerId,publicKey,roblox,signature,transportKey,version",
+      ].includes(Object.keys(value).sort().join(",")) ||
+      ("roblox" in value && !validRobloxClaim(value.roblox)) ||
       value.version !== 1 ||
       typeof value.publicKey !== "string" ||
       value.publicKey.length > 512 ||
@@ -133,4 +144,7 @@ export interface ContactPreview {
   expiresAt: number;
   identityTrust: "app-key-only";
   alreadyAuthorized: boolean;
+  peerId: string;
+  roblox?: RobloxClaim;
+  profileCheckedAt?: number;
 }
