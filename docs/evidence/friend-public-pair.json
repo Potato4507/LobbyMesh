@@ -1,0 +1,9 @@
+{
+  "state": "PUBLIC_PAIR_PASSED",
+  "publicBootstrap": true,
+  "processes": 2,
+  "authenticated": true,
+  "signedRecordRead": true,
+  "crossNat": false,
+  "roblox": false
+}

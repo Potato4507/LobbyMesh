@@ -1,0 +1,23 @@
+{
+  "scenario": "physical-fresh-and-warm-udp-flows",
+  "proofTier": "SAME_LAN_PHYSICAL",
+  "deadlineMs": 1500,
+  "windowsProgram": "repository-node-runtime",
+  "freshPiToWindows": {
+    "receivedDatagrams": 1,
+    "piReceivedReply": true
+  },
+  "freshWindowsToPi": {
+    "piReceivedDatagram": true,
+    "windowsReceivedReplies": 1
+  },
+  "warmPiToWindows": {
+    "receivedDatagrams": 1,
+    "piReceivedReply": true
+  },
+  "sshWorkerExit": 0,
+  "cleanupVerified": true,
+  "firewallChanged": false,
+  "hostSettingsChanged": false,
+  "nativeApplicationProof": false
+}

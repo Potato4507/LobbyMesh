@@ -1,0 +1,78 @@
+{
+  "result": "native-handoff-observed",
+  "localBootstrap": true,
+  "independentProcesses": true,
+  "appRpc": false,
+  "hyperdhtVersion": "6.35.0",
+  "localConnection": true,
+  "reusableSocket": true,
+  "fullyBootstrapped": false,
+  "observeServerAborts": true,
+  "attempts": 32,
+  "successes": 32,
+  "oneWay": [
+    [
+      { "outcome": "success", "phase": "reply", "elapsedMs": 15 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 6 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 7 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 6 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 5 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 }
+    ],
+    [
+      { "outcome": "success", "phase": "reply", "elapsedMs": 9 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 5 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 }
+    ]
+  ],
+  "bidirectional": [
+    [
+      { "outcome": "success", "phase": "reply", "elapsedMs": 5 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 6 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 5 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 6 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 8 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 }
+    ],
+    [
+      { "outcome": "success", "phase": "reply", "elapsedMs": 7 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 4 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 5 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 3 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 5 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 6 },
+      { "outcome": "success", "phase": "reply", "elapsedMs": 5 }
+    ]
+  ],
+  "snapshots": [
+    {
+      "active": 0,
+      "accepted": 16,
+      "replies": 16,
+      "invalid": 0,
+      "serverAborts": { "total": 0, "recent": [] },
+      "serverReusableSocket": true,
+      "cachedRoutes": 0
+    },
+    {
+      "active": 0,
+      "accepted": 16,
+      "replies": 16,
+      "invalid": 0,
+      "serverAborts": { "total": 0, "recent": [] },
+      "serverReusableSocket": true,
+      "cachedRoutes": 0
+    }
+  ],
+  "cleanupVerified": true
+}

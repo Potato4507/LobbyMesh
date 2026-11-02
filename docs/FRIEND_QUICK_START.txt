@@ -1,0 +1,37 @@
+LobbyMesh - private two-person Windows test
+
+1. Run LobbyMesh-Setup.exe. Choose Open LobbyMesh at the end.
+   It installs only for your Windows account; no developer tools are needed.
+   You can open it again from the Start menu by searching for LobbyMesh.
+
+2. In Preferences, choose your display name and save it.
+   In Overview, enable peer discovery. Your friend does the same.
+
+3. In Preferences, choose Create my contact code. Copy your code and send
+   it through the trusted chat you already use. Exchange fresh codes.
+   Paste your friend's code into Their contact code, choose Review contact,
+   compare the fingerprint with your friend, then confirm and Approve contact.
+   BOTH people must approve the other's code.
+
+4. Open Conversations, select your contact and send a short message.
+   Accepted by peer app means their app acknowledged it.
+   Delivery unconfirmed means it might have arrived; avoid repeated duplicates.
+
+5. For voice, both people enable Allow voice this connection.
+   One person calls; the other chooses Answer and allows microphone access.
+   Audio starts muted. Hold the talk button to speak; release it to mute.
+   End call or disconnect when finished.
+
+No IP addresses, router changes, paid server or Roblox login are required.
+Roblox session detection is optional and still experimental. This test does
+not establish verified Roblox identity or support for every home network.
+
+If discovery or calling fails, keep both apps open, check that both contact
+approvals are saved, and try Find contact in Conversations. Direct connections
+can fail on restrictive networks; there is no paid relay fallback.
+
+This is an unsigned private preview. Check the setup checksum supplied by
+the person who gave you the file before running it. Keep Windows security on.
+
+Uninstall through Windows Installed apps. Settings and app keys are retained.
+Third-party licenses and the dependency patch are included with the app.

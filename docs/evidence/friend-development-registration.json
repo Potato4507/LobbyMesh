@@ -1,0 +1,10 @@
+{
+  "result": "registration-and-uninstall-passed",
+  "installerSha256": "645809b88da46dedac0a2195e5135f8a8e82ebb59c945e37e35c05fcda9c951b",
+  "perUser": true,
+  "shortcutTargetVerified": true,
+  "uninstallCommandVerified": true,
+  "priorAbsencesRestored": true,
+  "realProfileTouched": false,
+  "applicationLaunched": false
+}

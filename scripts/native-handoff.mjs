@@ -56,7 +56,7 @@ if (mode === "--bootstrap") {
     });
     return stream;
   }
-  const server = node.createServer((incoming) => {
+  const server = node.createServer({ reusableSocket }, (incoming) => {
     counts.accepted++;
     const stream = track(incoming);
     let received = Buffer.alloc(0),
@@ -147,6 +147,8 @@ if (mode === "--bootstrap") {
             ...(serverObservation
               ? { serverAborts: serverObservation.snapshot() }
               : {}),
+            serverReusableSocket: server._reusableSocket === true,
+            cachedRoutes: node._socketPool.routes._routes.size,
             ...(observeServerAborts &&
             Number.isSafeInteger(server._lobbymeshLanAbortDeferrals) &&
             server._lobbymeshLanAbortDeferrals >= 0
@@ -269,6 +271,9 @@ if (mode === "--bootstrap") {
       b.command("snapshot"),
     ]);
     assert.ok(snapshots.every((value) => value.invalid === 0));
+    assert.ok(
+      snapshots.every((value) => value.serverReusableSocket === reusableSocket),
+    );
     const attempts = [...oneWay, ...bidirectional].flat();
     const observation = {
       result: "native-handoff-observed",
