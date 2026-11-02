@@ -1,0 +1,8 @@
+{
+  "installerSha256": "e806f287de848abe36c4072fef6a36f943a2b1456a1c4296b34ade43a01bf275",
+  "bytes": 171471954,
+  "isolatedInstallAndUninstall": "passed",
+  "normalRegistrationRetest": "not-run-policy-rejected",
+  "priorRegistrationEvidence": "friend-final-registration.json",
+  "realProfileTouched": false
+}
